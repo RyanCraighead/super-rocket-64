@@ -30,6 +30,8 @@ A later local migration cross-build externalizes 115 inventoried graphics/audio 
 
 Further verified work reconstructs four Mario wing vertex arrays directly from the supported SM64 ROM, with exact output from the actual C loader. Seven matrix/vector implementation units now use project-authored math; 50,000 matrix and 10,000 vector comparisons pass. The required alSeqFileNew implementation remains in alBnkfNew.c, an exact match to the documented CC0 source. The resulting Windows cross-build and early data probe pass. The detailed content audit distinguishes these resolved items from missing fork/resource grants and unfinished extraction work.
 
+Audio follow-up independently reproduces the 160-byte bank-set metadata exactly and verifies all 34 music sequence ROM overlays. The 123 credited custom voice inputs still need scoped permission or replacements; the disabled extra Peach references do not require more user files.
+
 The launcher passes 28 headless checks. Helper tests cover input failures, cancellation, stable data paths and cache validation; an actual corrupted-profile repair preserved save/config bytes and kept a recovery copy. Focused wheel, networking, Whomp, blue-switch, coin-boost and boost-setting persistence suites also passed. Interactive UI/gameplay, physical-controller and two-PC acceptance remain pending. These results do not resolve the publication gate above.
 
 ## Name check

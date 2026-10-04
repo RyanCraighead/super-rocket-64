@@ -45,6 +45,8 @@ The two Bowser-key images and two custom castle images were searched in the supp
 
 Custom voice inputs are under `sound/samples/sfx_custom_{luigi,luigi_peach,wario,wario_peach,toad,toad_peach}`. The 123 present AIFFs are attributed in credits to Andrat (Luigi), Dark the Eagle (Wario) and Ninten_King_64 (Toad). Credits are not a redistribution grant, and these recordings must not automatically be described as Nintendo originals. Audio buffers also contain generated bank metadata, control bytecode and placeholders; their entire sizes must not be equated with recorded audio.
 
+An independent serializer now reconstructs the 160-byte bank-set table exactly from sequence/bank metadata, without ROM or sample bytes. The music buffer begins with a 16,832-byte assembled sound-player control program. Its 34 music destinations are zero placeholders in the validated local pack; the existing loader fills 100,129 bytes from the supported ROM. Exact comparisons confirm that these ROM overlays determine the final sequence bytes. This resolves neither the later control-program source grant nor custom sample permissions. The 27 extra Peach references in the three custom voice banks are conditional on `EXTENDED_CHAR_SOUNDS`, which is disabled in the inspected build. They correspond by name to existing Mario/Peach ROM samples, so no additional user files are requested for them.
+
 For preserving the exact custom artwork/voices, the missing evidence is a scoped license/permission record covering the pinned inputs and their underlying sources. Otherwise those resources need replacement with owned-ROM-derived or separately cleared material. No additional user ROM is currently justified as a solution to these custom-resource gaps.
 
 ## Structural data and work completed
