@@ -44,6 +44,7 @@ Tailscale is configured by you outside the launcher. Address detection does not 
 
 ## Setup and recovery
 
+- **Reusing a valid setup:** leave source fields blank and run setup; it verifies existing assets first and asks for inputs only if needed.
 - **A ROM is rejected:** check the exact region/revision and accepted format in the source-game list. Renaming a file does not convert or validate it.
 - **Rocket League is rejected:** this version supports the audited Steam build 25535926 packages. An arbitrary Steam/Epic build is not interchangeable; the error identifies the missing or mismatched package.
 - **An optional character fails:** the completed SM64/Octane setup remains available. Go Back to play, or correct that game's input and retry only its setup.

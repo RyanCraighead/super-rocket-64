@@ -303,17 +303,19 @@ namespace SuperRocket64 {
             if (!String.IsNullOrWhiteSpace(rom)) {
                 Guard.Need(File.Exists(rom), "Choose your SM64 US ROM first");
                 result.AddRange(new string[] { "--sm64", Path.GetFullPath(rom) });
-            } else Guard.Need(character != "octane" && character != "mario", "Choose your SM64 US ROM first");
+            } // Blank inputs let the helper validate and reuse an existing profile first.
             if (character == "octane") {
-                Guard.Need(!String.IsNullOrWhiteSpace(game) && Directory.Exists(game), "Choose your Rocket League installation folder (contains TAGame)");
-                result.AddRange(new string[] { "--game", Path.GetFullPath(game) });
+                if (!String.IsNullOrWhiteSpace(game)) {
+                    Guard.Need(Directory.Exists(game), "Rocket League installation folder is missing (contains TAGame)");
+                    result.AddRange(new string[] { "--game", Path.GetFullPath(game) });
+                }
                 if (download) result.Add("--download-ueviewer");
             } else if (character != "mario") {
                 if (!String.IsNullOrWhiteSpace(assets)) {
                     Guard.Need(Directory.Exists(assets), "Prepared character asset folder is missing");
                     result.AddRange(new string[] { "--assets", Path.GetFullPath(assets) });
-                } else {
-                    Guard.Need(!String.IsNullOrWhiteSpace(characterRom) && File.Exists(characterRom), "Choose this character's supported original ROM or prepared asset folder");
+                } else if (!String.IsNullOrWhiteSpace(characterRom)) {
+                    Guard.Need(File.Exists(characterRom), "Selected character ROM is missing");
                     result.AddRange(new string[] { "--rom", Path.GetFullPath(characterRom) });
                 }
             }
@@ -321,7 +323,7 @@ namespace SuperRocket64 {
         }
         internal static List<string> OptionalSetup(string character, string characterRom) {
             Guard.Need(Array.IndexOf(OptionalCharacters, character) >= 0, "Choose one supported optional game");
-            Guard.Need(!String.IsNullOrWhiteSpace(characterRom) && File.Exists(characterRom), "Choose this game's supported original ROM");
+            if (!String.IsNullOrWhiteSpace(characterRom)) Guard.Need(File.Exists(characterRom), "Selected game ROM is missing");
             return Setup(character, "", characterRom, "", "", false);
         }
         internal static string OptionalRomFilter(string character) {
@@ -532,7 +534,7 @@ namespace SuperRocket64 {
             AddButton(homePage, "Refresh setup status", delegate { BeginOperation(Commands.Status(), false, null); });
             mute.Text = "Mute this game session"; mute.AutoSize = true; homePage.Controls.Add(mute);
 
-            AddPageText(setupPage, "Set up Octane", "Choose your original SM64 US ROM and Rocket League installation folder. Setup downloads the pinned UE Viewer extractor automatically; it does not download Rocket League assets.");
+            AddPageText(setupPage, "Set up Octane", "Choose your original SM64 US ROM and Rocket League installation folder. Setup downloads the pinned UE Viewer extractor automatically; it does not download Rocket League assets. Leave fields blank to validate and reuse an existing setup.");
             AddPath(setupPage, "SM64 US ROM or single-ROM ZIP", rom, true);
             AddPath(setupPage, "Rocket League folder (contains TAGame)", game, false);
             AddButton(setupPage, "Set up SM64 + Octane", delegate { BeginOperation(Commands.Setup("octane", rom.Text, "", "", game.Text, true), true, delegate { ShowPage(optionalPromptPage); }); });
@@ -541,7 +543,7 @@ namespace SuperRocket64 {
             AddPageText(optionalPromptPage, "Optional characters", "SM64 + Octane are ready. Would you like to set up one optional character from an original ROM?");
             AddButton(optionalPromptPage, "Yes, choose a game", delegate { ShowPage(optionalSetupPage); });
             AddButton(optionalPromptPage, "No, continue", delegate { ShowPage(homePage); });
-            AddPageText(optionalSetupPage, "Choose one optional game", "Supported: Ocarina of Time, Bomberman 64, Banjo-Kazooie, Spider-Man, or Tony Hawk's Pro Skater. Select that game's supported original ROM.");
+            AddPageText(optionalSetupPage, "Choose one optional game", "Supported: Ocarina of Time, Bomberman 64, Banjo-Kazooie, Spider-Man, or Tony Hawk's Pro Skater. Select that game's supported original ROM, or leave it blank to validate and reuse its existing setup.");
             optionalCharacter.DropDownStyle = ComboBoxStyle.DropDownList;
             optionalCharacter.Items.AddRange(new object[] { "The Legend of Zelda: Ocarina of Time", "Bomberman 64", "Banjo-Kazooie", "Spider-Man", "Tony Hawk's Pro Skater" });
             optionalCharacter.SelectedIndex = 0; optionalCharacter.Width = 350;

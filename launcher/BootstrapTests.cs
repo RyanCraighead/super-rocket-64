@@ -141,8 +141,8 @@ namespace SuperRocket64 {
                 List<string> allowed = Commands.Setup("octane", rom, "", "", rocketLeague, true);
                 Check(allowed.Contains("--sm64") && allowed.Contains("--game") && allowed.Contains(rocketLeague), "Core setup inputs missing");
                 Check(!denied.Contains("--download-ueviewer") && allowed.Contains("--download-ueviewer") && !allowed.Contains("--guided"), "Setup consent or no-prompt route changed");
-                Reject(delegate { Commands.Setup("octane", rom, "", "", "", true); });
-                Reject(delegate { Commands.Setup("octane", "", "", "", rocketLeague, true); });
+                Reject(delegate { Commands.Setup("octane", rom, "", "", Path.Combine(testRoot,"missing-RL"), true); });
+                Reject(delegate { Commands.Setup("octane", Path.Combine(testRoot,"missing.z64"), "", "", rocketLeague, true); });
             });
             Test("optional setup names exactly one validated game ROM and reuses core SM64", delegate {
                 string rom = Path.Combine(testRoot, "fake.z64"); if (!File.Exists(rom)) File.WriteAllText(rom, "synthetic only");
@@ -152,7 +152,14 @@ namespace SuperRocket64 {
                 }
                 Reject(delegate { Commands.OptionalSetup("mario", rom); });
                 Reject(delegate { Commands.OptionalSetup("octane", rom); });
-                Reject(delegate { Commands.OptionalSetup("link", ""); });
+                Reject(delegate { Commands.OptionalSetup("link", Path.Combine(testRoot,"missing-link.z64")); });
+            });
+            Test("blank setup sources reach helper validation and reuse for every character", delegate {
+                foreach (string character in Commands.Characters) {
+                    List<string> args = Commands.Setup(character, "", "", "", "", false);
+                    Check(args.Count == 3 && args[0] == "setup" && args[2] == character, "Reuse requested unrelated source input: " + character);
+                }
+                foreach (string character in Commands.OptionalCharacters) Check(Commands.OptionalSetup(character, "").Count == 3, "Optional reuse was blocked");
             });
             Test("optional ROM pickers match each game's validator formats", delegate {
                 Check(Commands.OptionalRomFilter("link").Contains("*.z64;*.v64;*.n64") && !Commands.OptionalRomFilter("link").Contains("*.zip"), "Link must use a raw N64 ROM");
