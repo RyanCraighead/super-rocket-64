@@ -2,7 +2,7 @@
 
 **No playable public Windows release has been published.**
 
-The public repository contains documentation and creator-authorized gameplay previews. [Draft PR #1](https://github.com/RyanCraighead/super-rocket-64/pull/1) adds standalone launcher source and a headless test harness. A separate local candidate builds from the integrated gameplay baseline, with Octane as the default, the character wheel retained, and the assistant integration removed.
+The public repository contains documentation and creator-authorized gameplay previews. [Draft PR #1](https://github.com/RyanCraighead/super-rocket-64/pull/1) adds standalone launcher source with headless and isolated-desktop UI test harnesses. A separate local candidate builds from the integrated gameplay baseline, with Octane as the default, the character wheel retained, and the assistant integration removed.
 
 ## Publication gate
 
@@ -34,7 +34,7 @@ Audio follow-up independently reproduces the 160-byte bank-set metadata exactly 
 
 The actual C ROM loader now reconstructs 42 object-placement tables, 28 movement-path tables and 851 base-game light structs: 921 structures / 39,764 bytes. Their output exactly matches the previous compiled definitions. Sanitizer tests cover zero initialization, native-endian signed words, complete light layouts and 18 invalid-span cases with unchanged outputs. The Windows build and early data probe pass; all 921 selected symbols occupy uninitialized storage in the linked EXE. Sixty unmatched light definitions remain unchanged, and custom player actors were excluded from the light batch. This work uses the existing supported SM64 ROM and changes no presentation values.
 
-The launcher passes 29 headless checks. Helper tests cover input failures, cancellation, stable data paths and cache validation; an actual corrupted-profile repair preserved save/config bytes and kept a recovery copy. Focused wheel, networking, Whomp, blue-switch, coin-boost and boost-setting persistence suites also passed. Interactive UI/gameplay, physical-controller and two-PC acceptance remain pending. These results do not resolve the publication gate above.
+The launcher passes 29 headless checks. Helper tests cover input failures, cancellation, stable data paths and cache validation; an actual corrupted-profile repair preserved save/config bytes and kept a recovery copy. Focused wheel, networking, Whomp, blue-switch, coin-boost and boost-setting persistence suites also passed. Fresh-machine setup, native gameplay, physical-controller and two-PC acceptance remain pending. These results do not resolve the publication gate above.
 
 ## Name check
 
@@ -43,3 +43,9 @@ An exact GitHub repository-name search for `super-rocket-64` returned no results
 The actual launcher UI now also passes 48 checks on a separate, never-activated Windows desktop, with normal/minimum-size page renders inspected. A private real-payload run passed 64 UI checks covering missing-input failure, cancel before helper startup, clean Octane extraction, retry, and source-free reuse with a synthetic save preserved. This found and fixed a launcher precheck that had unnecessarily demanded original inputs before allowing the helper to validate reusable assets. The child never became foreground; no gameplay, physical controller or peer connection was tested.
 
 A bounded follow-up found no root-license history for the checked names and no project-wide distribution grant in the pinned README, contribution-file inventory, reviewed wiki index or official release notes. Component notices and original-decomp CC0 remain positive scoped evidence. Missing public terms are distinct from an express restriction; no broad feature-removal or speculative replacement plan is being applied.
+
+The next private Windows build also reconstructs three pointer-free display lists (13 commands / 104 ROM bytes), translating original F3D commands into the current PC renderer format. Exact old/PC-format comparisons and 24 rejected-input checks pass under sanitizers. A generated DynOS declaration conflict was fixed while preserving all 2,771 registry names. The repaired Windows build and 115-buffer early probe pass; all 924 selected structures occupy uninitialized storage in the EXE. The previous verified executable is preserved. No game or UI was started for these checks.
+
+A separate setup component now extracts 34 music ranges and 297 sample ranges (3,341,941 bytes) from the existing supported owned SM64 ROM. Thirteen extraction/reuse/corruption/repair/cancellation checks pass, as does an independent comparison with the actual C runtime loader under sanitizers. It runs with the existing bundled Python and requires no extra user input or tool installation. This is a partial recipe component: it is not yet wired into the launcher and does not supply the current engine's custom graphics/audio or complete sound metadata/control program. Its success explicitly does not mean a complete engine profile is ready.
+
+The upstream repository's official [General discussion about unofficial ports](https://github.com/coop-deluxe/sm64coopdx/discussions/1224) welcomes community port links and discussion of merging ports. That is positive evidence of openness to downstream projects; the post does not specify source/binary license terms or contributor-rights scope. A scoped permission question has been drafted but not sent.
