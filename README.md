@@ -6,7 +6,6 @@
 
 Take a rocket-powered car into a familiar world: launch over the castle moat, climb the hills of Bob-omb Battlefield, and find a different line through every course. Octane is the default character. The character wheel stays, so you can switch to Mario or your installed optional characters.
 
-**Release status:** the public Windows download is not available yet. This repository currently contains gameplay previews and the public release documentation. The game source and EXE are being held for an asset and license audit. See [release status](docs/RELEASE-STATUS.md). The footage shows a development build, not a released public edition.
 
 ## What to expect
 
@@ -21,8 +20,6 @@ RocketSim is an approximate reconstruction. This is a fan project, not Rocket Le
 ![Octane jumping through Bob-omb Battlefield](docs/media/battlefield-jumps.gif)
 
 ## Install and play
-
-The intended Windows workflow is being implemented and tested; these are the release instructions being prepared, not a claim that a download is ready:
 
 1. Download the future **Super Rocket 64 Windows x64 EXE** from this repository's Releases page.
 2. Open it and choose your own supported **Super Mario 64 US ROM** and **Rocket League installation**. Setup checks their contents, obtains the pinned extraction tools, and builds your assets locally. You do not install Python or manage UE Viewer yourself.
