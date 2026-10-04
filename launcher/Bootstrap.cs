@@ -508,6 +508,7 @@ namespace SuperRocket64 {
         private readonly NumericUpDown port = new NumericUpDown();
         private readonly ComboBox optionalCharacter = new ComboBox(), onlineCharacter = new ComboBox(), shareAddresses = new ComboBox();
         private readonly Button copyAddress = new Button(), refreshAddresses = new Button(), cancelOperation = new Button();
+        private readonly Button startHost, joinGame;
         private readonly Label addressStatus = new Label(), onlineHeading = new Label();
         private readonly Label optionalFormat = new Label();
         private readonly FlowLayoutPanel homePage = NewPage(), setupPage = NewPage(), optionalPromptPage = NewPage(), optionalSetupPage = NewPage(), optionalDonePage = NewPage(), onlineChoicePage = NewPage(), onlinePage = NewPage();
@@ -555,7 +556,7 @@ namespace SuperRocket64 {
             AddButton(optionalDonePage, "Add another character", delegate { ShowPage(optionalSetupPage); });
             AddButton(optionalDonePage, "Done", delegate { ShowPage(homePage); });
 
-            AddPageText(onlineChoicePage, "Online", "Choose whether to host a game or join a friend's game.");
+            AddPageText(onlineChoicePage, "Online", "Play over a reachable LAN or an existing Tailscale connection. Configure Tailscale yourself before playing; this launcher does not change network or firewall settings. Choose Host or Join.");
             AddButton(onlineChoicePage, "Host", delegate { SetOnlineMode("host"); });
             AddButton(onlineChoicePage, "Join", delegate { SetOnlineMode("join"); });
             AddButton(onlineChoicePage, "Back", delegate { ShowPage(homePage); });
@@ -573,13 +574,13 @@ namespace SuperRocket64 {
             refreshAddresses.Text = "Refresh addresses"; refreshAddresses.AutoSize = true; refreshAddresses.Click += delegate { RefreshAddresses(); };
             hostAddressRow.Controls.Add(copyAddress); hostAddressRow.Controls.Add(refreshAddresses); onlinePage.Controls.Add(hostAddressRow);
             addressStatus.Text = "Reading this PC's existing addresses..."; addressStatus.AutoSize = true; addressStatus.MaximumSize = new Size(820, 0); onlinePage.Controls.Add(addressStatus);
-            onlinePage.Controls.Add(TextBlock("Tailscale hosts share a 100.x address; LAN hosts share a reachable private address. Hosting listens for other PCs automatically. Every peer needs v6 and its own Octane setup; only Mario and Octane are available online."));
+            onlinePage.Controls.Add(TextBlock("Tailscale hosts share a 100.x address; LAN hosts share a reachable private address. Hosting listens on the selected port for other PCs. Share a reachable address listed above, never 0.0.0.0 or a loopback address. Every peer needs a matching Super Rocket 64 build and its own Octane setup; only Mario and Octane are available online."));
             host.Text = ""; host.Width = 260; host.MaxLength = 253; host.AccessibleName = "Friend's host address";
             joinAddressRow.Controls.Add(new Label { Text = "Friend's host address", AutoSize = true, Padding = new Padding(0, 6, 0, 0) }); joinAddressRow.Controls.Add(host);
             Button paste = new Button { Text = "Paste", AutoSize = true }; paste.Click += delegate { try { if (Clipboard.ContainsText()) host.Text = Clipboard.GetText().Trim(); } catch (System.Runtime.InteropServices.ExternalException) { Log("Clipboard busy. Enter the host address manually."); } };
             joinAddressRow.Controls.Add(paste); onlinePage.Controls.Add(joinAddressRow);
-            AddButton(onlinePage, "Start host", delegate { PlayOnline("host"); });
-            AddButton(onlinePage, "Join game", delegate { PlayOnline("join"); });
+            startHost = AddButton(onlinePage, "Start host", delegate { PlayOnline("host"); });
+            joinGame = AddButton(onlinePage, "Join game", delegate { PlayOnline("join"); });
             AddButton(onlinePage, "Back", delegate { ShowPage(onlineChoicePage); });
 
             output.ReadOnly = true; output.Dock = DockStyle.Fill; output.Font = new Font(FontFamily.GenericMonospace, 9); output.BackColor = Color.White;
@@ -618,10 +619,11 @@ namespace SuperRocket64 {
             };
             row.Controls.Add(browse); page.Controls.Add(row);
         }
-        private void AddButton(FlowLayoutPanel page, string label, Action action) {
+        private Button AddButton(FlowLayoutPanel page, string label, Action action) {
             Button button = new Button { Text = label, AutoSize = true, MinimumSize = new Size(210, 32) };
             button.Click += delegate { try { action(); } catch (Exception error) { Log("Stopped: " + error.Message); } };
             page.Controls.Add(button);
+            return button;
         }
         private string SelectedOptional() { return Commands.OptionalCharacters[optionalCharacter.SelectedIndex]; }
         private void UpdateOptionalFormats() { optionalFormat.Text = "Accepted format: " + Commands.OptionalRomFormats(SelectedOptional()); }
@@ -629,6 +631,7 @@ namespace SuperRocket64 {
         private void ShowSetupPage() { ShowPage(setupPage); }
         private void SetOnlineMode(string mode) {
             onlineMode = mode; onlineHeading.Text = mode == "host" ? "Host a game" : "Join a game";
+            startHost.Visible = mode == "host"; joinGame.Visible = mode == "join";
             hostAddressRow.Visible = mode == "host"; addressStatus.Visible = mode == "host"; joinAddressRow.Visible = mode == "join";
             ShowPage(onlinePage);
         }

@@ -42,6 +42,14 @@ Your ROMs, extracted assets, saves and controller settings stay on your PC. They
 
 Tailscale is configured by you outside the launcher. Address detection does not prove another PC can connect. The launcher does not change your firewall, VPN, router or security settings. Two-PC/WAN acceptance is still pending; direct-IP support is not a guarantee that every network route works.
 
+## Setup and recovery
+
+- **A ROM is rejected:** check the exact region/revision and accepted format in the source-game list. Renaming a file does not convert or validate it.
+- **Rocket League is rejected:** this version supports the audited Steam build 25535926 packages. An arbitrary Steam/Epic build is not interchangeable; the error identifies the missing or mismatched package.
+- **An optional character fails:** the completed SM64/Octane setup remains available. Go Back to play, or correct that game's input and retry only its setup.
+- **Setup is canceled:** wait for cleanup to finish, then retry. Completed profiles are reused; an incomplete new stage is discarded. A repaired profile retains its previous copy for recovery.
+- **A stale lock is reported after a crash:** first close every setup/game instance using that data folder. Remove only the empty lock directory named by the error (`.seven-setup-lock` or `.launch-lock`), then retry. Keep the profiles, save files and controller configuration.
+
 ## Controls
 
 | Action | Xbox / PlayStation | Keyboard |
@@ -55,7 +63,7 @@ Tailscale is configured by you outside the launcher. Address detection does not 
 | Pause | Start / Options | Space |
 | Character wheel | Back / Share | Hold F7 |
 
-Car bindings are editable under **Options → Controls → Car Controller**. Mappings and boost preferences are saved locally. Generic joysticks need an appropriate SDL controller mapping. Physical-controller certification for the public edition is pending.
+Car bindings are editable under **Options → Controls → Car Controller**. Mappings and boost preferences are saved locally. Generic joysticks need an appropriate SDL controller mapping. Physical-controller verification for the public edition is pending.
 
 ## Credits
 

@@ -2,7 +2,7 @@
 
 **No playable public Windows release has been published.**
 
-The public repository currently contains documentation and creator-authorized gameplay previews. A separate local candidate is being prepared from the latest integrated gameplay baseline, with Octane as the default, the character wheel retained, and the assistant integration removed.
+The public repository contains documentation and creator-authorized gameplay previews. [Draft PR #1](https://github.com/RyanCraighead/super-rocket-64/pull/1) adds standalone launcher source and a headless test harness. A separate local candidate builds from the integrated gameplay baseline, with Octane as the default, the character wheel retained, and the assistant integration removed.
 
 ## Publication gate
 
@@ -14,11 +14,17 @@ The following remain release gates:
 
 - A public source and binary inventory with documented provenance and no proprietary asset payloads.
 - The Windows EXE built from that audited source, with matching hashes and notices.
-- Clean-install setup, cancel/retry and asset reuse verification using the bundled runtime.
+- Fresh-machine installation and every optional character extraction, plus end-to-end cancel/retry checks through the launcher UI.
 - Launcher UI and gameplay verification, including the retained character wheel and save/controller persistence.
 - Matching-build Mario/Octane multiplayer checks. Optional characters are not supported online.
 
 Older gameplay footage and inherited tests are useful development evidence, not certification of a newly packaged release. Native multiplayer, WAN and physical-controller coverage remain limited.
+
+## Development verification
+
+The Windows candidate cross-build passed. A local-only EXE passed clean installation into an isolated folder, then its bundled Python/Unicorn completed SM64/Octane setup using owned local inputs and the verified extraction tool. Retrying with no source inputs reused the validated profile and preserved a synthetic save. Offline, Host and Join arguments were checked without starting the game. This is development evidence, not a public download or a fresh-machine certification.
+
+The launcher passes 28 headless checks. Helper tests cover input failures, cancellation, stable data paths and cache validation; an actual corrupted-profile repair preserved save/config bytes and kept a recovery copy. Focused wheel, networking, Whomp, blue-switch, coin-boost and boost-setting persistence suites also passed. Interactive UI/gameplay, physical-controller and two-PC acceptance remain pending. These results do not resolve the publication gate above.
 
 ## Name check
 
