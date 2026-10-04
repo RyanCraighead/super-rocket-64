@@ -6,7 +6,7 @@ The public repository contains documentation and creator-authorized gameplay pre
 
 ## Publication gate
 
-The inherited source provenance records no blanket upstream repository license. Some game-derived tables remain in source, and the existing Windows engine includes built-in/custom graphics and audio. Omitting standalone ROMs and image files from a ZIP does not establish that the executable is free of embedded game content.
+The inherited source provenance records no blanket upstream repository license. Some game-derived tables remain in source, and the first local Windows engine included built-in/custom graphics and audio. Omitting standalone ROMs and image files from a ZIP does not establish that the executable is free of embedded game content.
 
 Those source files and engine binaries are not included in this public repository. Before a playable release, the embedded-content inventory must be resolved by local input extraction, replacement with cleared content, or documented redistribution permission. Component-specific licenses must be retained and checked against the actual package. The [content and source audit](CONTENT-AUDIT.md) identifies the concrete files and unresolved categories.
 
@@ -25,6 +25,8 @@ Older gameplay footage and inherited tests are useful development evidence, not 
 The Windows candidate cross-build passed. A local-only EXE passed clean installation into an isolated folder, then its bundled Python/Unicorn completed SM64/Octane setup using owned local inputs and the verified extraction tool. Retrying with no source inputs reused the validated profile and preserved a synthetic save. Offline, Host and Join arguments were checked without starting the game. This is development evidence, not a public download or a fresh-machine certification.
 
 All five optional profiles now pass the bundled helper's validation: Link, Bomberman, Banjo-Kazooie, Spider-Man and Tony Hawk. Four initial setup commands have captured successful exits; Spider-Man's generated profile was confirmed by reuse and final validation. Bomberman was tested with its supported raw ROM input. Missing/wrong-input failures and a corrected-input retry were also checked. These tests used local owned sources in isolated folders and did not start the game.
+
+A later local migration cross-build externalizes 115 inventoried graphics/audio buffers totaling 40,239,904 bytes. The actual Windows binary passes an early headless validation probe, rejects missing and tampered data, and succeeds after repair. None of the 115 original full byte sequences remains in that binary. Its private data folder still has unresolved source/rights requirements, and the launcher has not been integrated with a cleared, reproducible way to create it. The engine and that folder remain unpublished.
 
 The launcher passes 28 headless checks. Helper tests cover input failures, cancellation, stable data paths and cache validation; an actual corrupted-profile repair preserved save/config bytes and kept a recovery copy. Focused wheel, networking, Whomp, blue-switch, coin-boost and boost-setting persistence suites also passed. Interactive UI/gameplay, physical-controller and two-PC acceptance remain pending. These results do not resolve the publication gate above.
 

@@ -24,6 +24,8 @@ The source scan also records 4,047 actor/level model, display-list and vertex ar
 
 A project-authored replacement for the reflection camera math passes sanitizer tests and comparison against 10,000 ordinary camera views. The PC build no longer selects `guLookAtRef.c`. The original file and its notice remain preserved privately. This resolves that implementation dependency in the candidate; it does not license the rest of the inherited source or headers.
 
+The local migration build now loads those 115 graphics/audio buffers from a size- and SHA-256-verified private folder. It validates every file before updating storage. Its headless probe passes valid-data and repaired-retry checks and rejects missing or tampered inputs before window, network or save initialization. The Windows build is 16,605,049 bytes, compared with 56,812,409 before migration; none of the 115 inventoried full byte sequences remains in the new binary. This proves removal of those specific payloads, not that the entire binary is cleared. The public launcher is not yet integrated with a reproducible, cleared source for that folder.
+
 ## Scoped dependency terms
 
 The development build uses components with separate notices: SDL's zlib-style terms; GLEW's combined GLEW/Mesa/Khronos notices; RocketSim MIT; Bullet zlib; UE Viewer MIT; CPython and its incorporated dependencies; and Unicorn's GPLv2 engine with separately licensed Python-binding metadata. Other retained source notices include Lua, stb, miniaudio, ini/mini, miniz, and the DejaVu-derived wheel font. The complete applicable notices and corresponding-source obligations must be checked against the exact release payload. None of those grants licenses Nintendo, Psyonix, Rare, Neversoft or other game content.
