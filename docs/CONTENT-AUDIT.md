@@ -1,33 +1,64 @@
 # Content and source audit
 
-The public repository contains project documentation, creator-authorized gameplay GIFs, and standalone launcher/test source. It has fresh public history. It does not contain the game engine, a playable executable, ROMs, decoded character assets, saves, or a private release archive.
+No playable public release is available. This page distinguishes explicit restrictions, documented grants, missing documentation, and unfinished local extraction work. A missing grant is not a finding of infringement.
 
-The GIFs depict proprietary games. Permission to reuse these recordings is not a license to redistribute their underlying game assets. The standalone launcher is project-authored; no downstream reuse license has been selected for it. Component credits do not grant a blanket license to the engine.
+## What is public
 
-## What still blocks a game release
+Main contains the README, setup/maintenance/release documentation and two creator-authorized gameplay GIFs. Draft PR #1 adds project-authored standalone launcher/test source and this audit. No engine source, ROM, decoded character data, executable, save, private package or private Git ancestry is included.
 
-The integrated engine baseline records SM64coopdx revision `8cd6e5977d9f920d51ca71f2c61801d019ed79c6`. Its provenance documents do not identify a blanket repository license. The following inherited content requires a scoped resolution:
+The only third-party game imagery in that tree is in `docs/media/castle-flight.gif` and `docs/media/battlefield-jumps.gif`. The owner authorized these recordings. That authorization does not grant rights in the underlying raw game assets. No third-party implementation was identified in the standalone launcher. Its downstream reuse license is undecided; that does not block the owner's authorized publication of this source preview.
 
-| Category | Concrete locations | Required resolution |
-| --- | --- | --- |
-| Static audio | `sound/sound_data.c`; compressed instrument/sample/sequence/bank data; custom Luigi, Toad and Wario voice inputs under `sound/samples` | Derive supported data from the user's local source, supply cleared replacements, or document redistribution permission for each remaining input. |
-| Static graphics | Generated texture includes consumed by actor models, `bin/custom_textures.c`, and other engine translation units; four inline textures in `src/pc/apparition.inc.c` | Inventory the bytes actually linked, then remove the payloads from the distributed source and EXE or establish specific rights. |
-| Structural game data | Geometry, vertex/display-list, animation and Goddard data in inherited source | A ROM file prompt alone does not remove these tables or resolve their provenance. |
-| Restrictive library source | `lib/src/guLookAtRef.c`; separately, `lib/src/os.h` | The former was compiled into the first local Windows build and carries an explicit SGI restriction. A replacement is being verified locally. Inclusion of `os.h` in that Windows binary has not been established. Neither file is published here. |
-| Unresolved library grants | `alBnkfNew.c`, `guMtxF2L.c`, `guNormalize.c`, `guOrthoF.c`, `guPerspectiveF.c`, `guRotateF.c`, `guScaleF.c`, `guTranslateF.c`, `ldiv.c` under `lib/src` | Trace the actual source and applicable grants, or replace the required implementation. Absence of a found grant is an unresolved question, not a finding of infringement. |
+## Source grants and restrictions
 
-Moving unresolved bytes into an external asset pack does not make that pack redistributable. The private migration test pack is not available here and is not yet reproducible solely from the supported user game inputs. No future public installer may depend on it or private repository access.
+The original [n64decomp/sm64 repository adopted CC0 on 2023-01-09](https://github.com/n64decomp/sm64/commit/66018e9f3caaa67399218971d61366cb3f7ba7d7). Its [license](https://github.com/n64decomp/sm64/blob/66018e9f3caaa67399218971d61366cb3f7ba7d7/LICENSE.md) covers rights held by the affirmers and expressly does not clear other people's rights. This corrects the earlier overly broad description of the inherited source as lacking identified grant evidence.
 
-The first local Windows binary contained exact byte matches for all 107 generated image arrays (33,923,328 bytes): 67 actor textures, 8 font atlases, 29 HUD/menu textures, one logo, and two level textures. It also contained four 2,048-byte inline apparition textures. Four audio buffers occupy a further 6,308,384 bytes. These inventories identify concrete payloads; they are not a claim that every listed image has the same owner or license.
+| Component | Evidence and present status |
+| --- | --- |
+| Original decomp contributors' source | Documented CC0 grant. Preserve its scope and notice; do not extend it to third-party game content or later fork additions. |
+| Seven baseline library files | `alBnkfNew.c`, `guNormalize.c`, `guOrthoF.c`, `guPerspectiveF.c`, `guRotateF.c`, `guScaleF.c`, and `guTranslateF.c` exactly match files at the CC0 commit. They are not simply “no grant found.” |
+| Two modified library files | `guMtxF2L.c` and `ldiv.c` differ from that snapshot. Their later deltas lacked a verified scoped grant. The candidate now uses project-authored matrix adapters and excludes `ldiv.c`. |
+| SGI reflection implementation | `lib/src/guLookAtRef.c` contains an explicit restriction on disclosure/copying without written consent. It is replaced in the PC build and must be excluded from a future public source export. The original remains preserved privately. |
+| Separate SGI header | `lib/src/os.h` has an explicit restriction too. It was not found in the inspected PC dependency graph. Exclude it from a source export; there is no evidence here that it is in the PC EXE. |
+| Later PC/multiplayer fork changes | Pinned coopdx `src/pc/network/network_player.c` is absent from the original CC0 tree. `src/game/mario.c`, `src/game/level_update.c`, and `src/engine/math_util.c` differ from it. A grant for the later contributions has not been established by the inspected README, credits or root notices. The next evidence needed is a scoped maintainer/contributor grant for those fork layers, not another ROM. |
 
-The source scan also records 4,047 actor/level model, display-list and vertex arrays, plus separate geometry layouts, collisions, placements, scripts and other tables. It identifies 34 Goddard dynamic-list/animation arrays in 13 files. Source presence and a static initializer are evidence requiring review, not proof that every array reaches the final binary. The wheel's 9,880-byte DejaVu-derived raster has a separate scoped font notice.
+The current PC build retains `alBnkfNew.c` because it also provides the required `alSeqFileNew` function; its exact CC0-source match is documented. The seven old matrix/vector implementation files have project-authored replacements. Sanitizer tests and 50,000 matrix / 10,000 vector comparisons pass. The previously replaced reflection math passed 10,000 camera-view comparisons. These changes do not grant rights in unrelated source or assets.
 
-A project-authored replacement for the reflection camera math passes sanitizer tests and comparison against 10,000 ordinary camera views. The PC build no longer selects `guLookAtRef.c`. The original file and its notice remain preserved privately. This resolves that implementation dependency in the candidate; it does not license the rest of the inherited source or headers.
+## Exact resource groups still lacking a complete setup recipe
 
-The local migration build now loads those 115 graphics/audio buffers from a size- and SHA-256-verified private folder. It validates every file before updating storage. Its headless probe passes valid-data and repaired-retry checks and rejects missing or tampered inputs before window, network or save initialization. The Windows build is 16,605,049 bytes, compared with 56,812,409 before migration; none of the 115 inventoried full byte sequences remains in the new binary. This proves removal of those specific payloads, not that the entire binary is cleared. The public launcher is not yet integrated with a reproducible, cleared source for that folder.
+All 107 generated image inputs are pinned by path, size and hash to coopdx revision `8cd6e5977d9f920d51ca71f2c61801d019ed79c6`. The resource manifest supplies provenance but no per-image creator grant. The required groups are:
 
-## Scoped dependency terms
+| Location | Inputs |
+| --- | ---: |
+| `actors/bowser_key/bowser_key_{left,right}.rgba16.png` | 2 |
+| `actors/luigi/custom_*.png` | 7 |
+| `actors/mario/custom_*.png` | 12 |
+| `actors/toad_player/custom_*.png` | 13 |
+| `actors/waluigi/custom_*.png` | 16 |
+| `actors/wario/custom_*.png` | 17 |
+| `levels/castle_grounds/6_custom.rgba16.png`, `levels/castle_courtyard/0_custom.rgba16.png` | 2 |
+| `textures/custom_font/custom_font_{aliased,hud,hud_recolor,jp,jp_aliased,normal,special,title}.rgba32.png` | 8 |
+| `textures/segment2/`: coopdx logo, extra HUD glyphs, character heads, ping/selection icons and spike shadow | 30 |
 
-The development build uses components with separate notices: SDL's zlib-style terms; GLEW's combined GLEW/Mesa/Khronos notices; RocketSim MIT; Bullet zlib; UE Viewer MIT; CPython and its incorporated dependencies; and Unicorn's GPLv2 engine with separately licensed Python-binding metadata. Other retained source notices include Lua, stb, miniaudio, ini/mini, miniz, and the DejaVu-derived wheel font. The complete applicable notices and corresponding-source obligations must be checked against the exact release payload. None of those grants licenses Nintendo, Psyonix, Rare, Neversoft or other game content.
+Four further 2,048-byte textures, `apparition_texture_1` through `_4` from `src/pc/apparition.inc.c`, supply a date-dependent visual override. No supported-source reconstruction recipe or scoped grant was identified for them. The separate 9,880-byte DejaVu-derived wheel font has its own retained font notice; it does not license the eight atlases above.
 
-The current public launcher preview does not bundle those runtimes or libraries. The component inventory and local tests are evidence for continuing development, not legal clearance or a playable-release certification.
+The two Bowser-key images and two custom castle images were searched in the supported US SM64 ROM and all 76 indexed MIO0 groups, including RGBA16 byte-order checks. None matched. Both custom castle images match each other but differ from the original castle-grounds texture slot. The other 103 images were not individually ROM-searched. These results establish **no verified reconstruction recipe**, not mathematical impossibility or evidence that a different game ROM is required.
+
+Custom voice inputs are under `sound/samples/sfx_custom_{luigi,luigi_peach,wario,wario_peach,toad,toad_peach}`. The 123 present AIFFs are attributed in credits to Andrat (Luigi), Dark the Eagle (Wario) and Ninten_King_64 (Toad). Credits are not a redistribution grant, and these recordings must not automatically be described as Nintendo originals. Audio buffers also contain generated bank metadata, control bytecode and placeholders; their entire sizes must not be equated with recorded audio.
+
+For preserving the exact custom artwork/voices, the missing evidence is a scoped license/permission record covering the pinned inputs and their underlying sources. Otherwise those resources need replacement with owned-ROM-derived or separately cleared material. No additional user ROM is currently justified as a solution to these custom-resource gaps.
+
+## Structural data and work completed
+
+Actor/level `model.inc.c` display lists and remaining vertices, `geo.inc.c` layouts, level scripts/collisions/placements/moving-texture tables, and `src/goddard/dynlists` data remain in inherited source. The inventory counted 4,047 actor/level model/display-list/vertex arrays and 34 Goddard dynamic-list/animation arrays. Source presence does not prove that each reaches the executable. Base-game data already available in the supported ROM is an extraction/host-format adaptation task; it should not be mislabeled as a missing user input. Later custom models and modifications require their own source/grant or replacement decision.
+
+Four Mario wing vertex arrays now reconstruct directly from the supported US ROM: 26 vertices / 416 bytes. The actual C loader passes sanitizer-backed exact-hash checks while preserving the inherited white-opaque shading adjustment. No additional input or embedded vertex payload is required for those arrays.
+
+The completed 115-buffer migration remains intact: 40,239,904 bytes of inventoried graphics/audio were removed from static initializers. The prior migration EXE contained none of those full byte sequences and passed early missing-data/tamper/repair probes. Its private folder is still not reproducible solely from the supported user inputs. Neither that folder nor any engine binary is published, and the launcher is not yet integrated with a complete cleared source for it.
+
+## Remaining release decisions
+
+1. Establish the grant for later fork contributions, with the documented CC0 baseline kept separate.
+2. Preserve exact custom art/voices only with scoped provenance and permission evidence, or choose replacements. That choice may change appearance and voice presentation; the seven-character wheel and gameplay remain requirements.
+3. Finish ROM-based reconstruction of required base-game structural data and any verified resource transforms. Preserve engine behavior through tests.
+4. Retain the actual component notices and corresponding-source obligations for SDL, GLEW, RocketSim/Bullet, UE Viewer, CPython/dependencies, Unicorn, and the embedded libraries/font. Their licenses do not extend to unrelated game content.
+5. Complete coordinated launcher UI, fresh-machine, gameplay/controller and matching-build Mario/Octane two-PC acceptance. Optional characters remain offline only.
