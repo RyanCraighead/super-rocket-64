@@ -6,7 +6,7 @@
 
 Take a rocket-powered car into a familiar world: launch over the castle moat, climb the hills of Bob-omb Battlefield, and find a different line through every course. Octane is the default character. The character wheel stays, so you can switch to Mario or your installed optional characters.
 
-**Release status:** the public Windows download is not available yet. This repository currently contains gameplay previews and the public release documentation. The game source and EXE are being held for an asset and license audit. See [release status](docs/RELEASE-STATUS.md). The footage shows a development build, not a released public edition.
+**Release status:** the public Windows download is not available yet. This repository currently contains gameplay previews and the public release documentation. The game source and EXE are being held for an asset and license audit. See [release status](docs/RELEASE-STATUS.md) and the [content audit](docs/CONTENT-AUDIT.md). The footage shows a development build, not a released public edition.
 
 ## What to expect
 
