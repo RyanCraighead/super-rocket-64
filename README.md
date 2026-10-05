@@ -6,7 +6,7 @@
 
 Take a rocket-powered car into a familiar world: launch over the castle moat, climb the hills of Bob-omb Battlefield, and find a different line through every course. Octane is the default character. The character wheel stays, so you can switch to Mario or your installed optional characters.
 
-**Release status:** the public Windows download is not available yet. This repository currently contains gameplay previews and the public release documentation. The game source and EXE are being held for an asset and license audit. See [release status](docs/RELEASE-STATUS.md) and the [content audit](docs/CONTENT-AUDIT.md). The footage shows a development build, not a released public edition.
+**Windows x64 preview available.** Download the standalone EXE from [Releases](https://github.com/RyanCraighead/super-rocket-64/releases). You supply the supported games locally; setup handles Python and the pinned extraction tool. See [verification and limitations](docs/RELEASE-STATUS.md).
 
 ## What to expect
 
@@ -22,9 +22,9 @@ RocketSim is an approximate reconstruction. This is a fan project, not Rocket Le
 
 ## Install and play
 
-The intended Windows workflow is being implemented and tested; these are the release instructions being prepared, not a claim that a download is ready:
+First-time setup:
 
-1. Download the future **Super Rocket 64 Windows x64 EXE** from this repository's Releases page.
+1. Download the **Super Rocket 64 Windows x64 EXE** from this repository's Releases page.
 2. Open it and choose your own supported **Super Mario 64 US ROM** and **Rocket League installation**. Setup checks their contents, obtains the pinned extraction tools, and builds your assets locally. You do not install Python or manage UE Viewer yourself.
 3. Choose **No** for optional characters to finish, or **Yes** to select additional characters and provide only their required game files.
 4. Choose **Offline** to enter the game as Octane. Hold **F7** or the controller's **Share/Back** button to open the character wheel on safe ground.
@@ -64,7 +64,7 @@ Tailscale is configured by you outside the launcher. Address detection does not 
 | Pause | Start / Options | Space |
 | Character wheel | Back / Share | Hold F7 |
 
-Car bindings are editable under **Options → Controls → Car Controller**. Mappings and boost preferences are saved locally. Generic joysticks need an appropriate SDL controller mapping. Physical-controller verification for the public edition is pending.
+Car bindings are editable under **Options > Controls > Car Controller**. Mappings and boost preferences are saved locally. Generic joysticks need an appropriate SDL controller mapping. Physical-controller verification for the public edition is pending.
 
 ## Credits
 

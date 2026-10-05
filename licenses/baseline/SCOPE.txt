@@ -1,0 +1,26 @@
+Super Rocket 64 baseline dependency and attribution supplement
+
+The engine build uses DISCORD_SDK=0, COOPNET=0 and UPDATER=0. Discord ID/Lua
+compatibility helpers are separate fork code; no Discord SDK, CoopNet or
+libjuice binary is packaged/linked. The project's miniz copy has the MIT-style
+notice retained in miniz-MIT.txt; it is distinct from the linked zlib library.
+
+Original-decomp-CC0.md records the original decomp notice at its reviewed
+adoption commit. Its scope is the affirmers' covered contributions; it is not
+a license for Nintendo assets or unrelated later fork/custom contributions.
+Upstream-credits.txt retains upstream attribution, including custom voices.
+Credits alone are not a license grant. See THIRD_PARTY_NOTICES.txt for the
+existing component notices, including the updated renderer condition.
+
+SDL2, GLEW, zlib, RocketSim/Bullet and the MinGW/GCC runtime notices accompany
+the actual linked components. The compiler itself is not shipped. GCC's
+runtime exception is retained with its installed toolchain copyright text.
+The unmodified Python embedded runtime carries its own notices. Unicorn's
+corresponding source archive and license documents remain in the package.
+UE Viewer is obtained separately from the pinned official source during
+setup; its code license does not cover Rocket League assets.
+
+No bundled notice extends rights to user-supplied ROMs, exported game assets,
+or resources outside that notice's scope. The original/private resources and
+previous working installers are preserved; no blanket resource removal was
+used to prepare this supplement.

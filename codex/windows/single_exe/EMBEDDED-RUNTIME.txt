@@ -1,0 +1,20 @@
+CPython 3.13.16, official Windows x64 embeddable runtime:
+https://www.python.org/ftp/python/3.13.16/python-3.13.16-embeddable-amd64.zip
+SHA256 589dc1e9d02549ca5f680710307ff9b77f6e3ffc4aa3efccd7fa54eeeafac94b
+Verified against https://www.python.org/ftp/python/3.13.16/windows-3.13.16.json
+The archive's LICENSE.txt and dependency binaries/notices remain under python/.
+Only python313._pth is customized to isolate and locate bundled helper modules.
+
+Unicorn 2.1.4 Windows x64 wheel (cp37-abi3), unmodified files:
+https://pypi.org/project/unicorn/2.1.4/
+SHA256 d7107500c64ce5c168fbff6bef9485b5db1350050036f4cea568650cf8bdbdf5
+Files and metadata remain under python/Lib/site-packages/.
+Unicorn engine is GPLv2; Python binding metadata also identifies BSD licensing.
+Do not interpret the binding metadata as relicensing the engine or QEMU code.
+The corresponding source and build scripts are bundled here:
+unicorn-2.1.4.tar.gz
+SHA256 00567a70e323f749b419cd86bee4f9115beab7ebba32194581c090cbb7c59cff
+This contains the engine/QEMU source and COPYING/COPYING.LIB/LICENSE notices.
+Runtime and source hashes were verified against the pinned PyPI 2.1.4 metadata.
+
+No original game ROMs or exported user addon assets are included in this runtime.

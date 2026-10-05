@@ -1,0 +1,1115 @@
+{
+  "schema_version": 1,
+  "game": "Bomberman 64 (1997)",
+  "profile": "bm64-us-1.0",
+  "retail": {
+    "size": 8388608,
+    "sha1": "8a7648d8105ac4fc1ad942291b2ef89aeca921c9",
+    "md5": "093058ece14c8cc1a887b2087eb5cfe9",
+    "crc32": "3ed0e0dc",
+    "serial": "NBME"
+  },
+  "decomp_expected": {
+    "size": 10090784,
+    "sha1": "8f9e1706b5ef0d51c3cbce4a024796f56420784a",
+    "md5": "d2f9313cccae0af85d23ac37666c0173"
+  },
+  "source": {
+    "repository": "https://github.com/Bomberhackers/bm64",
+    "commit": "c7c5fd5a73a9d5969673535030fc4f1df956fa5f",
+    "path": "tools/bm64decompress.cpp",
+    "sha256": "c456bbfd465a7ffe9fc31c75f41bc598cf541d0f46dda62b669acc1b419bdc40"
+  },
+  "overlays": [
+    {
+      "name": "ovl_1_header",
+      "compressed": false,
+      "table_rom": 1179648,
+      "entry_offset": 0,
+      "rom_offset": 1187848,
+      "stored_size": 14,
+      "decoded_size": 16,
+      "decomp_offset": 8388608
+    },
+    {
+      "name": "ovl_1_subovl_1",
+      "compressed": true,
+      "table_rom": 1179648,
+      "entry_offset": 14,
+      "rom_offset": 1187862,
+      "stored_size": 2846,
+      "decoded_size": 6624,
+      "decomp_offset": 8388624
+    },
+    {
+      "name": "ovl_1_subovl_2",
+      "compressed": true,
+      "table_rom": 1179648,
+      "entry_offset": 2860,
+      "rom_offset": 1190708,
+      "stored_size": 2990,
+      "decoded_size": 6864,
+      "decomp_offset": 8395248
+    },
+    {
+      "name": "ovl_1_subovl_3",
+      "compressed": true,
+      "table_rom": 1179648,
+      "entry_offset": 5850,
+      "rom_offset": 1193698,
+      "stored_size": 2946,
+      "decoded_size": 6736,
+      "decomp_offset": 8402112
+    },
+    {
+      "name": "ovl_1_subovl_4",
+      "compressed": true,
+      "table_rom": 1179648,
+      "entry_offset": 8796,
+      "rom_offset": 1196644,
+      "stored_size": 2926,
+      "decoded_size": 6720,
+      "decomp_offset": 8408848
+    },
+    {
+      "name": "ovl_2_header",
+      "compressed": false,
+      "table_rom": 1310720,
+      "entry_offset": 0,
+      "rom_offset": 1318920,
+      "stored_size": 20,
+      "decoded_size": 32,
+      "decomp_offset": 8415568
+    },
+    {
+      "name": "ovl_2_subovl_1",
+      "compressed": true,
+      "table_rom": 1310720,
+      "entry_offset": 20,
+      "rom_offset": 1318940,
+      "stored_size": 14968,
+      "decoded_size": 23776,
+      "decomp_offset": 8415600
+    },
+    {
+      "name": "ovl_2_subovl_2",
+      "compressed": true,
+      "table_rom": 1310720,
+      "entry_offset": 14988,
+      "rom_offset": 1333908,
+      "stored_size": 13060,
+      "decoded_size": 21760,
+      "decomp_offset": 8439376
+    },
+    {
+      "name": "ovl_2_subovl_3",
+      "compressed": true,
+      "table_rom": 1310720,
+      "entry_offset": 28048,
+      "rom_offset": 1346968,
+      "stored_size": 13814,
+      "decoded_size": 22528,
+      "decomp_offset": 8461136
+    },
+    {
+      "name": "ovl_2_subovl_4",
+      "compressed": true,
+      "table_rom": 1310720,
+      "entry_offset": 41862,
+      "rom_offset": 1360782,
+      "stored_size": 7900,
+      "decoded_size": 14016,
+      "decomp_offset": 8483664
+    },
+    {
+      "name": "ovl_2_subovl_5",
+      "compressed": true,
+      "table_rom": 1310720,
+      "entry_offset": 49762,
+      "rom_offset": 1368682,
+      "stored_size": 16194,
+      "decoded_size": 26832,
+      "decomp_offset": 8497680
+    },
+    {
+      "name": "ovl_2_subovl_6",
+      "compressed": true,
+      "table_rom": 1310720,
+      "entry_offset": 65956,
+      "rom_offset": 1384876,
+      "stored_size": 9616,
+      "decoded_size": 17648,
+      "decomp_offset": 8524512
+    },
+    {
+      "name": "ovl_3_header",
+      "compressed": false,
+      "table_rom": 1441792,
+      "entry_offset": 0,
+      "rom_offset": 1449992,
+      "stored_size": 22,
+      "decoded_size": 32,
+      "decomp_offset": 8542160
+    },
+    {
+      "name": "ovl_3_subovl_1",
+      "compressed": true,
+      "table_rom": 1441792,
+      "entry_offset": 22,
+      "rom_offset": 1450014,
+      "stored_size": 6980,
+      "decoded_size": 12160,
+      "decomp_offset": 8542192
+    },
+    {
+      "name": "ovl_3_subovl_2",
+      "compressed": true,
+      "table_rom": 1441792,
+      "entry_offset": 7002,
+      "rom_offset": 1456994,
+      "stored_size": 17706,
+      "decoded_size": 29568,
+      "decomp_offset": 8554352
+    },
+    {
+      "name": "ovl_3_subovl_3",
+      "compressed": true,
+      "table_rom": 1441792,
+      "entry_offset": 24708,
+      "rom_offset": 1474700,
+      "stored_size": 14536,
+      "decoded_size": 25312,
+      "decomp_offset": 8583920
+    },
+    {
+      "name": "ovl_3_subovl_4",
+      "compressed": true,
+      "table_rom": 1441792,
+      "entry_offset": 39244,
+      "rom_offset": 1489236,
+      "stored_size": 15564,
+      "decoded_size": 29328,
+      "decomp_offset": 8609232
+    },
+    {
+      "name": "ovl_3_subovl_5",
+      "compressed": true,
+      "table_rom": 1441792,
+      "entry_offset": 54808,
+      "rom_offset": 1504800,
+      "stored_size": 8030,
+      "decoded_size": 14272,
+      "decomp_offset": 8638560
+    },
+    {
+      "name": "ovl_3_subovl_6",
+      "compressed": true,
+      "table_rom": 1441792,
+      "entry_offset": 62838,
+      "rom_offset": 1512830,
+      "stored_size": 17766,
+      "decoded_size": 30096,
+      "decomp_offset": 8652832
+    },
+    {
+      "name": "ovl_3_subovl_7",
+      "compressed": true,
+      "table_rom": 1441792,
+      "entry_offset": 80604,
+      "rom_offset": 1530596,
+      "stored_size": 9690,
+      "decoded_size": 15856,
+      "decomp_offset": 8682928
+    },
+    {
+      "name": "ovl_4_header",
+      "compressed": false,
+      "table_rom": 1572864,
+      "entry_offset": 0,
+      "rom_offset": 1581064,
+      "stored_size": 32,
+      "decoded_size": 32,
+      "decomp_offset": 8698784
+    },
+    {
+      "name": "ovl_4_subovl_1",
+      "compressed": true,
+      "table_rom": 1572864,
+      "entry_offset": 32,
+      "rom_offset": 1581096,
+      "stored_size": 18094,
+      "decoded_size": 31104,
+      "decomp_offset": 8698816
+    },
+    {
+      "name": "ovl_4_subovl_2",
+      "compressed": true,
+      "table_rom": 1572864,
+      "entry_offset": 18126,
+      "rom_offset": 1599190,
+      "stored_size": 17036,
+      "decoded_size": 28880,
+      "decomp_offset": 8729920
+    },
+    {
+      "name": "ovl_4_subovl_3",
+      "compressed": true,
+      "table_rom": 1572864,
+      "entry_offset": 35162,
+      "rom_offset": 1616226,
+      "stored_size": 4688,
+      "decoded_size": 9840,
+      "decomp_offset": 8758800
+    },
+    {
+      "name": "ovl_4_subovl_4",
+      "compressed": true,
+      "table_rom": 1572864,
+      "entry_offset": 39850,
+      "rom_offset": 1620914,
+      "stored_size": 6410,
+      "decoded_size": 11728,
+      "decomp_offset": 8768640
+    },
+    {
+      "name": "ovl_4_subovl_5",
+      "compressed": true,
+      "table_rom": 1572864,
+      "entry_offset": 46260,
+      "rom_offset": 1627324,
+      "stored_size": 5360,
+      "decoded_size": 10848,
+      "decomp_offset": 8780368
+    },
+    {
+      "name": "ovl_4_subovl_6",
+      "compressed": true,
+      "table_rom": 1572864,
+      "entry_offset": 51620,
+      "rom_offset": 1632684,
+      "stored_size": 15054,
+      "decoded_size": 25456,
+      "decomp_offset": 8791216
+    },
+    {
+      "name": "ovl_4_subovl_7",
+      "compressed": true,
+      "table_rom": 1572864,
+      "entry_offset": 66674,
+      "rom_offset": 1647738,
+      "stored_size": 10434,
+      "decoded_size": 18768,
+      "decomp_offset": 8816672
+    },
+    {
+      "name": "ovl_4_subovl_8",
+      "compressed": true,
+      "table_rom": 1572864,
+      "entry_offset": 77108,
+      "rom_offset": 1658172,
+      "stored_size": 4872,
+      "decoded_size": 9632,
+      "decomp_offset": 8835440
+    },
+    {
+      "name": "ovl_4_subovl_9",
+      "compressed": true,
+      "table_rom": 1572864,
+      "entry_offset": 81980,
+      "rom_offset": 1663044,
+      "stored_size": 10804,
+      "decoded_size": 19168,
+      "decomp_offset": 8845072
+    },
+    {
+      "name": "ovl_4_subovl_10",
+      "compressed": true,
+      "table_rom": 1572864,
+      "entry_offset": 92784,
+      "rom_offset": 1673848,
+      "stored_size": 8012,
+      "decoded_size": 13936,
+      "decomp_offset": 8864240
+    },
+    {
+      "name": "ovl_5_header",
+      "compressed": false,
+      "table_rom": 1703936,
+      "entry_offset": 0,
+      "rom_offset": 1712136,
+      "stored_size": 22,
+      "decoded_size": 32,
+      "decomp_offset": 8878176
+    },
+    {
+      "name": "ovl_5_subovl_1",
+      "compressed": true,
+      "table_rom": 1703936,
+      "entry_offset": 22,
+      "rom_offset": 1712158,
+      "stored_size": 10390,
+      "decoded_size": 19152,
+      "decomp_offset": 8878208
+    },
+    {
+      "name": "ovl_5_subovl_2",
+      "compressed": true,
+      "table_rom": 1703936,
+      "entry_offset": 10412,
+      "rom_offset": 1722548,
+      "stored_size": 11566,
+      "decoded_size": 18944,
+      "decomp_offset": 8897360
+    },
+    {
+      "name": "ovl_5_subovl_3",
+      "compressed": true,
+      "table_rom": 1703936,
+      "entry_offset": 21978,
+      "rom_offset": 1734114,
+      "stored_size": 12606,
+      "decoded_size": 20800,
+      "decomp_offset": 8916304
+    },
+    {
+      "name": "ovl_5_subovl_4",
+      "compressed": true,
+      "table_rom": 1703936,
+      "entry_offset": 34584,
+      "rom_offset": 1746720,
+      "stored_size": 8870,
+      "decoded_size": 16416,
+      "decomp_offset": 8937104
+    },
+    {
+      "name": "ovl_5_subovl_5",
+      "compressed": true,
+      "table_rom": 1703936,
+      "entry_offset": 43454,
+      "rom_offset": 1755590,
+      "stored_size": 7140,
+      "decoded_size": 12592,
+      "decomp_offset": 8953520
+    },
+    {
+      "name": "ovl_5_subovl_6",
+      "compressed": true,
+      "table_rom": 1703936,
+      "entry_offset": 50594,
+      "rom_offset": 1762730,
+      "stored_size": 10026,
+      "decoded_size": 17840,
+      "decomp_offset": 8966112
+    },
+    {
+      "name": "ovl_5_subovl_7",
+      "compressed": true,
+      "table_rom": 1703936,
+      "entry_offset": 60620,
+      "rom_offset": 1772756,
+      "stored_size": 7814,
+      "decoded_size": 14048,
+      "decomp_offset": 8983952
+    },
+    {
+      "name": "ovl_6_header",
+      "compressed": false,
+      "table_rom": 1835008,
+      "entry_offset": 0,
+      "rom_offset": 1843208,
+      "stored_size": 46,
+      "decoded_size": 48,
+      "decomp_offset": 8998000
+    },
+    {
+      "name": "ovl_6_subovl_1",
+      "compressed": true,
+      "table_rom": 1835008,
+      "entry_offset": 46,
+      "rom_offset": 1843254,
+      "stored_size": 8906,
+      "decoded_size": 15584,
+      "decomp_offset": 8998048
+    },
+    {
+      "name": "ovl_6_subovl_2",
+      "compressed": true,
+      "table_rom": 1835008,
+      "entry_offset": 8952,
+      "rom_offset": 1852160,
+      "stored_size": 7882,
+      "decoded_size": 14176,
+      "decomp_offset": 9013632
+    },
+    {
+      "name": "ovl_6_subovl_3",
+      "compressed": true,
+      "table_rom": 1835008,
+      "entry_offset": 16834,
+      "rom_offset": 1860042,
+      "stored_size": 8670,
+      "decoded_size": 15376,
+      "decomp_offset": 9027808
+    },
+    {
+      "name": "ovl_6_subovl_4",
+      "compressed": true,
+      "table_rom": 1835008,
+      "entry_offset": 25504,
+      "rom_offset": 1868712,
+      "stored_size": 9074,
+      "decoded_size": 16128,
+      "decomp_offset": 9043184
+    },
+    {
+      "name": "ovl_6_subovl_5",
+      "compressed": true,
+      "table_rom": 1835008,
+      "entry_offset": 34578,
+      "rom_offset": 1877786,
+      "stored_size": 6946,
+      "decoded_size": 12816,
+      "decomp_offset": 9059312
+    },
+    {
+      "name": "ovl_6_subovl_6",
+      "compressed": true,
+      "table_rom": 1835008,
+      "entry_offset": 41524,
+      "rom_offset": 1884732,
+      "stored_size": 4288,
+      "decoded_size": 9056,
+      "decomp_offset": 9072128
+    },
+    {
+      "name": "ovl_6_subovl_7",
+      "compressed": true,
+      "table_rom": 1835008,
+      "entry_offset": 45812,
+      "rom_offset": 1889020,
+      "stored_size": 4286,
+      "decoded_size": 9056,
+      "decomp_offset": 9081184
+    },
+    {
+      "name": "ovl_6_subovl_8",
+      "compressed": true,
+      "table_rom": 1835008,
+      "entry_offset": 50098,
+      "rom_offset": 1893306,
+      "stored_size": 4286,
+      "decoded_size": 9056,
+      "decomp_offset": 9090240
+    },
+    {
+      "name": "ovl_6_subovl_9",
+      "compressed": true,
+      "table_rom": 1835008,
+      "entry_offset": 54384,
+      "rom_offset": 1897592,
+      "stored_size": 6402,
+      "decoded_size": 12176,
+      "decomp_offset": 9099296
+    },
+    {
+      "name": "ovl_6_subovl_10",
+      "compressed": true,
+      "table_rom": 1835008,
+      "entry_offset": 60786,
+      "rom_offset": 1903994,
+      "stored_size": 4540,
+      "decoded_size": 9568,
+      "decomp_offset": 9111472
+    },
+    {
+      "name": "ovl_6_subovl_11",
+      "compressed": true,
+      "table_rom": 1835008,
+      "entry_offset": 65326,
+      "rom_offset": 1908534,
+      "stored_size": 7102,
+      "decoded_size": 13504,
+      "decomp_offset": 9121040
+    },
+    {
+      "name": "ovl_6_subovl_12",
+      "compressed": true,
+      "table_rom": 1835008,
+      "entry_offset": 72428,
+      "rom_offset": 1915636,
+      "stored_size": 6956,
+      "decoded_size": 12976,
+      "decomp_offset": 9134544
+    },
+    {
+      "name": "ovl_6_subovl_13",
+      "compressed": true,
+      "table_rom": 1835008,
+      "entry_offset": 79384,
+      "rom_offset": 1922592,
+      "stored_size": 8680,
+      "decoded_size": 15696,
+      "decomp_offset": 9147520
+    },
+    {
+      "name": "ovl_6_subovl_14",
+      "compressed": true,
+      "table_rom": 1835008,
+      "entry_offset": 88064,
+      "rom_offset": 1931272,
+      "stored_size": 4286,
+      "decoded_size": 9056,
+      "decomp_offset": 9163216
+    },
+    {
+      "name": "ovl_6_subovl_15",
+      "compressed": true,
+      "table_rom": 1835008,
+      "entry_offset": 92350,
+      "rom_offset": 1935558,
+      "stored_size": 8174,
+      "decoded_size": 14592,
+      "decomp_offset": 9172272
+    },
+    {
+      "name": "ovl_7_header",
+      "compressed": false,
+      "table_rom": 1966080,
+      "entry_offset": 0,
+      "rom_offset": 1974280,
+      "stored_size": 32,
+      "decoded_size": 32,
+      "decomp_offset": 9186864
+    },
+    {
+      "name": "ovl_7_subovl_1",
+      "compressed": true,
+      "table_rom": 1966080,
+      "entry_offset": 32,
+      "rom_offset": 1974312,
+      "stored_size": 13678,
+      "decoded_size": 22304,
+      "decomp_offset": 9186896
+    },
+    {
+      "name": "ovl_7_subovl_2",
+      "compressed": true,
+      "table_rom": 1966080,
+      "entry_offset": 13710,
+      "rom_offset": 1987990,
+      "stored_size": 14414,
+      "decoded_size": 23808,
+      "decomp_offset": 9209200
+    },
+    {
+      "name": "ovl_7_subovl_3",
+      "compressed": true,
+      "table_rom": 1966080,
+      "entry_offset": 28124,
+      "rom_offset": 2002404,
+      "stored_size": 9610,
+      "decoded_size": 16528,
+      "decomp_offset": 9233008
+    },
+    {
+      "name": "ovl_7_subovl_4",
+      "compressed": true,
+      "table_rom": 1966080,
+      "entry_offset": 37734,
+      "rom_offset": 2012014,
+      "stored_size": 14108,
+      "decoded_size": 23152,
+      "decomp_offset": 9249536
+    },
+    {
+      "name": "ovl_7_subovl_5",
+      "compressed": true,
+      "table_rom": 1966080,
+      "entry_offset": 51842,
+      "rom_offset": 2026122,
+      "stored_size": 7672,
+      "decoded_size": 13536,
+      "decomp_offset": 9272688
+    },
+    {
+      "name": "ovl_7_subovl_6",
+      "compressed": true,
+      "table_rom": 1966080,
+      "entry_offset": 59514,
+      "rom_offset": 2033794,
+      "stored_size": 2796,
+      "decoded_size": 6464,
+      "decomp_offset": 9286224
+    },
+    {
+      "name": "ovl_7_subovl_7",
+      "compressed": true,
+      "table_rom": 1966080,
+      "entry_offset": 62310,
+      "rom_offset": 2036590,
+      "stored_size": 6172,
+      "decoded_size": 11824,
+      "decomp_offset": 9292688
+    },
+    {
+      "name": "ovl_7_subovl_8",
+      "compressed": true,
+      "table_rom": 1966080,
+      "entry_offset": 68482,
+      "rom_offset": 2042762,
+      "stored_size": 5998,
+      "decoded_size": 11680,
+      "decomp_offset": 9304512
+    },
+    {
+      "name": "ovl_7_subovl_9",
+      "compressed": true,
+      "table_rom": 1966080,
+      "entry_offset": 74480,
+      "rom_offset": 2048760,
+      "stored_size": 6854,
+      "decoded_size": 12800,
+      "decomp_offset": 9316192
+    },
+    {
+      "name": "ovl_7_subovl_10",
+      "compressed": true,
+      "table_rom": 1966080,
+      "entry_offset": 81334,
+      "rom_offset": 2055614,
+      "stored_size": 8460,
+      "decoded_size": 15072,
+      "decomp_offset": 9328992
+    },
+    {
+      "name": "ovl_8_header",
+      "compressed": false,
+      "table_rom": 2097152,
+      "entry_offset": 0,
+      "rom_offset": 2105352,
+      "stored_size": 40,
+      "decoded_size": 48,
+      "decomp_offset": 9344064
+    },
+    {
+      "name": "ovl_8_subovl_1",
+      "compressed": true,
+      "table_rom": 2097152,
+      "entry_offset": 40,
+      "rom_offset": 2105392,
+      "stored_size": 10636,
+      "decoded_size": 17136,
+      "decomp_offset": 9344112
+    },
+    {
+      "name": "ovl_8_subovl_2",
+      "compressed": true,
+      "table_rom": 2097152,
+      "entry_offset": 10676,
+      "rom_offset": 2116028,
+      "stored_size": 6344,
+      "decoded_size": 11568,
+      "decomp_offset": 9361248
+    },
+    {
+      "name": "ovl_8_subovl_3",
+      "compressed": true,
+      "table_rom": 2097152,
+      "entry_offset": 17020,
+      "rom_offset": 2122372,
+      "stored_size": 10200,
+      "decoded_size": 16304,
+      "decomp_offset": 9372816
+    },
+    {
+      "name": "ovl_8_subovl_4",
+      "compressed": true,
+      "table_rom": 2097152,
+      "entry_offset": 27220,
+      "rom_offset": 2132572,
+      "stored_size": 6344,
+      "decoded_size": 11536,
+      "decomp_offset": 9389120
+    },
+    {
+      "name": "ovl_8_subovl_5",
+      "compressed": true,
+      "table_rom": 2097152,
+      "entry_offset": 33564,
+      "rom_offset": 2138916,
+      "stored_size": 10148,
+      "decoded_size": 16096,
+      "decomp_offset": 9400656
+    },
+    {
+      "name": "ovl_8_subovl_6",
+      "compressed": true,
+      "table_rom": 2097152,
+      "entry_offset": 43712,
+      "rom_offset": 2149064,
+      "stored_size": 19956,
+      "decoded_size": 31584,
+      "decomp_offset": 9416752
+    },
+    {
+      "name": "ovl_8_subovl_7",
+      "compressed": true,
+      "table_rom": 2097152,
+      "entry_offset": 63668,
+      "rom_offset": 2169020,
+      "stored_size": 18622,
+      "decoded_size": 27520,
+      "decomp_offset": 9448336
+    },
+    {
+      "name": "ovl_8_subovl_8",
+      "compressed": true,
+      "table_rom": 2097152,
+      "entry_offset": 82290,
+      "rom_offset": 2187642,
+      "stored_size": 17348,
+      "decoded_size": 26304,
+      "decomp_offset": 9475856
+    },
+    {
+      "name": "ovl_8_subovl_9",
+      "compressed": true,
+      "table_rom": 2097152,
+      "entry_offset": 99638,
+      "rom_offset": 2204990,
+      "stored_size": 17726,
+      "decoded_size": 27056,
+      "decomp_offset": 9502160
+    },
+    {
+      "name": "ovl_8_subovl_10",
+      "compressed": true,
+      "table_rom": 2097152,
+      "entry_offset": 117364,
+      "rom_offset": 2222716,
+      "stored_size": 10230,
+      "decoded_size": 16544,
+      "decomp_offset": 9529216
+    },
+    {
+      "name": "ovl_8_subovl_11",
+      "compressed": true,
+      "table_rom": 2097152,
+      "entry_offset": 127594,
+      "rom_offset": 2232946,
+      "stored_size": 8338,
+      "decoded_size": 13984,
+      "decomp_offset": 9545760
+    },
+    {
+      "name": "ovl_8_subovl_12",
+      "compressed": true,
+      "table_rom": 2097152,
+      "entry_offset": 135932,
+      "rom_offset": 2241284,
+      "stored_size": 15584,
+      "decoded_size": 23600,
+      "decomp_offset": 9559744
+    },
+    {
+      "name": "ovl_8_subovl_13",
+      "compressed": true,
+      "table_rom": 2097152,
+      "entry_offset": 151516,
+      "rom_offset": 2256868,
+      "stored_size": 18450,
+      "decoded_size": 31568,
+      "decomp_offset": 9583344
+    },
+    {
+      "name": "ovl_9_header",
+      "compressed": false,
+      "table_rom": 2359296,
+      "entry_offset": 0,
+      "rom_offset": 2367496,
+      "stored_size": 20,
+      "decoded_size": 32,
+      "decomp_offset": 9614912
+    },
+    {
+      "name": "ovl_9_subovl_1",
+      "compressed": true,
+      "table_rom": 2359296,
+      "entry_offset": 20,
+      "rom_offset": 2367516,
+      "stored_size": 7056,
+      "decoded_size": 13504,
+      "decomp_offset": 9614944
+    },
+    {
+      "name": "ovl_9_subovl_2",
+      "compressed": true,
+      "table_rom": 2359296,
+      "entry_offset": 7076,
+      "rom_offset": 2374572,
+      "stored_size": 4010,
+      "decoded_size": 8560,
+      "decomp_offset": 9628448
+    },
+    {
+      "name": "ovl_9_subovl_3",
+      "compressed": true,
+      "table_rom": 2359296,
+      "entry_offset": 11086,
+      "rom_offset": 2378582,
+      "stored_size": 6172,
+      "decoded_size": 11936,
+      "decomp_offset": 9637008
+    },
+    {
+      "name": "ovl_9_subovl_4",
+      "compressed": true,
+      "table_rom": 2359296,
+      "entry_offset": 17258,
+      "rom_offset": 2384754,
+      "stored_size": 3834,
+      "decoded_size": 8304,
+      "decomp_offset": 9648944
+    },
+    {
+      "name": "ovl_9_subovl_5",
+      "compressed": true,
+      "table_rom": 2359296,
+      "entry_offset": 21092,
+      "rom_offset": 2388588,
+      "stored_size": 19250,
+      "decoded_size": 31728,
+      "decomp_offset": 9657248
+    },
+    {
+      "name": "ovl_9_subovl_6",
+      "compressed": true,
+      "table_rom": 2359296,
+      "entry_offset": 40342,
+      "rom_offset": 2407838,
+      "stored_size": 6718,
+      "decoded_size": 12160,
+      "decomp_offset": 9688976
+    },
+    {
+      "name": "ovl_10_header",
+      "compressed": false,
+      "table_rom": 2490368,
+      "entry_offset": 0,
+      "rom_offset": 2498568,
+      "stored_size": 8,
+      "decoded_size": 16,
+      "decomp_offset": 9701136
+    },
+    {
+      "name": "ovl_10_subovl_1",
+      "compressed": true,
+      "table_rom": 2490368,
+      "entry_offset": 8,
+      "rom_offset": 2498576,
+      "stored_size": 23328,
+      "decoded_size": 37376,
+      "decomp_offset": 9701152
+    },
+    {
+      "name": "ovl_10_subovl_2",
+      "compressed": true,
+      "table_rom": 2490368,
+      "entry_offset": 23336,
+      "rom_offset": 2521904,
+      "stored_size": 29212,
+      "decoded_size": 44176,
+      "decomp_offset": 9738528
+    },
+    {
+      "name": "ovl_11_header",
+      "compressed": false,
+      "table_rom": 2621440,
+      "entry_offset": 0,
+      "rom_offset": 2629640,
+      "stored_size": 8,
+      "decoded_size": 16,
+      "decomp_offset": 9782704
+    },
+    {
+      "name": "ovl_11_subovl_1",
+      "compressed": true,
+      "table_rom": 2621440,
+      "entry_offset": 8,
+      "rom_offset": 2629648,
+      "stored_size": 28024,
+      "decoded_size": 42144,
+      "decomp_offset": 9782720
+    },
+    {
+      "name": "ovl_11_subovl_2",
+      "compressed": true,
+      "table_rom": 2621440,
+      "entry_offset": 28032,
+      "rom_offset": 2657672,
+      "stored_size": 32382,
+      "decoded_size": 53872,
+      "decomp_offset": 9824864
+    },
+    {
+      "name": "ovl_12_header",
+      "compressed": false,
+      "table_rom": 2752512,
+      "entry_offset": 0,
+      "rom_offset": 2760712,
+      "stored_size": 8,
+      "decoded_size": 16,
+      "decomp_offset": 9878736
+    },
+    {
+      "name": "ovl_12_subovl_1",
+      "compressed": true,
+      "table_rom": 2752512,
+      "entry_offset": 8,
+      "rom_offset": 2760720,
+      "stored_size": 29846,
+      "decoded_size": 44848,
+      "decomp_offset": 9878752
+    },
+    {
+      "name": "ovl_12_subovl_2",
+      "compressed": true,
+      "table_rom": 2752512,
+      "entry_offset": 29854,
+      "rom_offset": 2790566,
+      "stored_size": 39120,
+      "decoded_size": 58144,
+      "decomp_offset": 9923600
+    },
+    {
+      "name": "ovl_13_header",
+      "compressed": false,
+      "table_rom": 2883584,
+      "entry_offset": 0,
+      "rom_offset": 2891784,
+      "stored_size": 4,
+      "decoded_size": 16,
+      "decomp_offset": 9981744
+    },
+    {
+      "name": "ovl_13_subovl_1",
+      "compressed": true,
+      "table_rom": 2883584,
+      "entry_offset": 4,
+      "rom_offset": 2891788,
+      "stored_size": 4266,
+      "decoded_size": 8864,
+      "decomp_offset": 9981760
+    },
+    {
+      "name": "ovl_14_header",
+      "compressed": false,
+      "table_rom": 3014656,
+      "entry_offset": 0,
+      "rom_offset": 3022856,
+      "stored_size": 32,
+      "decoded_size": 32,
+      "decomp_offset": 9990624
+    },
+    {
+      "name": "ovl_14_subovl_1",
+      "compressed": true,
+      "table_rom": 3014656,
+      "entry_offset": 32,
+      "rom_offset": 3022888,
+      "stored_size": 5528,
+      "decoded_size": 10240,
+      "decomp_offset": 9990656
+    },
+    {
+      "name": "ovl_14_subovl_2",
+      "compressed": true,
+      "table_rom": 3014656,
+      "entry_offset": 5560,
+      "rom_offset": 3028416,
+      "stored_size": 3704,
+      "decoded_size": 7616,
+      "decomp_offset": 10000896
+    },
+    {
+      "name": "ovl_14_subovl_3",
+      "compressed": true,
+      "table_rom": 3014656,
+      "entry_offset": 9264,
+      "rom_offset": 3032120,
+      "stored_size": 3754,
+      "decoded_size": 7744,
+      "decomp_offset": 10008512
+    },
+    {
+      "name": "ovl_14_subovl_4",
+      "compressed": true,
+      "table_rom": 3014656,
+      "entry_offset": 13018,
+      "rom_offset": 3035874,
+      "stored_size": 3750,
+      "decoded_size": 7728,
+      "decomp_offset": 10016256
+    },
+    {
+      "name": "ovl_14_subovl_5",
+      "compressed": true,
+      "table_rom": 3014656,
+      "entry_offset": 16768,
+      "rom_offset": 3039624,
+      "stored_size": 3772,
+      "decoded_size": 7760,
+      "decomp_offset": 10023984
+    },
+    {
+      "name": "ovl_14_subovl_6",
+      "compressed": true,
+      "table_rom": 3014656,
+      "entry_offset": 20540,
+      "rom_offset": 3043396,
+      "stored_size": 5562,
+      "decoded_size": 10304,
+      "decomp_offset": 10031744
+    },
+    {
+      "name": "ovl_14_subovl_7",
+      "compressed": true,
+      "table_rom": 3014656,
+      "entry_offset": 26102,
+      "rom_offset": 3048958,
+      "stored_size": 5482,
+      "decoded_size": 10112,
+      "decomp_offset": 10042048
+    },
+    {
+      "name": "ovl_14_subovl_8",
+      "compressed": true,
+      "table_rom": 3014656,
+      "entry_offset": 31584,
+      "rom_offset": 3054440,
+      "stored_size": 6274,
+      "decoded_size": 11360,
+      "decomp_offset": 10052160
+    },
+    {
+      "name": "ovl_14_subovl_9",
+      "compressed": true,
+      "table_rom": 3014656,
+      "entry_offset": 37858,
+      "rom_offset": 3060714,
+      "stored_size": 7566,
+      "decoded_size": 13200,
+      "decomp_offset": 10063520
+    },
+    {
+      "name": "ovl_14_subovl_10",
+      "compressed": true,
+      "table_rom": 3014656,
+      "entry_offset": 45424,
+      "rom_offset": 3068280,
+      "stored_size": 8022,
+      "decoded_size": 14064,
+      "decomp_offset": 10076720
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+[
+  {
+    "file": "SDL2-LICENSE.txt",
+    "source": "SDL2-2.32.10/LICENSE.txt",
+    "sha256": "97f35b302b361680ec1e891e95d2d52097bb95abff361434916d99dc1305f127"
+  },
+  {
+    "file": "Bullet-LICENSE.txt",
+    "source": "codex/rocketleague/vendor/RocketSim/libsrc/bullet3-3.24/LICENSE.txt",
+    "sha256": "eeb424054ceb490a1c2dc843a0c21d0864afc5be1249eb899e08a6c73277f0ca"
+  },
+  {
+    "file": "RocketSim-MIT.txt",
+    "source": "codex/rocketleague/vendor/RocketSim/LICENSE",
+    "sha256": "f6beefdc7cf777d44b133b55ad3bfa68ca3285a5220051ce109e31b44449fd10"
+  },
+  {
+    "file": "miniz-MIT.txt",
+    "source": "src/pc/utils/miniz/LICENSE",
+    "sha256": "0115478d567121238cf6cc1c0c361926cf07a49d9e4c9e66da97fac6a01646b3"
+  },
+  {
+    "file": "Upstream-credits.txt",
+    "source": "credits.txt",
+    "sha256": "99cc2b119a8edb24c76027f40b6321fc6cc4c38082cf192ab3bb4419c1241893"
+  },
+  {
+    "file": "Emill-renderer-LICENSE.txt",
+    "source": "upstream-licenses/EMILL-LICENSE.txt",
+    "sha256": "7cba45a713b4323620d6c97e44d7ca5f59a262abddfb9d0f930410b9acbf29d8"
+  },
+  {
+    "file": "GLEW-NOTICES.txt",
+    "source": "windows/include/GL/glew.h",
+    "full_header_sha256": "d3a05edf0b6c45bdbdb5704cacfa68a4666ae682e09b7970bb7310d38cfc3d0e"
+  },
+  {
+    "file": "Original-decomp-CC0.md",
+    "source": "https://raw.githubusercontent.com/n64decomp/sm64/66018e9f3caaa67399218971d61366cb3f7ba7d7/LICENSE.md",
+    "git_blob": "0e259d42c996742e9e3cba14c677129b2c1b6311",
+    "sha256": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499"
+  }
+]

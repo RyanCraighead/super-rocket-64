@@ -1,0 +1,12 @@
+#include "pc/rom_assets.h"
+// 0x0702EC3C - 0x0702ECC0
+ROM_ASSET_LOAD_U16(Trajectory, rr_seg7_trajectory_0702EC3C, 0x00437870, 75979, 0x0002ea80, 130);
+
+// 0x0702ECC0 - 0x0702ED9C
+ROM_ASSET_LOAD_U16(Trajectory, rr_seg7_trajectory_0702ECC0, 0x00437870, 75979, 0x0002eb04, 218);
+
+// 0x0702ED9C - 0x0702EEE0
+ROM_ASSET_LOAD_U16(Trajectory, rr_seg7_trajectory_0702ED9C, 0x00437870, 75979, 0x0002ebe0, 322);
+
+// 0x0702EEE0 - 0x0702F032
+ROM_ASSET_LOAD_U16(Trajectory, rr_seg7_trajectory_0702EEE0, 0x00437870, 75979, 0x0002ed24, 338);

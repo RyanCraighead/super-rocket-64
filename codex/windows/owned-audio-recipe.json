@@ -1,0 +1,2338 @@
+{
+  "format": "sr64-owned-audio@1",
+  "rom_sha1": "9bef1128717f958171a4afac3ed78ee2bb4e86ce",
+  "rom_size": 8388608,
+  "groups": {
+    "music": {
+      "target_size": 117248,
+      "ranges": [
+        {
+          "symbol": "SEQUENCE_us_01_cutscene_collect_star_m64",
+          "rom_offset": 8076816,
+          "destination_offset": 16832,
+          "size": 619,
+          "packed_offset": 0
+        },
+        {
+          "symbol": "SEQUENCE_us_02_menu_title_screen_m64",
+          "rom_offset": 8077440,
+          "destination_offset": 17456,
+          "size": 8254,
+          "packed_offset": 619
+        },
+        {
+          "symbol": "SEQUENCE_us_03_level_grass_m64",
+          "rom_offset": 8085696,
+          "destination_offset": 25712,
+          "size": 5122,
+          "packed_offset": 8873
+        },
+        {
+          "symbol": "SEQUENCE_us_04_level_inside_castle_m64",
+          "rom_offset": 8090832,
+          "destination_offset": 30848,
+          "size": 2494,
+          "packed_offset": 13995
+        },
+        {
+          "symbol": "SEQUENCE_us_05_level_water_m64",
+          "rom_offset": 8093328,
+          "destination_offset": 33344,
+          "size": 4780,
+          "packed_offset": 16489
+        },
+        {
+          "symbol": "SEQUENCE_us_06_level_hot_m64",
+          "rom_offset": 8098112,
+          "destination_offset": 38128,
+          "size": 2451,
+          "packed_offset": 21269
+        },
+        {
+          "symbol": "SEQUENCE_us_07_level_boss_koopa_m64",
+          "rom_offset": 8100576,
+          "destination_offset": 40592,
+          "size": 3418,
+          "packed_offset": 23720
+        },
+        {
+          "symbol": "SEQUENCE_us_08_level_snow_m64",
+          "rom_offset": 8104000,
+          "destination_offset": 44016,
+          "size": 8143,
+          "packed_offset": 27138
+        },
+        {
+          "symbol": "SEQUENCE_us_09_level_slide_m64",
+          "rom_offset": 8112144,
+          "destination_offset": 52160,
+          "size": 7432,
+          "packed_offset": 35281
+        },
+        {
+          "symbol": "SEQUENCE_us_0A_level_spooky_m64",
+          "rom_offset": 8119584,
+          "destination_offset": 59600,
+          "size": 5674,
+          "packed_offset": 42713
+        },
+        {
+          "symbol": "SEQUENCE_us_0B_event_piranha_plant_m64",
+          "rom_offset": 8125264,
+          "destination_offset": 65280,
+          "size": 1395,
+          "packed_offset": 48387
+        },
+        {
+          "symbol": "SEQUENCE_us_0C_level_underground_m64",
+          "rom_offset": 8126672,
+          "destination_offset": 66688,
+          "size": 4887,
+          "packed_offset": 49782
+        },
+        {
+          "symbol": "SEQUENCE_us_0D_menu_star_select_m64",
+          "rom_offset": 8131568,
+          "destination_offset": 71584,
+          "size": 134,
+          "packed_offset": 54669
+        },
+        {
+          "symbol": "SEQUENCE_us_0E_event_powerup_m64",
+          "rom_offset": 8131712,
+          "destination_offset": 71728,
+          "size": 3129,
+          "packed_offset": 54803
+        },
+        {
+          "symbol": "SEQUENCE_us_0F_event_metal_cap_m64",
+          "rom_offset": 8134848,
+          "destination_offset": 74864,
+          "size": 2770,
+          "packed_offset": 57932
+        },
+        {
+          "symbol": "SEQUENCE_us_10_event_koopa_message_m64",
+          "rom_offset": 8137632,
+          "destination_offset": 77648,
+          "size": 552,
+          "packed_offset": 60702
+        },
+        {
+          "symbol": "SEQUENCE_us_11_level_koopa_road_m64",
+          "rom_offset": 8138192,
+          "destination_offset": 78208,
+          "size": 4741,
+          "packed_offset": 61254
+        },
+        {
+          "symbol": "SEQUENCE_us_12_event_high_score_m64",
+          "rom_offset": 8142944,
+          "destination_offset": 82960,
+          "size": 271,
+          "packed_offset": 65995
+        },
+        {
+          "symbol": "SEQUENCE_us_13_event_merry_go_round_m64",
+          "rom_offset": 8143216,
+          "destination_offset": 83232,
+          "size": 1657,
+          "packed_offset": 66266
+        },
+        {
+          "symbol": "SEQUENCE_us_14_event_race_m64",
+          "rom_offset": 8144880,
+          "destination_offset": 84896,
+          "size": 197,
+          "packed_offset": 67923
+        },
+        {
+          "symbol": "SEQUENCE_us_15_cutscene_star_spawn_m64",
+          "rom_offset": 8145088,
+          "destination_offset": 85104,
+          "size": 644,
+          "packed_offset": 68120
+        },
+        {
+          "symbol": "SEQUENCE_us_16_event_boss_m64",
+          "rom_offset": 8145744,
+          "destination_offset": 85760,
+          "size": 3435,
+          "packed_offset": 68764
+        },
+        {
+          "symbol": "SEQUENCE_us_17_cutscene_collect_key_m64",
+          "rom_offset": 8149184,
+          "destination_offset": 89200,
+          "size": 671,
+          "packed_offset": 72199
+        },
+        {
+          "symbol": "SEQUENCE_us_18_event_endless_stairs_m64",
+          "rom_offset": 8149856,
+          "destination_offset": 89872,
+          "size": 1777,
+          "packed_offset": 72870
+        },
+        {
+          "symbol": "SEQUENCE_us_19_level_boss_koopa_final_m64",
+          "rom_offset": 8151648,
+          "destination_offset": 91664,
+          "size": 3515,
+          "packed_offset": 74647
+        },
+        {
+          "symbol": "SEQUENCE_us_1A_cutscene_credits_m64",
+          "rom_offset": 8155168,
+          "destination_offset": 95184,
+          "size": 14313,
+          "packed_offset": 78162
+        },
+        {
+          "symbol": "SEQUENCE_us_1B_event_solve_puzzle_m64",
+          "rom_offset": 8169488,
+          "destination_offset": 109504,
+          "size": 216,
+          "packed_offset": 92475
+        },
+        {
+          "symbol": "SEQUENCE_us_1C_event_toad_message_m64",
+          "rom_offset": 8169712,
+          "destination_offset": 109728,
+          "size": 208,
+          "packed_offset": 92691
+        },
+        {
+          "symbol": "SEQUENCE_us_1D_event_peach_message_m64",
+          "rom_offset": 8169920,
+          "destination_offset": 109936,
+          "size": 432,
+          "packed_offset": 92899
+        },
+        {
+          "symbol": "SEQUENCE_us_1E_cutscene_intro_m64",
+          "rom_offset": 8170352,
+          "destination_offset": 110368,
+          "size": 1764,
+          "packed_offset": 93331
+        },
+        {
+          "symbol": "SEQUENCE_us_1F_cutscene_victory_m64",
+          "rom_offset": 8172128,
+          "destination_offset": 112144,
+          "size": 2058,
+          "packed_offset": 95095
+        },
+        {
+          "symbol": "SEQUENCE_us_20_cutscene_ending_m64",
+          "rom_offset": 8174192,
+          "destination_offset": 114208,
+          "size": 1882,
+          "packed_offset": 97153
+        },
+        {
+          "symbol": "SEQUENCE_us_21_menu_file_select_m64",
+          "rom_offset": 8176080,
+          "destination_offset": 116096,
+          "size": 781,
+          "packed_offset": 99035
+        },
+        {
+          "symbol": "SEQUENCE_us_22_cutscene_lakitu_m64",
+          "rom_offset": 8176864,
+          "destination_offset": 116880,
+          "size": 313,
+          "packed_offset": 99816
+        }
+      ],
+      "bytes": 100129,
+      "sha256": "cc25563a8c2f2bc8d3401456ea841650ed87238d2c8018de2ef0dbd3ef42f90e"
+    },
+    "samples": {
+      "target_size": 5997056,
+      "ranges": [
+        {
+          "symbol": "sfx_1_00_twirl_aifc",
+          "rom_offset": 5846688,
+          "destination_offset": 736,
+          "size": 1774,
+          "packed_offset": 0
+        },
+        {
+          "symbol": "sfx_1_01_brushing_aifc",
+          "rom_offset": 5848464,
+          "destination_offset": 2512,
+          "size": 10440,
+          "packed_offset": 1774
+        },
+        {
+          "symbol": "sfx_1_02_hand_touch_aifc",
+          "rom_offset": 5858912,
+          "destination_offset": 12960,
+          "size": 810,
+          "packed_offset": 12214
+        },
+        {
+          "symbol": "sfx_1_03_yoshi_aifc",
+          "rom_offset": 5859728,
+          "destination_offset": 13776,
+          "size": 4554,
+          "packed_offset": 13024
+        },
+        {
+          "symbol": "sfx_1_04_plop_aifc",
+          "rom_offset": 5864288,
+          "destination_offset": 18336,
+          "size": 4492,
+          "packed_offset": 17578
+        },
+        {
+          "symbol": "sfx_1_05_heavy_landing_aifc",
+          "rom_offset": 5868784,
+          "destination_offset": 22832,
+          "size": 6984,
+          "packed_offset": 22070
+        },
+        {
+          "symbol": "sfx_terrain_00_step_default_aifc",
+          "rom_offset": 5875776,
+          "destination_offset": 29824,
+          "size": 82,
+          "packed_offset": 29054
+        },
+        {
+          "symbol": "sfx_terrain_01_step_grass_aifc",
+          "rom_offset": 5875872,
+          "destination_offset": 29920,
+          "size": 684,
+          "packed_offset": 29136
+        },
+        {
+          "symbol": "sfx_terrain_02_step_stone_aifc",
+          "rom_offset": 5876560,
+          "destination_offset": 30608,
+          "size": 568,
+          "packed_offset": 29820
+        },
+        {
+          "symbol": "sfx_terrain_03_step_spooky_aifc",
+          "rom_offset": 5877136,
+          "destination_offset": 31184,
+          "size": 1666,
+          "packed_offset": 30388
+        },
+        {
+          "symbol": "sfx_terrain_04_step_snow_aifc",
+          "rom_offset": 5878816,
+          "destination_offset": 32864,
+          "size": 1656,
+          "packed_offset": 32054
+        },
+        {
+          "symbol": "sfx_terrain_05_step_ice_aifc",
+          "rom_offset": 5880480,
+          "destination_offset": 34528,
+          "size": 352,
+          "packed_offset": 33710
+        },
+        {
+          "symbol": "sfx_terrain_06_step_metal_aifc",
+          "rom_offset": 5880832,
+          "destination_offset": 34880,
+          "size": 6616,
+          "packed_offset": 34062
+        },
+        {
+          "symbol": "sfx_terrain_07_step_sand_aifc",
+          "rom_offset": 5887456,
+          "destination_offset": 41504,
+          "size": 3114,
+          "packed_offset": 40678
+        },
+        {
+          "symbol": "sfx_water_00_plunge_aifc",
+          "rom_offset": 5890576,
+          "destination_offset": 44624,
+          "size": 14212,
+          "packed_offset": 43792
+        },
+        {
+          "symbol": "sfx_water_01_splash_aifc",
+          "rom_offset": 5904800,
+          "destination_offset": 58848,
+          "size": 5346,
+          "packed_offset": 58004
+        },
+        {
+          "symbol": "sfx_water_02_swim_aifc",
+          "rom_offset": 5910160,
+          "destination_offset": 64208,
+          "size": 7048,
+          "packed_offset": 63350
+        },
+        {
+          "symbol": "sfx_4_00_aifc",
+          "rom_offset": 5917216,
+          "destination_offset": 71264,
+          "size": 7308,
+          "packed_offset": 70398
+        },
+        {
+          "symbol": "sfx_4_01_aifc",
+          "rom_offset": 5924528,
+          "destination_offset": 78576,
+          "size": 4546,
+          "packed_offset": 77706
+        },
+        {
+          "symbol": "sfx_4_02_aifc",
+          "rom_offset": 5929088,
+          "destination_offset": 83136,
+          "size": 4284,
+          "packed_offset": 82252
+        },
+        {
+          "symbol": "sfx_4_03_aifc",
+          "rom_offset": 5933376,
+          "destination_offset": 87424,
+          "size": 5328,
+          "packed_offset": 86536
+        },
+        {
+          "symbol": "sfx_4_04_aifc",
+          "rom_offset": 5938704,
+          "destination_offset": 92752,
+          "size": 2736,
+          "packed_offset": 91864
+        },
+        {
+          "symbol": "sfx_4_05_aifc",
+          "rom_offset": 5941440,
+          "destination_offset": 95488,
+          "size": 2826,
+          "packed_offset": 94600
+        },
+        {
+          "symbol": "sfx_4_06_aifc",
+          "rom_offset": 5944272,
+          "destination_offset": 98320,
+          "size": 2628,
+          "packed_offset": 97426
+        },
+        {
+          "symbol": "sfx_4_07_aifc",
+          "rom_offset": 5946912,
+          "destination_offset": 100960,
+          "size": 3672,
+          "packed_offset": 100054
+        },
+        {
+          "symbol": "sfx_4_08_aifc",
+          "rom_offset": 5950592,
+          "destination_offset": 104640,
+          "size": 10368,
+          "packed_offset": 103726
+        },
+        {
+          "symbol": "sfx_4_09_aifc",
+          "rom_offset": 5960960,
+          "destination_offset": 115008,
+          "size": 1990,
+          "packed_offset": 114094
+        },
+        {
+          "symbol": "sfx_5_00_aifc",
+          "rom_offset": 5962960,
+          "destination_offset": 117008,
+          "size": 5590,
+          "packed_offset": 116084
+        },
+        {
+          "symbol": "sfx_5_01_aifc",
+          "rom_offset": 5968560,
+          "destination_offset": 122608,
+          "size": 4140,
+          "packed_offset": 121674
+        },
+        {
+          "symbol": "sfx_5_02_aifc",
+          "rom_offset": 5972704,
+          "destination_offset": 126752,
+          "size": 11386,
+          "packed_offset": 125814
+        },
+        {
+          "symbol": "sfx_5_03_aifc",
+          "rom_offset": 5984096,
+          "destination_offset": 138144,
+          "size": 6066,
+          "packed_offset": 137200
+        },
+        {
+          "symbol": "sfx_5_04_aifc",
+          "rom_offset": 5990176,
+          "destination_offset": 144224,
+          "size": 4600,
+          "packed_offset": 143266
+        },
+        {
+          "symbol": "sfx_5_05_aifc",
+          "rom_offset": 5994784,
+          "destination_offset": 148832,
+          "size": 14238,
+          "packed_offset": 147866
+        },
+        {
+          "symbol": "sfx_5_06_aifc",
+          "rom_offset": 6009024,
+          "destination_offset": 163072,
+          "size": 1954,
+          "packed_offset": 162104
+        },
+        {
+          "symbol": "sfx_5_07_aifc",
+          "rom_offset": 6010992,
+          "destination_offset": 165040,
+          "size": 9072,
+          "packed_offset": 164058
+        },
+        {
+          "symbol": "sfx_5_08_aifc",
+          "rom_offset": 6020064,
+          "destination_offset": 174112,
+          "size": 2682,
+          "packed_offset": 173130
+        },
+        {
+          "symbol": "sfx_5_09_aifc",
+          "rom_offset": 6022752,
+          "destination_offset": 176800,
+          "size": 1800,
+          "packed_offset": 175812
+        },
+        {
+          "symbol": "sfx_5_0A_aifc",
+          "rom_offset": 6024560,
+          "destination_offset": 178608,
+          "size": 1476,
+          "packed_offset": 177612
+        },
+        {
+          "symbol": "sfx_5_0B_aifc",
+          "rom_offset": 6026048,
+          "destination_offset": 180096,
+          "size": 11268,
+          "packed_offset": 179088
+        },
+        {
+          "symbol": "sfx_5_0C_aifc",
+          "rom_offset": 6037328,
+          "destination_offset": 191376,
+          "size": 22788,
+          "packed_offset": 190356
+        },
+        {
+          "symbol": "sfx_5_0D_aifc",
+          "rom_offset": 6060128,
+          "destination_offset": 214176,
+          "size": 32328,
+          "packed_offset": 213144
+        },
+        {
+          "symbol": "sfx_5_0E_aifc",
+          "rom_offset": 6092464,
+          "destination_offset": 246512,
+          "size": 4204,
+          "packed_offset": 245472
+        },
+        {
+          "symbol": "sfx_5_0F_aifc",
+          "rom_offset": 6096672,
+          "destination_offset": 250720,
+          "size": 9388,
+          "packed_offset": 249676
+        },
+        {
+          "symbol": "sfx_5_10_aifc",
+          "rom_offset": 6106064,
+          "destination_offset": 260112,
+          "size": 1080,
+          "packed_offset": 259064
+        },
+        {
+          "symbol": "sfx_5_11_aifc",
+          "rom_offset": 6107152,
+          "destination_offset": 261200,
+          "size": 14058,
+          "packed_offset": 260144
+        },
+        {
+          "symbol": "sfx_5_12_aifc",
+          "rom_offset": 6121216,
+          "destination_offset": 275264,
+          "size": 3204,
+          "packed_offset": 274202
+        },
+        {
+          "symbol": "sfx_5_13_aifc",
+          "rom_offset": 6124432,
+          "destination_offset": 278480,
+          "size": 14544,
+          "packed_offset": 277406
+        },
+        {
+          "symbol": "sfx_5_14_aifc",
+          "rom_offset": 6138976,
+          "destination_offset": 293024,
+          "size": 10504,
+          "packed_offset": 291950
+        },
+        {
+          "symbol": "sfx_5_15_aifc",
+          "rom_offset": 6149488,
+          "destination_offset": 303536,
+          "size": 1998,
+          "packed_offset": 302454
+        },
+        {
+          "symbol": "sfx_5_16_aifc",
+          "rom_offset": 6151488,
+          "destination_offset": 305536,
+          "size": 2476,
+          "packed_offset": 304452
+        },
+        {
+          "symbol": "sfx_5_17_aifc",
+          "rom_offset": 6153968,
+          "destination_offset": 308016,
+          "size": 3924,
+          "packed_offset": 306928
+        },
+        {
+          "symbol": "sfx_5_18_aifc",
+          "rom_offset": 6157904,
+          "destination_offset": 311952,
+          "size": 2080,
+          "packed_offset": 310852
+        },
+        {
+          "symbol": "sfx_5_19_aifc",
+          "rom_offset": 6159984,
+          "destination_offset": 314032,
+          "size": 810,
+          "packed_offset": 312932
+        },
+        {
+          "symbol": "sfx_5_1A_aifc",
+          "rom_offset": 6160800,
+          "destination_offset": 314848,
+          "size": 10278,
+          "packed_offset": 313742
+        },
+        {
+          "symbol": "sfx_5_1B_aifc",
+          "rom_offset": 6171088,
+          "destination_offset": 325136,
+          "size": 6562,
+          "packed_offset": 324020
+        },
+        {
+          "symbol": "sfx_5_1C_aifc",
+          "rom_offset": 6177664,
+          "destination_offset": 331712,
+          "size": 4222,
+          "packed_offset": 330582
+        },
+        {
+          "symbol": "sfx_6_00_aifc",
+          "rom_offset": 6181888,
+          "destination_offset": 335936,
+          "size": 2178,
+          "packed_offset": 334804
+        },
+        {
+          "symbol": "sfx_6_01_aifc",
+          "rom_offset": 6184080,
+          "destination_offset": 338128,
+          "size": 3250,
+          "packed_offset": 336982
+        },
+        {
+          "symbol": "sfx_6_02_aifc",
+          "rom_offset": 6187344,
+          "destination_offset": 341392,
+          "size": 8974,
+          "packed_offset": 340232
+        },
+        {
+          "symbol": "sfx_6_03_aifc",
+          "rom_offset": 6196320,
+          "destination_offset": 350368,
+          "size": 15786,
+          "packed_offset": 349206
+        },
+        {
+          "symbol": "sfx_6_04_aifc",
+          "rom_offset": 6212112,
+          "destination_offset": 366160,
+          "size": 2790,
+          "packed_offset": 364992
+        },
+        {
+          "symbol": "sfx_6_05_aifc",
+          "rom_offset": 6214912,
+          "destination_offset": 368960,
+          "size": 6588,
+          "packed_offset": 367782
+        },
+        {
+          "symbol": "sfx_6_06_aifc",
+          "rom_offset": 6221504,
+          "destination_offset": 375552,
+          "size": 1720,
+          "packed_offset": 374370
+        },
+        {
+          "symbol": "sfx_6_07_aifc",
+          "rom_offset": 6223232,
+          "destination_offset": 377280,
+          "size": 1324,
+          "packed_offset": 376090
+        },
+        {
+          "symbol": "sfx_6_08_aifc",
+          "rom_offset": 6224560,
+          "destination_offset": 378608,
+          "size": 7308,
+          "packed_offset": 377414
+        },
+        {
+          "symbol": "sfx_6_09_aifc",
+          "rom_offset": 6231872,
+          "destination_offset": 385920,
+          "size": 2332,
+          "packed_offset": 384722
+        },
+        {
+          "symbol": "sfx_6_0A_aifc",
+          "rom_offset": 6234208,
+          "destination_offset": 388256,
+          "size": 2430,
+          "packed_offset": 387054
+        },
+        {
+          "symbol": "sfx_6_0B_aifc",
+          "rom_offset": 6236640,
+          "destination_offset": 390688,
+          "size": 2188,
+          "packed_offset": 389484
+        },
+        {
+          "symbol": "sfx_6_0C_aifc",
+          "rom_offset": 6238832,
+          "destination_offset": 392880,
+          "size": 5284,
+          "packed_offset": 391672
+        },
+        {
+          "symbol": "sfx_6_0D_aifc",
+          "rom_offset": 6244128,
+          "destination_offset": 398176,
+          "size": 10360,
+          "packed_offset": 396956
+        },
+        {
+          "symbol": "sfx_7_00_aifc",
+          "rom_offset": 6254496,
+          "destination_offset": 408544,
+          "size": 1216,
+          "packed_offset": 407316
+        },
+        {
+          "symbol": "sfx_7_01_aifc",
+          "rom_offset": 6255712,
+          "destination_offset": 409760,
+          "size": 3664,
+          "packed_offset": 408532
+        },
+        {
+          "symbol": "sfx_7_02_aifc",
+          "rom_offset": 6259376,
+          "destination_offset": 413424,
+          "size": 1206,
+          "packed_offset": 412196
+        },
+        {
+          "symbol": "sfx_7_03_aifc",
+          "rom_offset": 6260592,
+          "destination_offset": 414640,
+          "size": 10584,
+          "packed_offset": 413402
+        },
+        {
+          "symbol": "sfx_7_04_aifc",
+          "rom_offset": 6271184,
+          "destination_offset": 425232,
+          "size": 10810,
+          "packed_offset": 423986
+        },
+        {
+          "symbol": "sfx_7_05_aifc",
+          "rom_offset": 6282000,
+          "destination_offset": 436048,
+          "size": 4104,
+          "packed_offset": 434796
+        },
+        {
+          "symbol": "sfx_7_06_aifc",
+          "rom_offset": 6286112,
+          "destination_offset": 440160,
+          "size": 4806,
+          "packed_offset": 438900
+        },
+        {
+          "symbol": "sfx_7_07_aifc",
+          "rom_offset": 6290928,
+          "destination_offset": 444976,
+          "size": 5076,
+          "packed_offset": 443706
+        },
+        {
+          "symbol": "sfx_7_08_aifc",
+          "rom_offset": 6296016,
+          "destination_offset": 450064,
+          "size": 1378,
+          "packed_offset": 448782
+        },
+        {
+          "symbol": "sfx_7_09_aifc",
+          "rom_offset": 6297408,
+          "destination_offset": 451456,
+          "size": 3906,
+          "packed_offset": 450160
+        },
+        {
+          "symbol": "sfx_7_0A_aifc",
+          "rom_offset": 6301328,
+          "destination_offset": 455376,
+          "size": 6210,
+          "packed_offset": 454066
+        },
+        {
+          "symbol": "sfx_7_0B_aifc",
+          "rom_offset": 6307552,
+          "destination_offset": 461600,
+          "size": 5526,
+          "packed_offset": 460276
+        },
+        {
+          "symbol": "sfx_7_0C_aifc",
+          "rom_offset": 6313088,
+          "destination_offset": 467136,
+          "size": 8938,
+          "packed_offset": 465802
+        },
+        {
+          "symbol": "sfx_7_0D_chain_chomp_bark_aifc",
+          "rom_offset": 6322032,
+          "destination_offset": 476080,
+          "size": 1818,
+          "packed_offset": 474740
+        },
+        {
+          "symbol": "sfx_mario_00_mario_jump_hoo_aifc",
+          "rom_offset": 6323856,
+          "destination_offset": 477904,
+          "size": 1882,
+          "packed_offset": 476558
+        },
+        {
+          "symbol": "sfx_mario_01_mario_jump_wah_aifc",
+          "rom_offset": 6325744,
+          "destination_offset": 479792,
+          "size": 2052,
+          "packed_offset": 478440
+        },
+        {
+          "symbol": "sfx_mario_02_mario_yah_aifc",
+          "rom_offset": 6327808,
+          "destination_offset": 481856,
+          "size": 2692,
+          "packed_offset": 480492
+        },
+        {
+          "symbol": "sfx_mario_03_mario_haha_aifc",
+          "rom_offset": 6330512,
+          "destination_offset": 484560,
+          "size": 6912,
+          "packed_offset": 483184
+        },
+        {
+          "symbol": "sfx_mario_04_mario_yahoo_aifc",
+          "rom_offset": 6337424,
+          "destination_offset": 491472,
+          "size": 8524,
+          "packed_offset": 490096
+        },
+        {
+          "symbol": "sfx_mario_05_mario_uh_aifc",
+          "rom_offset": 6345952,
+          "destination_offset": 500000,
+          "size": 2808,
+          "packed_offset": 498620
+        },
+        {
+          "symbol": "sfx_mario_06_mario_hrmm_aifc",
+          "rom_offset": 6348768,
+          "destination_offset": 502816,
+          "size": 4474,
+          "packed_offset": 501428
+        },
+        {
+          "symbol": "sfx_mario_07_mario_wah2_aifc",
+          "rom_offset": 6353248,
+          "destination_offset": 507296,
+          "size": 2692,
+          "packed_offset": 505902
+        },
+        {
+          "symbol": "sfx_mario_08_mario_whoa_aifc",
+          "rom_offset": 6355952,
+          "destination_offset": 510000,
+          "size": 8334,
+          "packed_offset": 508594
+        },
+        {
+          "symbol": "sfx_mario_09_mario_eeuh_aifc",
+          "rom_offset": 6364288,
+          "destination_offset": 518336,
+          "size": 6436,
+          "packed_offset": 516928
+        },
+        {
+          "symbol": "sfx_mario_0A_mario_attacked_aifc",
+          "rom_offset": 6370736,
+          "destination_offset": 524784,
+          "size": 5644,
+          "packed_offset": 523364
+        },
+        {
+          "symbol": "sfx_mario_0B_mario_ooof_aifc",
+          "rom_offset": 6376384,
+          "destination_offset": 530432,
+          "size": 5544,
+          "packed_offset": 529008
+        },
+        {
+          "symbol": "sfx_mario_0C_mario_here_we_go_aifc",
+          "rom_offset": 6381936,
+          "destination_offset": 535984,
+          "size": 12808,
+          "packed_offset": 534552
+        },
+        {
+          "symbol": "sfx_mario_0D_mario_yawning_aifc",
+          "rom_offset": 6394752,
+          "destination_offset": 548800,
+          "size": 14580,
+          "packed_offset": 547360
+        },
+        {
+          "symbol": "sfx_mario_0E_mario_snoring1_aifc",
+          "rom_offset": 6409344,
+          "destination_offset": 563392,
+          "size": 8416,
+          "packed_offset": 561940
+        },
+        {
+          "symbol": "sfx_mario_0F_mario_snoring2_aifc",
+          "rom_offset": 6417760,
+          "destination_offset": 571808,
+          "size": 3006,
+          "packed_offset": 570356
+        },
+        {
+          "symbol": "sfx_mario_10_mario_doh_aifc",
+          "rom_offset": 6420768,
+          "destination_offset": 574816,
+          "size": 5140,
+          "packed_offset": 573362
+        },
+        {
+          "symbol": "sfx_mario_11_mario_game_over_aifc",
+          "rom_offset": 6425920,
+          "destination_offset": 579968,
+          "size": 6444,
+          "packed_offset": 578502
+        },
+        {
+          "symbol": "sfx_mario_12_mario_hello_aifc",
+          "rom_offset": 6432368,
+          "destination_offset": 586416,
+          "size": 6930,
+          "packed_offset": 584946
+        },
+        {
+          "symbol": "sfx_mario_13_mario_press_start_to_play_aifc",
+          "rom_offset": 6439312,
+          "destination_offset": 593360,
+          "size": 13770,
+          "packed_offset": 591876
+        },
+        {
+          "symbol": "sfx_mario_14_mario_twirl_bounce_aifc",
+          "rom_offset": 6453088,
+          "destination_offset": 607136,
+          "size": 4410,
+          "packed_offset": 605646
+        },
+        {
+          "symbol": "sfx_mario_15_mario_snoring3_aifc",
+          "rom_offset": 6457504,
+          "destination_offset": 611552,
+          "size": 98226,
+          "packed_offset": 610056
+        },
+        {
+          "symbol": "sfx_mario_16_mario_so_longa_bowser_aifc",
+          "rom_offset": 6555744,
+          "destination_offset": 709792,
+          "size": 13482,
+          "packed_offset": 708282
+        },
+        {
+          "symbol": "sfx_mario_17_mario_ima_tired_aifc",
+          "rom_offset": 6569232,
+          "destination_offset": 723280,
+          "size": 11394,
+          "packed_offset": 721764
+        },
+        {
+          "symbol": "sfx_mario_18_mario_waha_aifc",
+          "rom_offset": 6580640,
+          "destination_offset": 734688,
+          "size": 9694,
+          "packed_offset": 733158
+        },
+        {
+          "symbol": "sfx_mario_19_mario_yippee_aifc",
+          "rom_offset": 6590336,
+          "destination_offset": 744384,
+          "size": 9018,
+          "packed_offset": 742852
+        },
+        {
+          "symbol": "sfx_mario_1A_mario_lets_a_go_aifc",
+          "rom_offset": 6599360,
+          "destination_offset": 753408,
+          "size": 8334,
+          "packed_offset": 751870
+        },
+        {
+          "symbol": "sfx_9_00_aifc",
+          "rom_offset": 6607696,
+          "destination_offset": 761744,
+          "size": 6012,
+          "packed_offset": 760204
+        },
+        {
+          "symbol": "sfx_9_01_aifc",
+          "rom_offset": 6613712,
+          "destination_offset": 767760,
+          "size": 3006,
+          "packed_offset": 766216
+        },
+        {
+          "symbol": "sfx_9_02_aifc",
+          "rom_offset": 6616720,
+          "destination_offset": 770768,
+          "size": 11044,
+          "packed_offset": 769222
+        },
+        {
+          "symbol": "sfx_9_03_aifc",
+          "rom_offset": 6627776,
+          "destination_offset": 781824,
+          "size": 8460,
+          "packed_offset": 780266
+        },
+        {
+          "symbol": "sfx_9_04_camera_buzz_aifc",
+          "rom_offset": 6636240,
+          "destination_offset": 790288,
+          "size": 3700,
+          "packed_offset": 788726
+        },
+        {
+          "symbol": "sfx_9_05_camera_shutter_aifc",
+          "rom_offset": 6639952,
+          "destination_offset": 794000,
+          "size": 1674,
+          "packed_offset": 792426
+        },
+        {
+          "symbol": "sfx_9_06_aifc",
+          "rom_offset": 6641632,
+          "destination_offset": 795680,
+          "size": 9910,
+          "packed_offset": 794100
+        },
+        {
+          "symbol": "sfx_mario_peach_00_mario_waaaooow_aifc",
+          "rom_offset": 6651552,
+          "destination_offset": 805600,
+          "size": 24768,
+          "packed_offset": 804010
+        },
+        {
+          "symbol": "sfx_mario_peach_01_mario_hoohoo_aifc",
+          "rom_offset": 6676320,
+          "destination_offset": 830368,
+          "size": 5598,
+          "packed_offset": 828778
+        },
+        {
+          "symbol": "sfx_mario_peach_02_mario_panting_aifc",
+          "rom_offset": 6681920,
+          "destination_offset": 835968,
+          "size": 5248,
+          "packed_offset": 834376
+        },
+        {
+          "symbol": "sfx_mario_peach_03_mario_dying_aifc",
+          "rom_offset": 6687168,
+          "destination_offset": 841216,
+          "size": 15786,
+          "packed_offset": 839624
+        },
+        {
+          "symbol": "sfx_mario_peach_04_mario_on_fire_aifc",
+          "rom_offset": 6702960,
+          "destination_offset": 857008,
+          "size": 18136,
+          "packed_offset": 855410
+        },
+        {
+          "symbol": "sfx_mario_peach_05_mario_uh2_aifc",
+          "rom_offset": 6721104,
+          "destination_offset": 875152,
+          "size": 2278,
+          "packed_offset": 873546
+        },
+        {
+          "symbol": "sfx_mario_peach_06_mario_coughing_aifc",
+          "rom_offset": 6723392,
+          "destination_offset": 877440,
+          "size": 2556,
+          "packed_offset": 875824
+        },
+        {
+          "symbol": "sfx_mario_peach_07_mario_its_a_me_mario_aifc",
+          "rom_offset": 6725952,
+          "destination_offset": 880000,
+          "size": 17020,
+          "packed_offset": 878380
+        },
+        {
+          "symbol": "sfx_mario_peach_08_mario_punch_yah_aifc",
+          "rom_offset": 6742976,
+          "destination_offset": 897024,
+          "size": 2206,
+          "packed_offset": 895400
+        },
+        {
+          "symbol": "sfx_mario_peach_09_mario_punch_hoo_aifc",
+          "rom_offset": 6745184,
+          "destination_offset": 899232,
+          "size": 5724,
+          "packed_offset": 897606
+        },
+        {
+          "symbol": "sfx_mario_peach_0A_mario_mama_mia_aifc",
+          "rom_offset": 6750912,
+          "destination_offset": 904960,
+          "size": 8244,
+          "packed_offset": 903330
+        },
+        {
+          "symbol": "sfx_mario_peach_0B_mario_okey_dokey_aifc",
+          "rom_offset": 6759168,
+          "destination_offset": 913216,
+          "size": 8236,
+          "packed_offset": 911574
+        },
+        {
+          "symbol": "sfx_mario_peach_0C_mario_drowning_aifc",
+          "rom_offset": 6767408,
+          "destination_offset": 921456,
+          "size": 12070,
+          "packed_offset": 919810
+        },
+        {
+          "symbol": "sfx_mario_peach_0D_mario_thank_you_playing_my_game_aifc",
+          "rom_offset": 6779488,
+          "destination_offset": 933536,
+          "size": 21610,
+          "packed_offset": 931880
+        },
+        {
+          "symbol": "sfx_mario_peach_0E_peach_dear_mario_aifc",
+          "rom_offset": 6801104,
+          "destination_offset": 955152,
+          "size": 87336,
+          "packed_offset": 953490
+        },
+        {
+          "symbol": "sfx_mario_peach_0F_peach_mario_aifc",
+          "rom_offset": 6888448,
+          "destination_offset": 1042496,
+          "size": 7336,
+          "packed_offset": 1040826
+        },
+        {
+          "symbol": "sfx_mario_peach_10_peach_power_of_the_stars_aifc",
+          "rom_offset": 6895792,
+          "destination_offset": 1049840,
+          "size": 30052,
+          "packed_offset": 1048162
+        },
+        {
+          "symbol": "sfx_mario_peach_11_peach_thanks_to_you_aifc",
+          "rom_offset": 6925856,
+          "destination_offset": 1079904,
+          "size": 15490,
+          "packed_offset": 1078214
+        },
+        {
+          "symbol": "sfx_mario_peach_12_peach_thank_you_mario_aifc",
+          "rom_offset": 6941360,
+          "destination_offset": 1095408,
+          "size": 14202,
+          "packed_offset": 1093704
+        },
+        {
+          "symbol": "sfx_mario_peach_13_peach_something_special_aifc",
+          "rom_offset": 6955568,
+          "destination_offset": 1109616,
+          "size": 24138,
+          "packed_offset": 1107906
+        },
+        {
+          "symbol": "sfx_mario_peach_14_peach_bake_a_cake_aifc",
+          "rom_offset": 6979712,
+          "destination_offset": 1133760,
+          "size": 39564,
+          "packed_offset": 1132044
+        },
+        {
+          "symbol": "sfx_mario_peach_15_peach_for_mario_aifc",
+          "rom_offset": 7019280,
+          "destination_offset": 1173328,
+          "size": 9252,
+          "packed_offset": 1171608
+        },
+        {
+          "symbol": "sfx_mario_peach_16_peach_mario2_aifc",
+          "rom_offset": 7028544,
+          "destination_offset": 1182592,
+          "size": 7092,
+          "packed_offset": 1180860
+        },
+        {
+          "symbol": "instruments_00_aifc",
+          "rom_offset": 7035648,
+          "destination_offset": 1189696,
+          "size": 11826,
+          "packed_offset": 1187952
+        },
+        {
+          "symbol": "instruments_01_banjo_1_aifc",
+          "rom_offset": 7047488,
+          "destination_offset": 1201536,
+          "size": 10396,
+          "packed_offset": 1199778
+        },
+        {
+          "symbol": "instruments_02_aifc",
+          "rom_offset": 7057888,
+          "destination_offset": 1211936,
+          "size": 17352,
+          "packed_offset": 1210174
+        },
+        {
+          "symbol": "instruments_03_human_whistle_aifc",
+          "rom_offset": 7075248,
+          "destination_offset": 1229296,
+          "size": 17136,
+          "packed_offset": 1227526
+        },
+        {
+          "symbol": "instruments_04_bright_piano_aifc",
+          "rom_offset": 7092384,
+          "destination_offset": 1246432,
+          "size": 7696,
+          "packed_offset": 1244662
+        },
+        {
+          "symbol": "instruments_05_acoustic_bass_aifc",
+          "rom_offset": 7100080,
+          "destination_offset": 1254128,
+          "size": 14212,
+          "packed_offset": 1252358
+        },
+        {
+          "symbol": "instruments_06_kick_drum_1_aifc",
+          "rom_offset": 7114304,
+          "destination_offset": 1268352,
+          "size": 1980,
+          "packed_offset": 1266570
+        },
+        {
+          "symbol": "instruments_07_rimshot_aifc",
+          "rom_offset": 7116288,
+          "destination_offset": 1270336,
+          "size": 2952,
+          "packed_offset": 1268550
+        },
+        {
+          "symbol": "instruments_08_aifc",
+          "rom_offset": 7119248,
+          "destination_offset": 1273296,
+          "size": 5238,
+          "packed_offset": 1271502
+        },
+        {
+          "symbol": "instruments_09_aifc",
+          "rom_offset": 7124496,
+          "destination_offset": 1278544,
+          "size": 6840,
+          "packed_offset": 1276740
+        },
+        {
+          "symbol": "instruments_0A_tambourine_aifc",
+          "rom_offset": 7131344,
+          "destination_offset": 1285392,
+          "size": 9684,
+          "packed_offset": 1283580
+        },
+        {
+          "symbol": "instruments_0B_aifc",
+          "rom_offset": 7141040,
+          "destination_offset": 1295088,
+          "size": 7200,
+          "packed_offset": 1293264
+        },
+        {
+          "symbol": "instruments_0C_conga_stick_aifc",
+          "rom_offset": 7148240,
+          "destination_offset": 1302288,
+          "size": 4500,
+          "packed_offset": 1300464
+        },
+        {
+          "symbol": "instruments_0D_clave_aifc",
+          "rom_offset": 7152752,
+          "destination_offset": 1306800,
+          "size": 4608,
+          "packed_offset": 1304964
+        },
+        {
+          "symbol": "instruments_0E_hihat_closed_aifc",
+          "rom_offset": 7157360,
+          "destination_offset": 1311408,
+          "size": 2116,
+          "packed_offset": 1309572
+        },
+        {
+          "symbol": "instruments_0F_hihat_open_aifc",
+          "rom_offset": 7159488,
+          "destination_offset": 1313536,
+          "size": 12178,
+          "packed_offset": 1311688
+        },
+        {
+          "symbol": "instruments_10_cymbal_bell_aifc",
+          "rom_offset": 7171680,
+          "destination_offset": 1325728,
+          "size": 12672,
+          "packed_offset": 1323866
+        },
+        {
+          "symbol": "instruments_11_splash_cymbal_aifc",
+          "rom_offset": 7184352,
+          "destination_offset": 1338400,
+          "size": 18190,
+          "packed_offset": 1336538
+        },
+        {
+          "symbol": "instruments_12_snare_drum_1_aifc",
+          "rom_offset": 7202544,
+          "destination_offset": 1356592,
+          "size": 7120,
+          "packed_offset": 1354728
+        },
+        {
+          "symbol": "instruments_13_snare_drum_2_aifc",
+          "rom_offset": 7209664,
+          "destination_offset": 1363712,
+          "size": 9838,
+          "packed_offset": 1361848
+        },
+        {
+          "symbol": "instruments_14_strings_5_aifc",
+          "rom_offset": 7219504,
+          "destination_offset": 1373552,
+          "size": 20296,
+          "packed_offset": 1371686
+        },
+        {
+          "symbol": "instruments_15_strings_4_aifc",
+          "rom_offset": 7239808,
+          "destination_offset": 1393856,
+          "size": 19278,
+          "packed_offset": 1391982
+        },
+        {
+          "symbol": "instruments_16_french_horns_aifc",
+          "rom_offset": 7259088,
+          "destination_offset": 1413136,
+          "size": 14662,
+          "packed_offset": 1411260
+        },
+        {
+          "symbol": "instruments_17_trumpet_aifc",
+          "rom_offset": 7273760,
+          "destination_offset": 1427808,
+          "size": 14302,
+          "packed_offset": 1425922
+        },
+        {
+          "symbol": "instruments_18_timpani_aifc",
+          "rom_offset": 7288064,
+          "destination_offset": 1442112,
+          "size": 19872,
+          "packed_offset": 1440224
+        },
+        {
+          "symbol": "instruments_19_brass_aifc",
+          "rom_offset": 7307936,
+          "destination_offset": 1461984,
+          "size": 18118,
+          "packed_offset": 1460096
+        },
+        {
+          "symbol": "instruments_1A_slap_bass_aifc",
+          "rom_offset": 7326064,
+          "destination_offset": 1480112,
+          "size": 9046,
+          "packed_offset": 1478214
+        },
+        {
+          "symbol": "instruments_1B_organ_2_aifc",
+          "rom_offset": 7335120,
+          "destination_offset": 1489168,
+          "size": 15760,
+          "packed_offset": 1487260
+        },
+        {
+          "symbol": "instruments_1C_aifc",
+          "rom_offset": 7350880,
+          "destination_offset": 1504928,
+          "size": 6598,
+          "packed_offset": 1503020
+        },
+        {
+          "symbol": "instruments_1D_aifc",
+          "rom_offset": 7357488,
+          "destination_offset": 1511536,
+          "size": 23598,
+          "packed_offset": 1509618
+        },
+        {
+          "symbol": "instruments_1E_closed_triangle_aifc",
+          "rom_offset": 7381088,
+          "destination_offset": 1535136,
+          "size": 1018,
+          "packed_offset": 1533216
+        },
+        {
+          "symbol": "instruments_1F_open_triangle_aifc",
+          "rom_offset": 7382112,
+          "destination_offset": 1536160,
+          "size": 6264,
+          "packed_offset": 1534234
+        },
+        {
+          "symbol": "instruments_20_cabasa_aifc",
+          "rom_offset": 7388384,
+          "destination_offset": 1542432,
+          "size": 4240,
+          "packed_offset": 1540498
+        },
+        {
+          "symbol": "instruments_21_sine_bass_aifc",
+          "rom_offset": 7392624,
+          "destination_offset": 1546672,
+          "size": 7408,
+          "packed_offset": 1544738
+        },
+        {
+          "symbol": "instruments_22_boys_choir_aifc",
+          "rom_offset": 7400032,
+          "destination_offset": 1554080,
+          "size": 14086,
+          "packed_offset": 1552146
+        },
+        {
+          "symbol": "instruments_23_strings_1_aifc",
+          "rom_offset": 7414128,
+          "destination_offset": 1568176,
+          "size": 15886,
+          "packed_offset": 1566232
+        },
+        {
+          "symbol": "instruments_24_strings_2_aifc",
+          "rom_offset": 7430016,
+          "destination_offset": 1584064,
+          "size": 18154,
+          "packed_offset": 1582118
+        },
+        {
+          "symbol": "instruments_25_strings_3_aifc",
+          "rom_offset": 7448176,
+          "destination_offset": 1602224,
+          "size": 17496,
+          "packed_offset": 1600272
+        },
+        {
+          "symbol": "instruments_26_crystal_rhodes_aifc",
+          "rom_offset": 7465680,
+          "destination_offset": 1619728,
+          "size": 28908,
+          "packed_offset": 1617768
+        },
+        {
+          "symbol": "instruments_27_harpsichord_aifc",
+          "rom_offset": 7494592,
+          "destination_offset": 1648640,
+          "size": 26190,
+          "packed_offset": 1646676
+        },
+        {
+          "symbol": "instruments_28_sitar_1_aifc",
+          "rom_offset": 7520784,
+          "destination_offset": 1674832,
+          "size": 15858,
+          "packed_offset": 1672866
+        },
+        {
+          "symbol": "instruments_29_orchestra_hit_aifc",
+          "rom_offset": 7536656,
+          "destination_offset": 1690704,
+          "size": 12672,
+          "packed_offset": 1688724
+        },
+        {
+          "symbol": "instruments_2A_aifc",
+          "rom_offset": 7549328,
+          "destination_offset": 1703376,
+          "size": 14040,
+          "packed_offset": 1701396
+        },
+        {
+          "symbol": "instruments_2B_aifc",
+          "rom_offset": 7563376,
+          "destination_offset": 1717424,
+          "size": 7660,
+          "packed_offset": 1715436
+        },
+        {
+          "symbol": "instruments_2C_aifc",
+          "rom_offset": 7571040,
+          "destination_offset": 1725088,
+          "size": 17982,
+          "packed_offset": 1723096
+        },
+        {
+          "symbol": "instruments_2D_trombone_aifc",
+          "rom_offset": 7589024,
+          "destination_offset": 1743072,
+          "size": 15372,
+          "packed_offset": 1741078
+        },
+        {
+          "symbol": "instruments_2E_accordion_aifc",
+          "rom_offset": 7604400,
+          "destination_offset": 1758448,
+          "size": 18234,
+          "packed_offset": 1756450
+        },
+        {
+          "symbol": "instruments_2F_sleigh_bells_aifc",
+          "rom_offset": 7622640,
+          "destination_offset": 1776688,
+          "size": 20844,
+          "packed_offset": 1774684
+        },
+        {
+          "symbol": "instruments_30_rarefaction_lahna_aifc",
+          "rom_offset": 7643488,
+          "destination_offset": 1797536,
+          "size": 17956,
+          "packed_offset": 1795528
+        },
+        {
+          "symbol": "instruments_31_rarefaction_convolution_aifc",
+          "rom_offset": 7661456,
+          "destination_offset": 1815504,
+          "size": 15418,
+          "packed_offset": 1813484
+        },
+        {
+          "symbol": "instruments_32_metal_rimshot_aifc",
+          "rom_offset": 7676880,
+          "destination_offset": 1830928,
+          "size": 16776,
+          "packed_offset": 1828902
+        },
+        {
+          "symbol": "instruments_33_kick_drum_2_aifc",
+          "rom_offset": 7693664,
+          "destination_offset": 1847712,
+          "size": 4546,
+          "packed_offset": 1845678
+        },
+        {
+          "symbol": "instruments_34_alto_flute_aifc",
+          "rom_offset": 7698224,
+          "destination_offset": 1852272,
+          "size": 9370,
+          "packed_offset": 1850224
+        },
+        {
+          "symbol": "instruments_35_gospel_organ_aifc",
+          "rom_offset": 7707600,
+          "destination_offset": 1861648,
+          "size": 10756,
+          "packed_offset": 1859594
+        },
+        {
+          "symbol": "instruments_36_sawtooth_synth_aifc",
+          "rom_offset": 7718368,
+          "destination_offset": 1872416,
+          "size": 8326,
+          "packed_offset": 1870350
+        },
+        {
+          "symbol": "instruments_37_square_synth_aifc",
+          "rom_offset": 7726704,
+          "destination_offset": 1880752,
+          "size": 7444,
+          "packed_offset": 1878676
+        },
+        {
+          "symbol": "instruments_38_electric_kick_drum_aifc",
+          "rom_offset": 7734160,
+          "destination_offset": 1888208,
+          "size": 2494,
+          "packed_offset": 1886120
+        },
+        {
+          "symbol": "instruments_39_sitar_2_aifc",
+          "rom_offset": 7736656,
+          "destination_offset": 1890704,
+          "size": 21096,
+          "packed_offset": 1888614
+        },
+        {
+          "symbol": "instruments_3A_music_box_aifc",
+          "rom_offset": 7757760,
+          "destination_offset": 1911808,
+          "size": 14976,
+          "packed_offset": 1909710
+        },
+        {
+          "symbol": "instruments_3B_banjo_2_aifc",
+          "rom_offset": 7772736,
+          "destination_offset": 1926784,
+          "size": 23148,
+          "packed_offset": 1924686
+        },
+        {
+          "symbol": "instruments_3C_acoustic_guitar_aifc",
+          "rom_offset": 7795888,
+          "destination_offset": 1949936,
+          "size": 19234,
+          "packed_offset": 1947834
+        },
+        {
+          "symbol": "instruments_3D_aifc",
+          "rom_offset": 7815136,
+          "destination_offset": 1969184,
+          "size": 12430,
+          "packed_offset": 1967068
+        },
+        {
+          "symbol": "instruments_3E_monk_choir_aifc",
+          "rom_offset": 7827568,
+          "destination_offset": 1981616,
+          "size": 11484,
+          "packed_offset": 1979498
+        },
+        {
+          "symbol": "instruments_3F_aifc",
+          "rom_offset": 7839056,
+          "destination_offset": 1993104,
+          "size": 19872,
+          "packed_offset": 1990982
+        },
+        {
+          "symbol": "instruments_40_bell_aifc",
+          "rom_offset": 7858928,
+          "destination_offset": 2012976,
+          "size": 15444,
+          "packed_offset": 2010854
+        },
+        {
+          "symbol": "instruments_41_pan_flute_aifc",
+          "rom_offset": 7874384,
+          "destination_offset": 2028432,
+          "size": 17982,
+          "packed_offset": 2026298
+        },
+        {
+          "symbol": "instruments_42_vibraphone_aifc",
+          "rom_offset": 7892368,
+          "destination_offset": 2046416,
+          "size": 2988,
+          "packed_offset": 2044280
+        },
+        {
+          "symbol": "instruments_43_harmonica_aifc",
+          "rom_offset": 7895360,
+          "destination_offset": 2049408,
+          "size": 12718,
+          "packed_offset": 2047268
+        },
+        {
+          "symbol": "instruments_44_grand_piano_aifc",
+          "rom_offset": 7908080,
+          "destination_offset": 2062128,
+          "size": 15238,
+          "packed_offset": 2059986
+        },
+        {
+          "symbol": "instruments_45_french_horns_lq_aifc",
+          "rom_offset": 7923328,
+          "destination_offset": 2077376,
+          "size": 7362,
+          "packed_offset": 2075224
+        },
+        {
+          "symbol": "instruments_46_pizzicato_strings_1_aifc",
+          "rom_offset": 7930704,
+          "destination_offset": 2084752,
+          "size": 11386,
+          "packed_offset": 2082586
+        },
+        {
+          "symbol": "instruments_47_pizzicato_strings_2_aifc",
+          "rom_offset": 7942096,
+          "destination_offset": 2096144,
+          "size": 13356,
+          "packed_offset": 2093972
+        },
+        {
+          "symbol": "instruments_48_steel_drum_aifc",
+          "rom_offset": 7955456,
+          "destination_offset": 2109504,
+          "size": 14788,
+          "packed_offset": 2107328
+        },
+        {
+          "symbol": "piranha_music_box_00_music_box_aifc",
+          "rom_offset": 7757760,
+          "destination_offset": 2124304,
+          "size": 14976,
+          "packed_offset": 2122116
+        },
+        {
+          "symbol": "course_start_00_la_aifc",
+          "rom_offset": 7985232,
+          "destination_offset": 2139280,
+          "size": 6480,
+          "packed_offset": 2137092
+        },
+        {
+          "symbol": "bowser_organ_00_organ_1_aifc",
+          "rom_offset": 7991712,
+          "destination_offset": 2145760,
+          "size": 40438,
+          "packed_offset": 2143572
+        },
+        {
+          "symbol": "bowser_organ_01_organ_1_lq_aifc",
+          "rom_offset": 8032160,
+          "destination_offset": 2186208,
+          "size": 16786,
+          "packed_offset": 2184010
+        },
+        {
+          "symbol": "bowser_organ_02_boys_choir_aifc",
+          "rom_offset": 7400032,
+          "destination_offset": 2203008,
+          "size": 14086,
+          "packed_offset": 2200796
+        },
+        {
+          "symbol": "extended_00_aifc",
+          "rom_offset": 7035648,
+          "destination_offset": 4548704,
+          "size": 11826,
+          "packed_offset": 2214882
+        },
+        {
+          "symbol": "extended_00_la_aifc",
+          "rom_offset": 7985232,
+          "destination_offset": 4560544,
+          "size": 6480,
+          "packed_offset": 2226708
+        },
+        {
+          "symbol": "extended_00_music_box_aifc",
+          "rom_offset": 7757760,
+          "destination_offset": 4567024,
+          "size": 14976,
+          "packed_offset": 2233188
+        },
+        {
+          "symbol": "extended_00_organ_1_aifc",
+          "rom_offset": 7991712,
+          "destination_offset": 4582000,
+          "size": 40438,
+          "packed_offset": 2248164
+        },
+        {
+          "symbol": "extended_01_banjo_1_aifc",
+          "rom_offset": 7047488,
+          "destination_offset": 4622448,
+          "size": 10396,
+          "packed_offset": 2288602
+        },
+        {
+          "symbol": "extended_01_organ_1_lq_aifc",
+          "rom_offset": 8032160,
+          "destination_offset": 4632848,
+          "size": 16786,
+          "packed_offset": 2298998
+        },
+        {
+          "symbol": "extended_02_aifc",
+          "rom_offset": 7057888,
+          "destination_offset": 4649648,
+          "size": 17352,
+          "packed_offset": 2315784
+        },
+        {
+          "symbol": "extended_02_boys_choir_aifc",
+          "rom_offset": 7400032,
+          "destination_offset": 4667008,
+          "size": 14086,
+          "packed_offset": 2333136
+        },
+        {
+          "symbol": "extended_03_human_whistle_aifc",
+          "rom_offset": 7075248,
+          "destination_offset": 4681104,
+          "size": 17136,
+          "packed_offset": 2347222
+        },
+        {
+          "symbol": "extended_04_bright_piano_aifc",
+          "rom_offset": 7092384,
+          "destination_offset": 4698240,
+          "size": 7696,
+          "packed_offset": 2364358
+        },
+        {
+          "symbol": "extended_05_acoustic_bass_aifc",
+          "rom_offset": 7100080,
+          "destination_offset": 4705936,
+          "size": 14212,
+          "packed_offset": 2372054
+        },
+        {
+          "symbol": "extended_06_kick_drum_1_aifc",
+          "rom_offset": 7114304,
+          "destination_offset": 4720160,
+          "size": 1980,
+          "packed_offset": 2386266
+        },
+        {
+          "symbol": "extended_07_rimshot_aifc",
+          "rom_offset": 7116288,
+          "destination_offset": 4722144,
+          "size": 2952,
+          "packed_offset": 2388246
+        },
+        {
+          "symbol": "extended_08_aifc",
+          "rom_offset": 7119248,
+          "destination_offset": 4725104,
+          "size": 5238,
+          "packed_offset": 2391198
+        },
+        {
+          "symbol": "extended_09_aifc",
+          "rom_offset": 7124496,
+          "destination_offset": 4730352,
+          "size": 6840,
+          "packed_offset": 2396436
+        },
+        {
+          "symbol": "extended_0A_tambourine_aifc",
+          "rom_offset": 7131344,
+          "destination_offset": 4737200,
+          "size": 9684,
+          "packed_offset": 2403276
+        },
+        {
+          "symbol": "extended_0B_aifc",
+          "rom_offset": 7141040,
+          "destination_offset": 4746896,
+          "size": 7200,
+          "packed_offset": 2412960
+        },
+        {
+          "symbol": "extended_0C_conga_stick_aifc",
+          "rom_offset": 7148240,
+          "destination_offset": 4754096,
+          "size": 4500,
+          "packed_offset": 2420160
+        },
+        {
+          "symbol": "extended_0D_clave_aifc",
+          "rom_offset": 7152752,
+          "destination_offset": 4758608,
+          "size": 4608,
+          "packed_offset": 2424660
+        },
+        {
+          "symbol": "extended_0E_hihat_closed_aifc",
+          "rom_offset": 7157360,
+          "destination_offset": 4763216,
+          "size": 2116,
+          "packed_offset": 2429268
+        },
+        {
+          "symbol": "extended_0F_hihat_open_aifc",
+          "rom_offset": 7159488,
+          "destination_offset": 4765344,
+          "size": 12178,
+          "packed_offset": 2431384
+        },
+        {
+          "symbol": "extended_10_cymbal_bell_aifc",
+          "rom_offset": 7171680,
+          "destination_offset": 4777536,
+          "size": 12672,
+          "packed_offset": 2443562
+        },
+        {
+          "symbol": "extended_11_splash_cymbal_aifc",
+          "rom_offset": 7184352,
+          "destination_offset": 4790208,
+          "size": 18190,
+          "packed_offset": 2456234
+        },
+        {
+          "symbol": "extended_12_snare_drum_1_aifc",
+          "rom_offset": 7202544,
+          "destination_offset": 4808400,
+          "size": 7120,
+          "packed_offset": 2474424
+        },
+        {
+          "symbol": "extended_13_snare_drum_2_aifc",
+          "rom_offset": 7209664,
+          "destination_offset": 4815520,
+          "size": 9838,
+          "packed_offset": 2481544
+        },
+        {
+          "symbol": "extended_14_strings_5_aifc",
+          "rom_offset": 7219504,
+          "destination_offset": 4825360,
+          "size": 20296,
+          "packed_offset": 2491382
+        },
+        {
+          "symbol": "extended_15_strings_4_aifc",
+          "rom_offset": 7239808,
+          "destination_offset": 4845664,
+          "size": 19278,
+          "packed_offset": 2511678
+        },
+        {
+          "symbol": "extended_16_french_horns_aifc",
+          "rom_offset": 7259088,
+          "destination_offset": 4864944,
+          "size": 14662,
+          "packed_offset": 2530956
+        },
+        {
+          "symbol": "extended_17_trumpet_aifc",
+          "rom_offset": 7273760,
+          "destination_offset": 4879616,
+          "size": 14302,
+          "packed_offset": 2545618
+        },
+        {
+          "symbol": "extended_18_timpani_aifc",
+          "rom_offset": 7288064,
+          "destination_offset": 4893920,
+          "size": 19872,
+          "packed_offset": 2559920
+        },
+        {
+          "symbol": "extended_19_brass_aifc",
+          "rom_offset": 7307936,
+          "destination_offset": 4913792,
+          "size": 18118,
+          "packed_offset": 2579792
+        },
+        {
+          "symbol": "extended_1A_slap_bass_aifc",
+          "rom_offset": 7326064,
+          "destination_offset": 4931920,
+          "size": 9046,
+          "packed_offset": 2597910
+        },
+        {
+          "symbol": "extended_1B_organ_2_aifc",
+          "rom_offset": 7335120,
+          "destination_offset": 4940976,
+          "size": 15760,
+          "packed_offset": 2606956
+        },
+        {
+          "symbol": "extended_1C_aifc",
+          "rom_offset": 7350880,
+          "destination_offset": 4956736,
+          "size": 6598,
+          "packed_offset": 2622716
+        },
+        {
+          "symbol": "extended_1D_aifc",
+          "rom_offset": 7357488,
+          "destination_offset": 4963344,
+          "size": 23598,
+          "packed_offset": 2629314
+        },
+        {
+          "symbol": "extended_1E_closed_triangle_aifc",
+          "rom_offset": 7381088,
+          "destination_offset": 4986944,
+          "size": 1018,
+          "packed_offset": 2652912
+        },
+        {
+          "symbol": "extended_1F_open_triangle_aifc",
+          "rom_offset": 7382112,
+          "destination_offset": 4987968,
+          "size": 6264,
+          "packed_offset": 2653930
+        },
+        {
+          "symbol": "extended_20_cabasa_aifc",
+          "rom_offset": 7388384,
+          "destination_offset": 4994240,
+          "size": 4240,
+          "packed_offset": 2660194
+        },
+        {
+          "symbol": "extended_21_sine_bass_aifc",
+          "rom_offset": 7392624,
+          "destination_offset": 4998480,
+          "size": 7408,
+          "packed_offset": 2664434
+        },
+        {
+          "symbol": "extended_22_boys_choir_aifc",
+          "rom_offset": 7400032,
+          "destination_offset": 5005888,
+          "size": 14086,
+          "packed_offset": 2671842
+        },
+        {
+          "symbol": "extended_23_strings_1_aifc",
+          "rom_offset": 7414128,
+          "destination_offset": 5019984,
+          "size": 15886,
+          "packed_offset": 2685928
+        },
+        {
+          "symbol": "extended_24_strings_2_aifc",
+          "rom_offset": 7430016,
+          "destination_offset": 5035872,
+          "size": 18154,
+          "packed_offset": 2701814
+        },
+        {
+          "symbol": "extended_25_strings_3_aifc",
+          "rom_offset": 7448176,
+          "destination_offset": 5054032,
+          "size": 17496,
+          "packed_offset": 2719968
+        },
+        {
+          "symbol": "extended_26_crystal_rhodes_aifc",
+          "rom_offset": 7465680,
+          "destination_offset": 5071536,
+          "size": 28908,
+          "packed_offset": 2737464
+        },
+        {
+          "symbol": "extended_27_harpsichord_aifc",
+          "rom_offset": 7494592,
+          "destination_offset": 5100448,
+          "size": 26190,
+          "packed_offset": 2766372
+        },
+        {
+          "symbol": "extended_28_sitar_1_aifc",
+          "rom_offset": 7520784,
+          "destination_offset": 5126640,
+          "size": 15858,
+          "packed_offset": 2792562
+        },
+        {
+          "symbol": "extended_29_orchestra_hit_aifc",
+          "rom_offset": 7536656,
+          "destination_offset": 5142512,
+          "size": 12672,
+          "packed_offset": 2808420
+        },
+        {
+          "symbol": "extended_2A_aifc",
+          "rom_offset": 7549328,
+          "destination_offset": 5155184,
+          "size": 14040,
+          "packed_offset": 2821092
+        },
+        {
+          "symbol": "extended_2B_aifc",
+          "rom_offset": 7563376,
+          "destination_offset": 5169232,
+          "size": 7660,
+          "packed_offset": 2835132
+        },
+        {
+          "symbol": "extended_2C_aifc",
+          "rom_offset": 7571040,
+          "destination_offset": 5176896,
+          "size": 17982,
+          "packed_offset": 2842792
+        },
+        {
+          "symbol": "extended_2D_trombone_aifc",
+          "rom_offset": 7589024,
+          "destination_offset": 5194880,
+          "size": 15372,
+          "packed_offset": 2860774
+        },
+        {
+          "symbol": "extended_2E_accordion_aifc",
+          "rom_offset": 7604400,
+          "destination_offset": 5210256,
+          "size": 18234,
+          "packed_offset": 2876146
+        },
+        {
+          "symbol": "extended_2F_sleigh_bells_aifc",
+          "rom_offset": 7622640,
+          "destination_offset": 5228496,
+          "size": 20844,
+          "packed_offset": 2894380
+        },
+        {
+          "symbol": "extended_30_rarefaction_lahna_aifc",
+          "rom_offset": 7643488,
+          "destination_offset": 5249344,
+          "size": 17956,
+          "packed_offset": 2915224
+        },
+        {
+          "symbol": "extended_31_rarefaction_convolution_aifc",
+          "rom_offset": 7661456,
+          "destination_offset": 5267312,
+          "size": 15418,
+          "packed_offset": 2933180
+        },
+        {
+          "symbol": "extended_32_metal_rimshot_aifc",
+          "rom_offset": 7676880,
+          "destination_offset": 5282736,
+          "size": 16776,
+          "packed_offset": 2948598
+        },
+        {
+          "symbol": "extended_33_kick_drum_2_aifc",
+          "rom_offset": 7693664,
+          "destination_offset": 5299520,
+          "size": 4546,
+          "packed_offset": 2965374
+        },
+        {
+          "symbol": "extended_34_alto_flute_aifc",
+          "rom_offset": 7698224,
+          "destination_offset": 5304080,
+          "size": 9370,
+          "packed_offset": 2969920
+        },
+        {
+          "symbol": "extended_35_gospel_organ_aifc",
+          "rom_offset": 7707600,
+          "destination_offset": 5313456,
+          "size": 10756,
+          "packed_offset": 2979290
+        },
+        {
+          "symbol": "extended_36_sawtooth_synth_aifc",
+          "rom_offset": 7718368,
+          "destination_offset": 5324224,
+          "size": 8326,
+          "packed_offset": 2990046
+        },
+        {
+          "symbol": "extended_37_square_synth_aifc",
+          "rom_offset": 7726704,
+          "destination_offset": 5332560,
+          "size": 7444,
+          "packed_offset": 2998372
+        },
+        {
+          "symbol": "extended_38_electric_kick_drum_aifc",
+          "rom_offset": 7734160,
+          "destination_offset": 5340016,
+          "size": 2494,
+          "packed_offset": 3005816
+        },
+        {
+          "symbol": "extended_39_sitar_2_aifc",
+          "rom_offset": 7736656,
+          "destination_offset": 5342512,
+          "size": 21096,
+          "packed_offset": 3008310
+        },
+        {
+          "symbol": "extended_3A_music_box_aifc",
+          "rom_offset": 7757760,
+          "destination_offset": 5363616,
+          "size": 14976,
+          "packed_offset": 3029406
+        },
+        {
+          "symbol": "extended_3B_banjo_2_aifc",
+          "rom_offset": 7772736,
+          "destination_offset": 5378592,
+          "size": 23148,
+          "packed_offset": 3044382
+        },
+        {
+          "symbol": "extended_3C_acoustic_guitar_aifc",
+          "rom_offset": 7795888,
+          "destination_offset": 5401744,
+          "size": 19234,
+          "packed_offset": 3067530
+        },
+        {
+          "symbol": "extended_3D_aifc",
+          "rom_offset": 7815136,
+          "destination_offset": 5420992,
+          "size": 12430,
+          "packed_offset": 3086764
+        },
+        {
+          "symbol": "extended_3E_monk_choir_aifc",
+          "rom_offset": 7827568,
+          "destination_offset": 5433424,
+          "size": 11484,
+          "packed_offset": 3099194
+        },
+        {
+          "symbol": "extended_3F_aifc",
+          "rom_offset": 7839056,
+          "destination_offset": 5444912,
+          "size": 19872,
+          "packed_offset": 3110678
+        },
+        {
+          "symbol": "extended_40_bell_aifc",
+          "rom_offset": 7858928,
+          "destination_offset": 5464784,
+          "size": 15444,
+          "packed_offset": 3130550
+        },
+        {
+          "symbol": "extended_41_pan_flute_aifc",
+          "rom_offset": 7874384,
+          "destination_offset": 5480240,
+          "size": 17982,
+          "packed_offset": 3145994
+        },
+        {
+          "symbol": "extended_42_vibraphone_aifc",
+          "rom_offset": 7892368,
+          "destination_offset": 5498224,
+          "size": 2988,
+          "packed_offset": 3163976
+        },
+        {
+          "symbol": "extended_43_harmonica_aifc",
+          "rom_offset": 7895360,
+          "destination_offset": 5501216,
+          "size": 12718,
+          "packed_offset": 3166964
+        },
+        {
+          "symbol": "extended_44_grand_piano_aifc",
+          "rom_offset": 7908080,
+          "destination_offset": 5513936,
+          "size": 15238,
+          "packed_offset": 3179682
+        },
+        {
+          "symbol": "extended_45_french_horns_lq_aifc",
+          "rom_offset": 7923328,
+          "destination_offset": 5529184,
+          "size": 7362,
+          "packed_offset": 3194920
+        },
+        {
+          "symbol": "extended_46_pizzicato_strings_1_aifc",
+          "rom_offset": 7930704,
+          "destination_offset": 5536560,
+          "size": 11386,
+          "packed_offset": 3202282
+        },
+        {
+          "symbol": "extended_47_pizzicato_strings_2_aifc",
+          "rom_offset": 7942096,
+          "destination_offset": 5547952,
+          "size": 13356,
+          "packed_offset": 3213668
+        },
+        {
+          "symbol": "extended_48_steel_drum_aifc",
+          "rom_offset": 7955456,
+          "destination_offset": 5561312,
+          "size": 14788,
+          "packed_offset": 3227024
+        }
+      ],
+      "bytes": 3241812,
+      "sha256": "a553b254ad43efdec56e032a056555a725f3f9f7192b292205bbee7bc2a05589"
+    }
+  }
+}

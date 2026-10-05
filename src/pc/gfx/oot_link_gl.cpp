@@ -1,0 +1,359 @@
+/* Bounded native adapter for extracted ORIGINAL OoT Link assets.
+ * Geometry, textures, skeleton and animation frames are never synthesized here.
+ * Skeleton convention: zeldaret/oot 52a510f379afd143aaa0375be9f1e190369572e1,
+ * SkelAnime_DrawFlexLod / SkelAnime_DrawFlexLimbLod. Float matrix arithmetic
+ * replaces RSP fixed-point rounding; the original hierarchy/axes are retained.
+ * RDP approximation: one decoded texture feeds TEXEL0 and TEXEL1, directional
+ * lighting, alpha cutout, no fog/noise/chroma-key/LOD-fraction implementation.
+ */
+#include "oot_link_gl.h"
+#include "../utils/json.hpp"
+#include "../utils/oot_asset_path.h"
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <limits>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <vector>
+#ifndef OOT_LINK_CPU_ONLY
+#include <SDL2/SDL.h>
+#ifdef USE_GLES
+#include <SDL2/SDL_opengles2.h>
+#else
+#include <SDL2/SDL_opengl.h>
+#endif
+#ifndef APIENTRY
+#define APIENTRY
+#endif
+#ifndef GL_VERTEX_ARRAY_BINDING
+#define GL_VERTEX_ARRAY_BINDING 0x85B5
+#endif
+#ifndef GL_PIXEL_UNPACK_BUFFER_BINDING
+#define GL_PIXEL_UNPACK_BUFFER_BINDING 0x88EF
+#define GL_PIXEL_UNPACK_BUFFER 0x88EC
+#endif
+#ifndef GL_SAMPLER_BINDING
+#define GL_SAMPLER_BINDING 0x8919
+#endif
+#ifndef GL_RASTERIZER_DISCARD
+#define GL_RASTERIZER_DISCARD 0x8C89
+#endif
+#ifndef GL_UNPACK_ROW_LENGTH
+#define GL_UNPACK_ROW_LENGTH 0x0CF2
+#define GL_UNPACK_SKIP_ROWS 0x0CF3
+#define GL_UNPACK_SKIP_PIXELS 0x0CF4
+#endif
+#ifndef GL_POLYGON_MODE
+#define GL_POLYGON_MODE 0x0B40
+#define GL_FILL 0x1B02
+#endif
+#endif
+
+namespace {
+using Json = nlohmann::json;
+const float PI = 3.14159265358979323846f;
+const size_t MAX_JSON = 32u*1024u*1024u, MAX_VERTICES=200000, MAX_TRIANGLES=200000, MAX_MATERIALS=1024;
+typedef std::array<float,16> Matrix;
+Matrix identity() { Matrix m={};m[0]=m[5]=m[10]=m[15]=1;return m; }
+Matrix multiply(const Matrix &a,const Matrix &b) {
+    Matrix r={};for(int c=0;c<4;++c)for(int row=0;row<4;++row)for(int k=0;k<4;++k)r[c*4+row]+=a[k*4+row]*b[c*4+k];return r;
+}
+Matrix transform(const float p[3],const float r[3]) {
+    const float sx=std::sin(r[0]),cx=std::cos(r[0]),sy=std::sin(r[1]),cy=std::cos(r[1]),sz=std::sin(r[2]),cz=std::cos(r[2]);
+    Matrix m=identity();
+    m[0]=cz*cy;m[4]=cz*sy*sx-sz*cx;m[8]=cz*sy*cx+sz*sx;m[12]=p[0];
+    m[1]=sz*cy;m[5]=sz*sy*sx+cz*cx;m[9]=sz*sy*cx-cz*sx;m[13]=p[1];
+    m[2]=-sy;m[6]=cy*sx;m[10]=cy*cx;m[14]=p[2];return m;
+}
+struct Limb {float position[3];int child=-1,sibling=-1,matrix=-1,parent=-1;};
+struct Vertex {float position[3],uv[2];unsigned char color[4];int matrix,uvScale[2];bool lit,uvProcessed;};
+struct Triangle {unsigned int index[3],material;};
+struct Material {
+    float prim[4],env[4],scale[2];int wrap[2],shift[2],origin[2],mask[2];
+    int rgb[2][4],alpha[2][4],cycle=1,width=1,height=1;
+    bool textured=false;uint32_t geometry=0;std::vector<unsigned char> rgba;
+};
+struct DrawVertex {float position[3],uv[2],shade[4];};
+struct Batch {unsigned int material;size_t first,count;};
+struct Asset {std::vector<Limb> limbs;std::vector<int> order;size_t paletteCount=0;std::vector<Vertex> vertices;std::vector<Triangle> triangles;std::vector<Material> materials;};
+long long integer(const Json &j,long long lo,long long hi,const char *what) {
+    if(!j.is_number_integer()||j.is_boolean())throw std::runtime_error(std::string("invalid ")+what);
+    if(j.is_number_unsigned()&&j.get<uint64_t>()>uint64_t(hi))throw std::runtime_error(std::string("out of range ")+what);
+    long long n=j.get<long long>();if(n<lo||n>hi)throw std::runtime_error(std::string("out of range ")+what);return n;
+}
+const Json &array(const Json &j,size_t n,const char *what) {if(!j.is_array()||j.size()!=n)throw std::runtime_error(std::string("invalid ")+what);return j;}
+std::vector<unsigned char> readFile(const std::string &path,size_t max,size_t exact=0) {
+    return oot_asset_path::readFile(path, max, exact);
+}
+std::string realPath(const std::string &path) { return oot_asset_path::canonical(path); }
+std::string texturePath(const std::string &base,const std::string &file) {
+    return oot_asset_path::child(realPath(base), file, 240);
+}
+void visit(Asset &a,int index,int parent,std::vector<bool> &seen) {
+    if(index<0)return;
+    if(seen[index])throw std::runtime_error("cyclic/multiply-parented skeleton");
+    seen[index]=true;a.order.push_back(index);a.limbs[index].parent=parent;
+    visit(a,a.limbs[index].child,index,seen);visit(a,a.limbs[index].sibling,parent,seen);
+}
+void decodeCombine(Material &m,uint32_t a,uint32_t b) {
+    const int rgb[2][4]={{int((a>>20)&15),int((b>>28)&15),int((a>>15)&31),int((b>>15)&7)},
+                         {int((a>>5)&15),int((b>>24)&15),int(a&31),int((b>>6)&7)}};
+    const int alpha[2][4]={{int((a>>12)&7),int((b>>12)&7),int((a>>9)&7),int((b>>9)&7)},
+                           {int((b>>21)&7),int((b>>3)&7),int((b>>18)&7),int(b&7)}};
+    std::memcpy(m.rgb,rgb,sizeof rgb);std::memcpy(m.alpha,alpha,sizeof alpha);
+}
+Asset loadAsset(const std::string &input) {
+    std::string path=input;if(path.size()<5||path.substr(path.size()-5)!=".json")path+="/mesh.json";
+    path=realPath(path);size_t slash=path.find_last_of("/\\");std::string base=slash==std::string::npos?".":path.substr(0,slash+1);
+    auto bytes=readFile(path,MAX_JSON);Json j=Json::parse(bytes.begin(),bytes.end(),[](int depth,Json::parse_event_t,Json &){if(depth>32)throw std::runtime_error("JSON nesting limit exceeded");return true;});
+    if(j.at("schema_version")!="oot-link-mesh-v1"||j.at("age")!="adult"||j.at("lod")!="near")throw std::runtime_error("unsupported Link mesh schema/age/LOD");
+    const Json &s=j.at("skeleton");integer(s.at("limb_count"),21,21,"limb count");const Json &ls=array(s.at("limbs"),21,"limbs");Asset a;a.limbs.resize(21);
+    a.paletteCount=size_t(integer(s.at("dlist_count"),1,21,"palette count"));
+    for(int i=0;i<21;++i){const Json &l=ls[i];integer(l.at("index"),i,i,"limb index");Limb &out=a.limbs[i];
+        const Json &p=array(l.at("joint_pos"),3,"joint position");for(int k=0;k<3;++k)out.position[k]=float(integer(p[k],-32768,32767,"joint position"));
+        out.child=l.at("child").is_null()?-1:int(integer(l.at("child"),0,20,"child"));out.sibling=l.at("sibling").is_null()?-1:int(integer(l.at("sibling"),0,20,"sibling"));
+        out.matrix=l.at("matrix_index").is_null()?-1:int(integer(l.at("matrix_index"),0,(int)a.paletteCount-1,"matrix index"));
+        const bool hasMesh=integer(l.at("near_dlist"),0,0xffffffffLL,"near display list")!=0;
+        if(hasMesh!=(out.matrix>=0))throw std::runtime_error("display list/palette mismatch");
+    }
+    if(a.limbs[0].sibling!=-1)throw std::runtime_error("root sibling is forbidden");
+    std::vector<bool> seen(21,false);visit(a,0,-1,seen);
+    if(a.order.size()!=21)throw std::runtime_error("disconnected skeleton");
+    int slot=0;
+    const Json &mapping=array(s.at("matrix_to_limb"),a.paletteCount,"matrix mapping");
+    for(int i:a.order)if(a.limbs[i].matrix>=0){if(a.limbs[i].matrix!=slot||integer(mapping.at(slot),0,20,"matrix mapping")!=i)throw std::runtime_error("palette is not near-LOD DFS order");++slot;}
+    if(size_t(slot)!=a.paletteCount)throw std::runtime_error("palette count mismatch");
+    const Json &ms=j.at("materials");if(!ms.is_array()||ms.empty()||ms.size()>MAX_MATERIALS)throw std::runtime_error("material count out of range");size_t textureBytes=0;
+    for(const Json &v:ms){Material m;for(int k=0;k<4;++k){m.prim[k]=float(integer(array(v.at("prim_color"),4,"primitive color")[k],0,255,"primitive color"))/255;m.env[k]=float(integer(array(v.at("env_color"),4,"environment color")[k],0,255,"environment color"))/255;}
+        m.geometry=uint32_t(integer(v.at("geometry_mode"),0,0xffffffffLL,"geometry mode"));const Json &combine=array(v.at("combine"),2,"combine");decodeCombine(m,uint32_t(integer(combine[0],0,0xffffffffLL,"combine")),uint32_t(integer(combine[1],0,0xffffffffLL,"combine")));
+        if(v.contains("other_mode_h"))m.cycle=int((integer(v.at("other_mode_h"),0,0xffffffffLL,"other mode high")>>20)&3);
+        if(v.contains("cycle_type"))m.cycle=int(integer(v.at("cycle_type"),0,3,"cycle type"));
+        if(!v.at("texture_enabled").is_boolean())throw std::runtime_error("invalid texture_enabled");
+        m.textured=v.at("texture_enabled").get<bool>();
+        const Json &scale=array(v.at("texture_scale"),2,"texture scale");const Json &tile=v.at("tile");
+        for(int k=0;k<2;++k){const char *axis=k?"t":"s";m.scale[k]=float(integer(scale[k],0,65535,"texture scale"))/65536.0f;m.wrap[k]=int(integer(tile.at(std::string("cm_")+axis),0,3,"texture wrap"));m.shift[k]=int(integer(tile.at(std::string("shift_")+axis),0,15,"texture shift"));m.mask[k]=int(integer(tile.at(std::string("mask_")+axis),0,15,"texture mask"));m.origin[k]=int(integer(tile.at(k?"ult":"uls"),0,4095,"texture origin"));}
+        const Json &tex=v.at("texture");if(m.textured){if(!tex.is_object())throw std::runtime_error("enabled texture missing");m.width=int(integer(tex.at("width"),1,4096,"texture width"));m.height=int(integer(tex.at("height"),1,4096,"texture height"));size_t n=size_t(m.width)*m.height*4;textureBytes+=n;if(textureBytes>64u*1024u*1024u)throw std::runtime_error("texture budget exceeded");m.rgba=readFile(texturePath(base,tex.at("rgba_file").get<std::string>()),n,n);}else m.rgba.assign(4,255);
+        a.materials.push_back(std::move(m));
+    }
+    const Json &vs=j.at("vertices");if(!vs.is_array()||vs.empty()||vs.size()>MAX_VERTICES)throw std::runtime_error("vertex count out of range");a.vertices.reserve(vs.size());
+    for(const Json &v:vs){Vertex out;const Json &p=array(v.at("position"),3,"vertex position"),&uv=array(v.at("uv"),2,"UV"),&c=array(v.at("color_normal"),4,"color/normal");for(int k=0;k<3;++k)out.position[k]=float(integer(p[k],-32768,32767,"vertex position"));for(int k=0;k<2;++k)out.uv[k]=float(integer(uv[k],-32768,32767,"UV"));for(int k=0;k<4;++k)out.color[k]=(unsigned char)integer(c[k],0,255,"color/normal");out.matrix=int(integer(v.at("matrix_index"),0,(int)a.paletteCount-1,"vertex matrix index"));if(!v.at("lit").is_boolean())throw std::runtime_error("invalid vertex lighting");out.lit=v.at("lit").get<bool>();
+        out.uvProcessed=false;out.uvScale[0]=out.uvScale[1]=-1;
+        if(v.contains("uv_processed")){if(!v.at("uv_processed").is_boolean())throw std::runtime_error("invalid processed UV flag");out.uvProcessed=v.at("uv_processed").get<bool>();}
+        if(v.contains("uv_scale")){const Json &uvScale=array(v.at("uv_scale"),2,"vertex UV scale");for(int k=0;k<2;++k)out.uvScale[k]=int(integer(uvScale[k],0,65535,"vertex UV scale"));}
+        a.vertices.push_back(out);}
+    const Json &ts=j.at("triangles");if(!ts.is_array()||ts.empty()||ts.size()>MAX_TRIANGLES)throw std::runtime_error("triangle count out of range");a.triangles.reserve(ts.size());
+    for(const Json &t:ts){Triangle out;const Json &idx=array(t.at("indices"),3,"triangle");for(int k=0;k<3;++k)out.index[k]=(unsigned int)integer(idx[k],0,(long long)a.vertices.size()-1,"vertex index");out.material=(unsigned int)integer(t.at("material"),0,(long long)a.materials.size()-1,"material index");a.triangles.push_back(out);}return a;
+}
+void textureUV(const Vertex &v,const Material &m,float out[2]) {
+    for(int axis=0;axis<2;++axis) {
+        // Texture scale belongs to G_VTX, whereas tile shift/origin belong to
+        // rasterization. G_MODIFYVTX ST supplies already-scaled coordinates.
+        int raw=int(v.uv[axis]);
+        if(!v.uvProcessed) {
+            int scale=v.uvScale[axis]>=0?v.uvScale[axis]:int(m.scale[axis]*65536.0f);
+            int64_t product=int64_t(raw)*scale;
+            raw=int(product>=0?product/65536:-((-product+65535)/65536));
+        }
+        float shift=m.shift[axis]<=10?std::ldexp(1.0f,-m.shift[axis]):std::ldexp(1.0f,16-m.shift[axis]);
+        out[axis]=(float(raw)/32.0f*shift-m.origin[axis]/4.0f)/float(axis?m.height:m.width);
+    }
+}
+bool finite(const float *p,size_t n){if(!p)return false;for(size_t i=0;i<n;++i)if(!std::isfinite(p[i]))return false;return true;}
+float angle(int16_t a,int16_t b,float t) {int delta=(int(b)-int(a)+32768)&65535;delta-=32768;return(float(a)+float(delta)*t)*(PI/32768.0f);}
+bool pose(const Asset &a,const float world[3],float yaw,float scale,const int16_t f[22][3],const int16_t next[22][3],float t,std::vector<Matrix> &palette,std::vector<DrawVertex> &vertices, std::vector<Matrix> *limbOut=NULL) {
+    if(!finite(world,3)||!std::isfinite(yaw)||!std::isfinite(scale)||scale<=0||scale>10000||!f||!next||!std::isfinite(t)||t<0||t>1)return false;
+    float rotation[3]={0,yaw,0};Matrix actor=transform(world,rotation);for(int col=0;col<3;++col)for(int row=0;row<3;++row)actor[col*4+row]*=scale*.01f;
+    std::vector<Matrix> limbs(21);palette.resize(a.paletteCount);
+    for(int index:a.order){float p[3],r[3];for(int k=0;k<3;++k){p[k]=index? a.limbs[index].position[k]:float(f[0][k])+(float(next[0][k])-float(f[0][k]))*t;r[k]=angle(f[index+1][k],next[index+1][k],t);}Matrix local=transform(p,r);const Limb &l=a.limbs[index];limbs[index]=multiply(l.parent<0?actor:limbs[l.parent],local);if(l.matrix>=0)palette[l.matrix]=limbs[index];}
+    if(limbOut)*limbOut=limbs;
+    vertices.resize(a.vertices.size());const float light[3]={.26726124f,.80178373f,.53452248f};
+    for(size_t i=0;i<a.vertices.size();++i){const Vertex &v=a.vertices[i];DrawVertex &out=vertices[i];const Matrix &m=palette[v.matrix];for(int k=0;k<3;++k)out.position[k]=m[k]*v.position[0]+m[4+k]*v.position[1]+m[8+k]*v.position[2]+m[12+k];
+        float brightness=1;if(v.lit){float n[3],length=0;for(int k=0;k<3;++k){n[k]=0;for(int q=0;q<3;++q){int c=int(v.color[q]);if(c>=128)c-=256;n[k]+=m[q*4+k]*float(c);}length+=n[k]*n[k];}length=std::sqrt(length);float dot=0;if(length>0)for(int k=0;k<3;++k)dot+=n[k]/length*light[k];brightness=.35f+.65f*std::max(0.0f,dot);}
+        for(int k=0;k<3;++k)out.shade[k]=v.lit?brightness:float(v.color[k])/255;
+        out.shade[3]=float(v.color[3])/255;out.uv[0]=v.uv[0];out.uv[1]=v.uv[1];
+    }return true;
+}
+}
+#ifndef OOT_LINK_CPU_ONLY
+namespace {
+#define GL_FUNCTIONS(X) \
+ X(void,GetIntegerv,(GLenum,GLint*)) X(void,GetBooleanv,(GLenum,GLboolean*)) X(void,GetFloatv,(GLenum,GLfloat*)) \
+ X(const GLubyte*,GetString,(GLenum)) X(GLboolean,IsEnabled,(GLenum)) X(void,Enable,(GLenum)) X(void,Disable,(GLenum)) \
+ X(void,ActiveTexture,(GLenum)) X(void,BindTexture,(GLenum,GLuint)) X(void,GenTextures,(GLsizei,GLuint*)) X(void,DeleteTextures,(GLsizei,const GLuint*)) \
+ X(void,TexParameteri,(GLenum,GLenum,GLint)) X(void,TexImage2D,(GLenum,GLint,GLint,GLsizei,GLsizei,GLint,GLenum,GLenum,const void*)) X(void,PixelStorei,(GLenum,GLint)) \
+ X(void,GenBuffers,(GLsizei,GLuint*)) X(void,BindBuffer,(GLenum,GLuint)) X(void,BufferData,(GLenum,GLsizeiptr,const void*,GLenum)) X(void,DeleteBuffers,(GLsizei,const GLuint*)) \
+ X(GLuint,CreateShader,(GLenum)) X(void,ShaderSource,(GLuint,GLsizei,const GLchar* const*,const GLint*)) X(void,CompileShader,(GLuint)) \
+ X(void,GetShaderiv,(GLuint,GLenum,GLint*)) X(void,GetShaderInfoLog,(GLuint,GLsizei,GLsizei*,GLchar*)) X(void,DeleteShader,(GLuint)) \
+ X(GLuint,CreateProgram,(void)) X(void,AttachShader,(GLuint,GLuint)) X(void,BindAttribLocation,(GLuint,GLuint,const GLchar*)) X(void,LinkProgram,(GLuint)) \
+ X(void,GetProgramiv,(GLuint,GLenum,GLint*)) X(void,GetProgramInfoLog,(GLuint,GLsizei,GLsizei*,GLchar*)) X(void,DeleteProgram,(GLuint)) X(void,UseProgram,(GLuint)) \
+ X(GLint,GetUniformLocation,(GLuint,const GLchar*)) X(void,UniformMatrix4fv,(GLint,GLsizei,GLboolean,const GLfloat*)) X(void,Uniform1i,(GLint,GLint)) X(void,Uniform4iv,(GLint,GLsizei,const GLint*)) X(void,Uniform4fv,(GLint,GLsizei,const GLfloat*)) \
+ X(void,EnableVertexAttribArray,(GLuint)) X(void,DisableVertexAttribArray,(GLuint)) X(void,VertexAttribPointer,(GLuint,GLint,GLenum,GLboolean,GLsizei,const void*)) \
+ X(void,GetVertexAttribiv,(GLuint,GLenum,GLint*)) X(void,GetVertexAttribPointerv,(GLuint,GLenum,void**)) X(void,DrawArrays,(GLenum,GLint,GLsizei)) \
+ X(void,DepthFunc,(GLenum)) X(void,DepthMask,(GLboolean)) X(void,ColorMask,(GLboolean,GLboolean,GLboolean,GLboolean)) X(void,Viewport,(GLint,GLint,GLsizei,GLsizei))
+struct GLFunctions {
+#define DECLARE(ret,name,args) ret(APIENTRY *name)args=nullptr;
+GL_FUNCTIONS(DECLARE)
+#undef DECLARE
+    void(APIENTRY *GenVertexArrays)(GLsizei,GLuint*)=nullptr;void(APIENTRY *BindVertexArray)(GLuint)=nullptr;void(APIENTRY *DeleteVertexArrays)(GLsizei,const GLuint*)=nullptr;
+    void(APIENTRY *BindSampler)(GLuint,GLuint)=nullptr;void(APIENTRY *PolygonMode)(GLenum,GLenum)=nullptr;
+    void(APIENTRY *DepthRange)(double,double)=nullptr;void(APIENTRY *DepthRangef)(GLfloat,GLfloat)=nullptr;
+    bool es=false,modern=false,vaoSupported=false,samplers=false,unpackRows=false,unpackBuffer=false,raster=false;
+    bool load(){
+#define LOAD(ret,name,args) name=(ret(APIENTRY*)args)SDL_GL_GetProcAddress("gl" #name);if(!name)return false;
+GL_FUNCTIONS(LOAD)
+#undef LOAD
+        const char *v=(const char*)GetString(GL_VERSION);if(!v)return false;es=std::strstr(v,"OpenGL ES")!=NULL;while(*v&&(*v<'0'||*v>'9'))++v;int major=0,minor=0;std::sscanf(v,"%d.%d",&major,&minor);
+        modern=!es&&major>=3;unpackRows=!es||major>=3;raster=major>=3;unpackBuffer=(!es&&(major>2||(major==2&&minor>=1)))||(es&&major>=3);samplers=(!es&&(major>3||(major==3&&minor>=3)))||(es&&major>=3);
+#define OPT(name,type) name=(type)SDL_GL_GetProcAddress("gl" #name)
+        OPT(GenVertexArrays,void(APIENTRY*)(GLsizei,GLuint*));OPT(BindVertexArray,void(APIENTRY*)(GLuint));OPT(DeleteVertexArrays,void(APIENTRY*)(GLsizei,const GLuint*));
+        OPT(BindSampler,void(APIENTRY*)(GLuint,GLuint));OPT(PolygonMode,void(APIENTRY*)(GLenum,GLenum));OPT(DepthRange,void(APIENTRY*)(double,double));OPT(DepthRangef,void(APIENTRY*)(GLfloat,GLfloat));
+#undef OPT
+        vaoSupported=major>=3&&GenVertexArrays&&BindVertexArray&&DeleteVertexArrays;samplers=samplers&&BindSampler;
+        return (es?DepthRangef!=NULL:(DepthRange&&PolygonMode))&&(!modern||vaoSupported);
+    }
+};
+const GLenum CAPABILITIES[]={GL_BLEND,GL_DEPTH_TEST,GL_CULL_FACE,GL_SCISSOR_TEST,GL_STENCIL_TEST,GL_POLYGON_OFFSET_FILL,GL_SAMPLE_ALPHA_TO_COVERAGE,GL_SAMPLE_COVERAGE};
+struct AttrState {GLint enabled,size,type,normalized,stride,buffer;void *pointer;};
+struct GLState {
+    GLFunctions &g;GLint active,texture,program,array,vao=0,sampler=0,unpack=4,row=0,skipRows=0,skipPixels=0,unpackBuffer=0,vp[4],depthFunc,polygon[2]={GL_FILL,GL_FILL};
+    GLboolean enabled[8],depthWrite,colorWrite[4],raster=0;GLfloat depthRange[2];AttrState attr[3];
+    explicit GLState(GLFunctions &gl):g(gl){
+        g.GetIntegerv(GL_ACTIVE_TEXTURE,&active);g.ActiveTexture(GL_TEXTURE0);g.GetIntegerv(GL_TEXTURE_BINDING_2D,&texture);if(g.samplers)g.GetIntegerv(GL_SAMPLER_BINDING,&sampler);
+        g.GetIntegerv(GL_CURRENT_PROGRAM,&program);g.GetIntegerv(GL_ARRAY_BUFFER_BINDING,&array);
+        if(g.vaoSupported)g.GetIntegerv(GL_VERTEX_ARRAY_BINDING,&vao);else for(GLuint i=0;i<3;++i){g.GetVertexAttribiv(i,GL_VERTEX_ATTRIB_ARRAY_ENABLED,&attr[i].enabled);g.GetVertexAttribiv(i,GL_VERTEX_ATTRIB_ARRAY_SIZE,&attr[i].size);g.GetVertexAttribiv(i,GL_VERTEX_ATTRIB_ARRAY_TYPE,&attr[i].type);g.GetVertexAttribiv(i,GL_VERTEX_ATTRIB_ARRAY_NORMALIZED,&attr[i].normalized);g.GetVertexAttribiv(i,GL_VERTEX_ATTRIB_ARRAY_STRIDE,&attr[i].stride);g.GetVertexAttribiv(i,GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING,&attr[i].buffer);g.GetVertexAttribPointerv(i,GL_VERTEX_ATTRIB_ARRAY_POINTER,&attr[i].pointer);}
+        g.GetIntegerv(GL_UNPACK_ALIGNMENT,&unpack);if(g.unpackRows){g.GetIntegerv(GL_UNPACK_ROW_LENGTH,&row);g.GetIntegerv(GL_UNPACK_SKIP_ROWS,&skipRows);g.GetIntegerv(GL_UNPACK_SKIP_PIXELS,&skipPixels);}if(g.unpackBuffer)g.GetIntegerv(GL_PIXEL_UNPACK_BUFFER_BINDING,&unpackBuffer);
+        if(!g.es)g.GetIntegerv(GL_POLYGON_MODE,polygon);
+        g.GetIntegerv(GL_VIEWPORT,vp);g.GetIntegerv(GL_DEPTH_FUNC,&depthFunc);g.GetBooleanv(GL_DEPTH_WRITEMASK,&depthWrite);g.GetBooleanv(GL_COLOR_WRITEMASK,colorWrite);g.GetFloatv(GL_DEPTH_RANGE,depthRange);
+        for(int i=0;i<8;++i)enabled[i]=g.IsEnabled(CAPABILITIES[i]);
+        if(g.raster)raster=g.IsEnabled(GL_RASTERIZER_DISCARD);
+    }
+    ~GLState(){
+        g.UseProgram(program);if(g.vaoSupported)g.BindVertexArray(vao);else for(GLuint i=0;i<3;++i){g.BindBuffer(GL_ARRAY_BUFFER,attr[i].buffer);g.VertexAttribPointer(i,attr[i].size,attr[i].type,attr[i].normalized,attr[i].stride,attr[i].pointer);if(attr[i].enabled)g.EnableVertexAttribArray(i);else g.DisableVertexAttribArray(i);}g.BindBuffer(GL_ARRAY_BUFFER,array);
+        g.ActiveTexture(GL_TEXTURE0);g.BindTexture(GL_TEXTURE_2D,texture);if(g.samplers)g.BindSampler(0,sampler);g.ActiveTexture(active);
+        g.PixelStorei(GL_UNPACK_ALIGNMENT,unpack);if(g.unpackRows){g.PixelStorei(GL_UNPACK_ROW_LENGTH,row);g.PixelStorei(GL_UNPACK_SKIP_ROWS,skipRows);g.PixelStorei(GL_UNPACK_SKIP_PIXELS,skipPixels);}if(g.unpackBuffer)g.BindBuffer(GL_PIXEL_UNPACK_BUFFER,unpackBuffer);
+        if(!g.es){if(polygon[0]==polygon[1])g.PolygonMode(GL_FRONT_AND_BACK,polygon[0]);else{g.PolygonMode(GL_FRONT,polygon[0]);g.PolygonMode(GL_BACK,polygon[1]);}}
+        g.Viewport(vp[0],vp[1],vp[2],vp[3]);g.DepthFunc(depthFunc);g.DepthMask(depthWrite);g.ColorMask(colorWrite[0],colorWrite[1],colorWrite[2],colorWrite[3]);if(g.es)g.DepthRangef(depthRange[0],depthRange[1]);else g.DepthRange(depthRange[0],depthRange[1]);for(int i=0;i<8;++i){if(enabled[i])g.Enable(CAPABILITIES[i]);else g.Disable(CAPABILITIES[i]);}if(g.raster){if(raster)g.Enable(GL_RASTERIZER_DISCARD);else g.Disable(GL_RASTERIZER_DISCARD);}
+    }
+};
+}
+#endif
+struct OotLinkGL {
+    OotLinkErrorFn callback=nullptr;void *user=nullptr;std::string error;std::unique_ptr<Asset> asset;
+    std::vector<Matrix> palette;std::vector<DrawVertex> posed,stream;std::vector<Batch> batches;
+#ifndef OOT_LINK_CPU_ONLY
+    GLFunctions gl;SDL_GLContext context=nullptr;GLuint program=0,vbo=0,vao=0;std::vector<GLuint> textures;
+    GLint uMVP=-1,uTexture=-1,uPrim=-1,uEnv=-1,uRgb0=-1,uRgb1=-1,uAlpha0=-1,uAlpha1=-1,uCycle=-1,uWrap=-1,uPeriod=-1;
+#endif
+    bool fail(const std::string &message){bool changed=error!=message;error=message;if(callback&&changed)callback(user,error.c_str());return false;}
+};
+#ifndef OOT_LINK_CPU_ONLY
+namespace {
+void releaseGL(OotLinkGL &r) {
+    if(r.context&&SDL_GL_GetCurrentContext()==r.context){GLFunctions &g=r.gl;if(r.program)g.DeleteProgram(r.program);if(r.vbo)g.DeleteBuffers(1,&r.vbo);if(r.vao)g.DeleteVertexArrays(1,&r.vao);if(!r.textures.empty())g.DeleteTextures((GLsizei)r.textures.size(),r.textures.data());}
+    r.context=nullptr;r.program=r.vbo=r.vao=0;r.textures.clear();
+}
+GLuint shader(OotLinkGL &r,GLenum type,const std::string &source) {
+    GLFunctions &g=r.gl;GLuint s=g.CreateShader(type);const char *p=source.c_str();g.ShaderSource(s,1,&p,NULL);g.CompileShader(s);GLint ok=0;g.GetShaderiv(s,GL_COMPILE_STATUS,&ok);if(!ok){char error[1024]={};g.GetShaderInfoLog(s,sizeof(error)-1,NULL,error);r.fail(std::string("Link shader failed: ")+error);g.DeleteShader(s);return 0;}return s;
+}
+bool initGL(OotLinkGL &r) {
+    if(!SDL_GL_GetCurrentContext())return r.fail("Link draw needs a current SDL OpenGL context");
+    if(r.context==SDL_GL_GetCurrentContext()&&r.program)return true;
+    if(r.context&&r.context!=SDL_GL_GetCurrentContext())return r.fail("Link renderer belongs to a different GL context; recreate it after context loss");
+    if(!r.gl.load())return r.fail("Link renderer OpenGL functions unavailable");
+    GLFunctions &g=r.gl;GLState saved(g);r.context=SDL_GL_GetCurrentContext();
+    std::string prefix=g.es?"#version 100\nprecision mediump float;\n":g.modern?"#version 130\n":"#version 120\n";
+    std::string vs=prefix+(g.modern?"in vec3 aPosition;in vec2 aUV;in vec4 aShade;out vec2 vUV;out vec4 vShade;":"attribute vec3 aPosition;attribute vec2 aUV;attribute vec4 aShade;varying vec2 vUV;varying vec4 vShade;");
+    vs+="uniform mat4 uMVP;void main(){gl_Position=uMVP*vec4(aPosition,1.0);vUV=aUV;vShade=aShade;}";
+    std::string fs=prefix+(g.modern?"in vec2 vUV;in vec4 vShade;out vec4 outColor;\n":"varying vec2 vUV;varying vec4 vShade;\n");
+    fs+=
+        "uniform sampler2D uTexture;uniform vec4 uPrim,uEnv,uPeriod;uniform ivec4 uRgb0,uRgb1,uAlpha0,uAlpha1,uWrap;uniform int uCycle;\n"
+        "float wrapCoord(float x,int mode,float period){if(mode>=2)return x;if(mode==1)return (1.0-abs(mod(x/period,2.0)-1.0))*period;return fract(x/period)*period;}\n"
+        "vec3 rgb(int s,int term,vec4 comb,vec4 tex){if(s==0)return comb.rgb;if(s==1||s==2)return tex.rgb;if(s==3)return uPrim.rgb;if(s==4)return vShade.rgb;if(s==5)return uEnv.rgb;if(s==6&&(term==0||term==3))return vec3(1.0);if(term==2){if(s==7)return vec3(comb.a);if(s==8||s==9)return vec3(tex.a);if(s==10)return vec3(uPrim.a);if(s==11)return vec3(vShade.a);if(s==12)return vec3(uEnv.a);}return vec3(0.0);}\n"
+        "float alpha(int s,int term,vec4 comb,vec4 tex){if(s==0)return term==2?0.0:comb.a;if(s==1||s==2)return tex.a;if(s==3)return uPrim.a;if(s==4)return vShade.a;if(s==5)return uEnv.a;if(s==6&&term!=2)return 1.0;return 0.0;}\n"
+        "vec4 cycle(ivec4 c,ivec4 a,vec4 comb,vec4 tex){vec3 color=(rgb(c.x,0,comb,tex)-rgb(c.y,1,comb,tex))*rgb(c.z,2,comb,tex)+rgb(c.w,3,comb,tex);float opacity=(alpha(a.x,0,comb,tex)-alpha(a.y,1,comb,tex))*alpha(a.z,2,comb,tex)+alpha(a.w,3,comb,tex);return clamp(vec4(color,opacity),0.0,1.0);}\n"
+        "void main(){vec2 uv=vec2(wrapCoord(vUV.x,uWrap.x,uPeriod.x),wrapCoord(vUV.y,uWrap.y,uPeriod.y));vec4 tex=";
+    fs+=g.modern?"texture(uTexture,uv);":"texture2D(uTexture,uv);";
+    fs+="vec4 color=vec4(0.0);if(uCycle==1)color=cycle(uRgb0,uAlpha0,color,tex);color=cycle(uRgb1,uAlpha1,color,tex);if(uCycle==2)color=tex;if(uCycle==3)color=uPrim;if(color.a<0.1)discard;";
+    fs+=g.modern?"outColor=color;}":"gl_FragColor=color;}";
+    GLuint v=shader(r,GL_VERTEX_SHADER,vs),f=shader(r,GL_FRAGMENT_SHADER,fs);if(!v||!f){if(v)g.DeleteShader(v);if(f)g.DeleteShader(f);releaseGL(r);return false;}
+    r.program=g.CreateProgram();g.AttachShader(r.program,v);g.AttachShader(r.program,f);g.BindAttribLocation(r.program,0,"aPosition");g.BindAttribLocation(r.program,1,"aUV");g.BindAttribLocation(r.program,2,"aShade");g.LinkProgram(r.program);g.DeleteShader(v);g.DeleteShader(f);GLint ok=0;g.GetProgramiv(r.program,GL_LINK_STATUS,&ok);if(!ok){char error[1024]={};g.GetProgramInfoLog(r.program,sizeof(error)-1,NULL,error);r.fail(std::string("Link shader program failed: ")+error);releaseGL(r);return false;}
+#define U(name) r.name=g.GetUniformLocation(r.program,#name)
+    U(uMVP);U(uTexture);U(uPrim);U(uEnv);U(uRgb0);U(uRgb1);U(uAlpha0);U(uAlpha1);U(uCycle);U(uWrap);U(uPeriod);
+#undef U
+    g.GenBuffers(1,&r.vbo);if(g.vaoSupported)g.GenVertexArrays(1,&r.vao);r.textures.resize(r.asset->materials.size());g.GenTextures((GLsizei)r.textures.size(),r.textures.data());
+    g.ActiveTexture(GL_TEXTURE0);if(g.samplers)g.BindSampler(0,0);if(g.unpackBuffer)g.BindBuffer(GL_PIXEL_UNPACK_BUFFER,0);g.PixelStorei(GL_UNPACK_ALIGNMENT,1);if(g.unpackRows){g.PixelStorei(GL_UNPACK_ROW_LENGTH,0);g.PixelStorei(GL_UNPACK_SKIP_ROWS,0);g.PixelStorei(GL_UNPACK_SKIP_PIXELS,0);}
+    for(size_t i=0;i<r.textures.size();++i){const Material &m=r.asset->materials[i];g.BindTexture(GL_TEXTURE_2D,r.textures[i]);g.TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);g.TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);g.TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);g.TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);g.TexImage2D(GL_TEXTURE_2D,0,GL_RGBA,m.width,m.height,0,GL_RGBA,GL_UNSIGNED_BYTE,m.rgba.data());}return true;
+}
+}
+#endif
+extern "C" OotLinkGL *oot_link_gl_create(OotLinkErrorFn callback,void *user) {
+    try{OotLinkGL *r=new OotLinkGL;r->callback=callback;r->user=user;return r;}catch(...){return NULL;}
+}
+extern "C" int oot_link_gl_load(OotLinkGL *r,const char *path) {
+    if(!r)return 0;
+#ifndef OOT_LINK_CPU_ONLY
+    releaseGL(*r);
+#endif
+    r->asset.reset();r->palette.clear();r->posed.clear();r->stream.clear();r->batches.clear();
+    if(!path||!*path)return r->fail("Link asset path is empty");
+    try{r->asset.reset(new Asset(loadAsset(path)));r->error.clear();
+        if(r->callback)for(const Material &m:r->asset->materials)if(m.geometry&0x000C0000u){r->callback(r->user,"Link appearance warning: original texture-generation materials currently use stored UVs; reflection highlights are approximate");break;}
+        return 1;}catch(const std::exception &e){return r->fail(std::string("Link assets rejected: ")+e.what());}catch(...){return r->fail("Link asset load failed");}
+}
+extern "C" int oot_link_gl_is_loaded(const OotLinkGL *r){return r&&r->asset?1:0;}
+extern "C" const char *oot_link_gl_last_error(const OotLinkGL *r){return r?r->error.c_str():"null Link renderer";}
+extern "C" int oot_link_gl_limb_transform(OotLinkGL *r,const float world[3],float yaw,float scale,const int16_t frame[22][3],int limb,float matrix[16]) {
+    if(!r||!r->asset||!matrix||limb<0||limb>=21)return 0;
+    try{std::vector<Matrix> limbs;if(!pose(*r->asset,world,yaw,scale,frame,frame,0,r->palette,r->posed,&limbs))return r->fail("Invalid Link tick pose");std::copy(limbs[limb].begin(),limbs[limb].end(),matrix);return 1;}catch(...){return r->fail("Link tick pose allocation failed");}
+}
+extern "C" int oot_link_gl_draw(OotLinkGL *r,const float view[16],const float projection[16],const int viewport[4],const float world[3],float yaw,float scale,const int16_t frame[22][3],const int16_t next[22][3],float interpolation) {
+    if(!r||!r->asset)return 0;
+    if(!finite(view,16)||!finite(projection,16)||!viewport||viewport[2]<=0||viewport[3]<=0)return r->fail("Invalid Link camera/viewport");
+    try {
+        if(!pose(*r->asset,world,yaw,scale,frame,next,interpolation,r->palette,r->posed))return r->fail("Invalid or missing original Link joint frames");
+#ifndef OOT_LINK_CPU_ONLY
+        if(!initGL(*r))return 0;
+        GLFunctions &g=r->gl;GLState saved(g);
+        r->stream.clear();r->batches.clear();r->stream.reserve(r->asset->triangles.size()*3);
+        for(const Triangle &tri:r->asset->triangles){if(r->batches.empty()||r->batches.back().material!=tri.material){Batch b={tri.material,r->stream.size(),0};r->batches.push_back(b);}const Material &m=r->asset->materials[tri.material];
+            for(int k=0;k<3;++k){DrawVertex v=r->posed[tri.index[k]];textureUV(r->asset->vertices[tri.index[k]],m,v.uv);r->stream.push_back(v);}r->batches.back().count+=3;
+        }
+        Matrix v,p;std::copy(view,view+16,v.begin());std::copy(projection,projection+16,p.begin());Matrix mvp=multiply(p,v);g.UseProgram(r->program);g.UniformMatrix4fv(r->uMVP,1,GL_FALSE,mvp.data());g.Uniform1i(r->uTexture,0);
+        if(g.vaoSupported)g.BindVertexArray(r->vao);
+        g.BindBuffer(GL_ARRAY_BUFFER,r->vbo);g.BufferData(GL_ARRAY_BUFFER,(GLsizeiptr)(r->stream.size()*sizeof(DrawVertex)),r->stream.data(),GL_STREAM_DRAW);
+        g.EnableVertexAttribArray(0);g.EnableVertexAttribArray(1);g.EnableVertexAttribArray(2);g.VertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,sizeof(DrawVertex),(void*)offsetof(DrawVertex,position));g.VertexAttribPointer(1,2,GL_FLOAT,GL_FALSE,sizeof(DrawVertex),(void*)offsetof(DrawVertex,uv));g.VertexAttribPointer(2,4,GL_FLOAT,GL_FALSE,sizeof(DrawVertex),(void*)offsetof(DrawVertex,shade));
+        g.Viewport(viewport[0],viewport[1],viewport[2],viewport[3]);g.Enable(GL_DEPTH_TEST);g.DepthFunc(GL_LEQUAL);g.DepthMask(GL_TRUE);if(g.es)g.DepthRangef(0,1);else g.DepthRange(0,1);g.ColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
+        for(GLenum cap:CAPABILITIES)if(cap!=GL_DEPTH_TEST)g.Disable(cap);
+        if(g.raster)g.Disable(GL_RASTERIZER_DISCARD);
+        if(!g.es)g.PolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+        g.ActiveTexture(GL_TEXTURE0);if(g.samplers)g.BindSampler(0,0);
+        for(const Batch &b:r->batches){const Material &m=r->asset->materials[b.material];g.BindTexture(GL_TEXTURE_2D,r->textures[b.material]);g.Uniform4fv(r->uPrim,1,m.prim);g.Uniform4fv(r->uEnv,1,m.env);g.Uniform4iv(r->uRgb0,1,m.rgb[0]);g.Uniform4iv(r->uRgb1,1,m.rgb[1]);g.Uniform4iv(r->uAlpha0,1,m.alpha[0]);g.Uniform4iv(r->uAlpha1,1,m.alpha[1]);g.Uniform1i(r->uCycle,m.cycle);GLint wrap[4]={m.wrap[0],m.wrap[1],0,0};g.Uniform4iv(r->uWrap,1,wrap);float period[4]={m.mask[0]?float(1<<m.mask[0])/m.width:1,m.mask[1]?float(1<<m.mask[1])/m.height:1,0,0};g.Uniform4fv(r->uPeriod,1,period);g.DrawArrays(GL_TRIANGLES,(GLint)b.first,(GLsizei)b.count);}
+        r->error.clear();return 1;
+#else
+        return r->fail("OpenGL drawing unavailable in CPU-only renderer build");
+#endif
+    }catch(const std::exception &e){return r->fail(std::string("Link draw failed: ")+e.what());}catch(...){return r->fail("Link draw failed");}
+}
+extern "C" void oot_link_gl_destroy(OotLinkGL *r){if(!r)return;
+#ifndef OOT_LINK_CPU_ONLY
+    releaseGL(*r);
+#endif
+    delete r;
+}
+#ifdef OOT_LINK_TESTING
+extern "C" int oot_link_test_uv(const OotLinkGL *r,size_t vertex,size_t material,float uv[2]) {
+    if(!r||!r->asset||!uv||vertex>=r->asset->vertices.size()||material>=r->asset->materials.size())return 0;
+    textureUV(r->asset->vertices[vertex],r->asset->materials[material],uv);return 1;
+}
+extern "C" size_t oot_link_test_palette_floats(const OotLinkGL *r){return r&&r->asset?r->asset->paletteCount*16:0;}
+extern "C" size_t oot_link_test_position_floats(const OotLinkGL *r){return r&&r->asset?r->asset->vertices.size()*3:0;}
+extern "C" int oot_link_test_pose(OotLinkGL *r,const float world[3],float yaw,float scale,const int16_t frame[22][3],const int16_t next[22][3],float t,float *palette,size_t pc,float *positions,size_t vc) {
+    if(!r||!r->asset||(palette&&pc<oot_link_test_palette_floats(r))||(positions&&vc<oot_link_test_position_floats(r)))return 0;
+    try{if(!pose(*r->asset,world,yaw,scale,frame,next,t,r->palette,r->posed))return 0;if(palette)for(size_t i=0;i<r->palette.size();++i)std::copy(r->palette[i].begin(),r->palette[i].end(),palette+i*16);if(positions)for(size_t i=0;i<r->posed.size();++i)std::copy(r->posed[i].position,r->posed[i].position+3,positions+i*3);return 1;}catch(...){return 0;}
+}
+#endif
