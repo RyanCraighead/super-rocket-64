@@ -1,10 +1,10 @@
 # Super Rocket 64
 
-**Jump, flip, boost and fly through Super Mario 64 in Octane.**
+**Jump, flip, boost and fly through Super Mario 64 in a Octane.**
 
 ![Octane flying around Peach's Castle](docs/media/castle-flight.gif)
 
-Take a rocket-powered car into a familiar world: launch over the castle moat, climb the hills of Bob-omb Battlefield, and find a different line through every course. Octane is the default character. The character wheel stays, so you can switch to Mario or your installed optional characters.
+Take a rocket-powered car into a familiar world: launch over the castle moat, climb the hills of Bob-omb Battlefield, and find a different line through every course. Octane is the default character.
 
 **Windows x64 preview available.** Download the standalone EXE from [Releases](https://github.com/RyanCraighead/super-rocket-64/releases). You supply the supported games locally; setup handles Python and the pinned extraction tool. See [verification and limitations](docs/RELEASE-STATUS.md).
 
