@@ -468,7 +468,9 @@ int rocket_adapter_text_pressed(struct MarioState *m,struct Object *o) {
     for(int i=0;i<m->marioObj->numCollidedObjs&&i<4;i++)if(m->marioObj->collidedObjs[i]==o)collided=1;
     return collided&&rocket_adapter_enemy_visible(state.position,o,0);
 }
+#include "rocket_whomp_crush.inc.h"
 void rocket_adapter_prepare_interactions(struct MarioState *m) {
+    if(whomp_crush_prepare(m))return;
     prepare_text_input(m);
     if(!selected||!m||m!=player||!m->marioObj||!m->controller||!m->area||m->area!=area||
        level!=gCurrLevelNum||!supported(m->action)||m->health<0x100||m->heldObj||
@@ -548,7 +550,7 @@ int rocket_adapter_update(struct MarioState *m) {
      * water idle. Reacquire only ordinary swimming, never drowning/whirlpool. */
     int metalEntry=metal&&submerged&&(m->action==ACT_WATER_IDLE||m->action==ACT_WATER_PLUNGE||
         m->action==ACT_BREASTSTROKE||m->action==ACT_SWIMMING_END||m->action==ACT_FLUTTER_KICK);
-    if((!supported(m->action)&&!metalEntry)||m->health<0x100||m->heldObj||m->riddenObj||m->heldByObj||m->quicksandDepth>1||(m->input&INPUT_SQUISHED)) {
+    if((whompCrush.m==m&&m->squishTimer>0&&m->squishTimer<255)||(!supported(m->action)&&!metalEntry)||m->health<0x100||m->heldObj||m->riddenObj||m->heldByObj||m->quicksandDepth>1||(m->input&INPUT_SQUISHED)) {
         rocket_adapter_suspend();return 0;
     }
     if(player) {

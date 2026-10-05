@@ -147,7 +147,7 @@ void character_net_draw(const float view[16],const float projection[16],const in
         if(same_area(i)&&character_net_track_sample(&tracks[i],now,&s)&&s.active&&s.kind==CNET_OCTANE){
             // Materials follow the same verified shared lease and native flicker
             // as local cap rendering, independent of owner-supplied flags.
-            int drawn=rocket_runtime_draw_snapshot_caps(&s.car,rocket_caps_visual_flags(i),view,projection,viewport);
+            int drawn=rocket_runtime_draw_snapshot_player(&s.car,i,rocket_caps_visual_flags(i),view,projection,viewport);
 #ifdef ROCKET_CAR_QA
             draws[i]+=!!drawn;
             if(drawn)record_motion("drawn",i,&s);

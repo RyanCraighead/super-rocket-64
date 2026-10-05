@@ -36,7 +36,7 @@ uint32_t rocket_runtime_epoch(void){return sourceEpoch;}
 int rocket_runtime_snapshot(RocketSnapshot *s){if(!sourceSnapshot)return 0;*s=*sourceSnapshot;return 1;}
 int character_presentation_car_snapshot(RocketSnapshot *s){if(!presentationSnapshot)return 0;*s=*presentationSnapshot;return 1;}
 int rocket_runtime_draw_snapshot(const RocketSnapshot *s,const float *v,const float *p,const int *w){(void)v;(void)p;(void)w;drawnSnapshot=*s;drawCalls++;return 1;}
-int rocket_runtime_draw_snapshot_caps(const RocketSnapshot *s,uint32_t caps,const float *v,const float *p,const int *w){drawnCaps=caps;return rocket_runtime_draw_snapshot(s,v,p,w);}
+int rocket_runtime_draw_snapshot_player(const RocketSnapshot *s,unsigned playerIndex,uint32_t caps,const float *v,const float *p,const int *w){CHECK(playerIndex>0&&playerIndex<MAX_PLAYERS);drawnCaps=caps;return rocket_runtime_draw_snapshot(s,v,p,w);}
 void *gNetworkServerAddr;
 u32 gNetworkStartupTimer;
 s16 gCurrCourseNum,gCurrActStarNum,gCurrLevelNum,gCurrAreaIndex;

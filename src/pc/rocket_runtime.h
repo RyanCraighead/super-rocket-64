@@ -18,6 +18,8 @@ void rocket_runtime_selection_changed(void);
 int rocket_runtime_draw_snapshot(const RocketSnapshot *snapshot,const float view[16],const float projection[16],const int viewport[4]);
 /* Native MARIO_SPECIAL_CAPS flags. Remote visuals never grant local physics. */
 int rocket_runtime_draw_snapshot_caps(const RocketSnapshot *snapshot,uint32_t native_flags,const float view[16],const float projection[16],const int viewport[4]);
+/* Visual-only native squash; the existing CNET pose/wire format stays unchanged. */
+int rocket_runtime_draw_snapshot_player(const RocketSnapshot *snapshot,unsigned player_index,uint32_t native_flags,const float view[16],const float projection[16],const int viewport[4]);
 void rocket_runtime_set_cap_visuals(uint32_t native_flags);
 int rocket_runtime_owns_controls(void);
 void rocket_runtime_gamepad(const RocketGamepad *pad);

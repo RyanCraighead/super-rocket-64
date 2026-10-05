@@ -220,3 +220,31 @@ not live gameplay, physical-controller, audio-listening or two-PC acceptance.
 No active game was interrupted or brought to the foreground. Epic geometry
 support retains the earlier user verification; the new audio profile was
 automatically verified from Steam files and accepts only matching Epic banks.
+
+
+## v0.2.7 Whomp crush handling
+
+Octane hands Whomp underside impacts to native squish, damage and recovery
+before the rigid chassis can be trapped through the floor. The probe covers
+the full car footprint, including edge and inverted roof contacts, and requires
+nearby native support. Native Metal/invincibility, injury, death and recovery
+remain authoritative. No Whomp collision faces are removed. Riding on its back
+as it stands still uses the existing kinematic launch; upright vulnerable-back
+attacks retain their prior authority and cooldown rules.
+
+The car visibly flattens and recovers. Local drawing follows native scale;
+peers use the existing action/squish timer fields without a packet-version
+change or remote damage simulation. A remote crush starts at the compressed
+pose because its ceiling geometry may be a different simulation frame.
+
+The generated real-physics reproduction penetrated the floor at three lateral
+positions before the handoff; the guarded runs stayed above it. The same
+backend still launches a car riding the rising back. Focused native-action
+fixtures cover edge/roof contacts, repeated frames, offline/local host/client
+ownership, Metal/invincibility, moving support, death, recovery, state reset
+and local/remote scale. Existing Whomp attacks, dynamic-platform lifecycle,
+entrance bridges, presentation and packet ingress are regression-tested.
+
+These are headless component tests with explicit service fixtures. Live
+Whomp gameplay, visual acceptance and two-PC testing remain pending. The
+active game, controller, saves and foreground were not used for these tests.

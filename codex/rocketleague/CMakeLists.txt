@@ -131,3 +131,7 @@ endif()
 add_executable(rocket_whomp_flip_physics_test tests/test_whomp_flip_physics.cpp ../../src/pc/character_net_codec.c)
 target_link_libraries(rocket_whomp_flip_physics_test PRIVATE rocket_physics)
 add_test(NAME rocket_whomp_flip_physics COMMAND rocket_whomp_flip_physics_test)
+
+add_executable(rocket_whomp_crush_physics_test tests/test_whomp_crush_physics.cpp)
+target_link_libraries(rocket_whomp_crush_physics_test PRIVATE rocket_physics)
+add_test(NAME rocket_whomp_crush_physics COMMAND rocket_whomp_crush_physics_test)
