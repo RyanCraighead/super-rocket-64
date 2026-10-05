@@ -449,6 +449,10 @@ static void controller_sdl_read(OSContPad *pad) {
     if (configStick.invertLeftY) { lefty = invert_s16(lefty); }
     if (configStick.invertRightX) { rightx = invert_s16(rightx); }
     if (configStick.invertRightY) { righty = invert_s16(righty); }
+    /* SM64 free-camera X orbits the camera toward the stick, turning the
+     * view the opposite way. Octane uses look-direction camera input.
+     * Keep vertical look and explicit stick/camera inversion options intact. */
+    if(rocketIsolated&&gNewCamera.isActive)rightx=invert_s16(rightx);
 
     if (sdl_cntrl && thps_adapter_controller_active() && !ui) {
         /* SDL standard positions are PlayStation Cross/Circle/Square/Triangle
