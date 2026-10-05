@@ -35,16 +35,17 @@ namespace SuperRocket64 {
         internal static byte[] ReadFile(string path) { Guard.NoRedirect(path); Guard.Need(new FileInfo(path).Length <= 2 * 1024 * 1024, "Update settings are too large"); return File.ReadAllBytes(path); }
     }
     internal sealed class UpdatePreferences {
-        internal bool Configured, AutomaticChecks, DesktopShortcut;
+        internal bool Configured, AutomaticChecks, DesktopShortcut, ModeChosen, AutomaticApply;
+        internal string PausedVersion = "";
         internal bool StartMenuShortcut = true;
         internal static string PathFor(string root) { return Path.Combine(Path.GetFullPath(root), "launcher-preferences.json"); }
         internal static UpdatePreferences Load(string root) {
             string path = PathFor(root); Guard.NoRedirect(path);
             if (!File.Exists(path)) return new UpdatePreferences();
             var data = UpdateJson.Parse(UpdateJson.ReadFile(path)); Guard.Need(UpdateJson.Number(data, "schema") == 1, "Unsupported launcher settings format");
-            return new UpdatePreferences { Configured = UpdateJson.Bool(data, "configured"), AutomaticChecks = UpdateJson.Bool(data, "automatic_checks"), DesktopShortcut = data.ContainsKey("desktop_shortcut") && UpdateJson.Bool(data, "desktop_shortcut"), StartMenuShortcut = !data.ContainsKey("start_menu_shortcut") || UpdateJson.Bool(data, "start_menu_shortcut") };
+            return new UpdatePreferences { ModeChosen = data.ContainsKey("mode_chosen") && UpdateJson.Bool(data, "mode_chosen"), AutomaticApply = data.ContainsKey("mode_chosen") && UpdateJson.Bool(data, "mode_chosen") && data.ContainsKey("automatic_apply") && UpdateJson.Bool(data, "automatic_apply"), PausedVersion = data.ContainsKey("paused_version") ? UpdateJson.Text(data, "paused_version") : "", Configured = UpdateJson.Bool(data, "configured"), AutomaticChecks = UpdateJson.Bool(data, "automatic_checks"), DesktopShortcut = data.ContainsKey("desktop_shortcut") && UpdateJson.Bool(data, "desktop_shortcut"), StartMenuShortcut = !data.ContainsKey("start_menu_shortcut") || UpdateJson.Bool(data, "start_menu_shortcut") };
         }
-        internal void Save(string root) { UpdateJson.Atomic(PathFor(root), UpdateJson.Bytes(new { schema = 1, configured = Configured, automatic_checks = AutomaticChecks, desktop_shortcut = DesktopShortcut, start_menu_shortcut = StartMenuShortcut })); }
+        internal void Save(string root) { UpdateJson.Atomic(PathFor(root), UpdateJson.Bytes(new { schema = 1, mode_chosen = ModeChosen, automatic_apply = AutomaticApply, paused_version = PausedVersion, configured = Configured, automatic_checks = AutomaticChecks, desktop_shortcut = DesktopShortcut, start_menu_shortcut = StartMenuShortcut })); }
     }
     internal sealed class OperationLease : IDisposable {
         private readonly Mutex mutex;

@@ -35,6 +35,15 @@ namespace SuperRocket64 {
         private static string Dir(string name){string path=Path.GetFullPath(Path.Combine(root,name));Directory.CreateDirectory(path);return path;}
         private static ReleasePlan Plan(FakeUpdateTransport transport){return ReleaseUpdates.Check(transport,"0.2.0",CancellationToken.None).Available;}
         private static void MetadataTests(){
+            Test("legacy check consent never becomes install consent",delegate {
+                string folder=Dir("legacy-preferences");
+                File.WriteAllText(UpdatePreferences.PathFor(folder), "{\"schema\":1,\"configured\":true,\"automatic_checks\":true}");
+                var prefs=UpdatePreferences.Load(folder);Need(prefs.AutomaticChecks&&!prefs.ModeChosen&&!prefs.AutomaticApply,"Legacy consent escalated");
+                prefs.Save(folder);prefs=UpdatePreferences.Load(folder);Need(prefs.AutomaticChecks&&!prefs.AutomaticApply&&!prefs.ModeChosen,"Legacy save escalated consent");
+                prefs.ModeChosen=prefs.AutomaticApply=true;prefs.PausedVersion="0.3.0";prefs.Save(folder);
+                prefs=UpdatePreferences.Load(folder);Need(prefs.ModeChosen&&prefs.AutomaticApply&&prefs.PausedVersion=="0.3.0","Explicit apply/pause lost");
+            });
+
             byte[] bytes=Encoding.ASCII.GetBytes("synthetic update fixture");
             Test("no public release leaves installation untouched",delegate {var t=FakeUpdateTransport.New("0.3.0",bytes);t.Api=Encoding.UTF8.GetBytes("[]");Need(Plan(t)==null&&t.Reads==1,"No-release behavior");});
             Test("same and older versions never download metadata or downgrade",delegate {foreach(string v in new[]{"0.2.0","0.1.0"}){var t=FakeUpdateTransport.New(v,bytes);Need(Plan(t)==null&&t.Reads==1&&t.Downloads==0,"Downgrade/up-to-date");}});

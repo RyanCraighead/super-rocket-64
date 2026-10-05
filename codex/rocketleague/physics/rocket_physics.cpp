@@ -634,6 +634,47 @@ extern "C" int rocket_world_recover(RocketWorld *w,const RocketSnapshot *pose) {
     return 1;
     } catch(const std::exception &e) {error=e.what();return 0;}
 }
+// Swimming up also releases wall/ceiling adhesion. Contact normals come
+// from the current suspension rays and accepted chassis manifolds, never a
+// guessed nearby surface. Cap separation speed instead of accumulating jump
+// impulses; ordinary swimming, dry jumps and Metal retain their own paths.
+static void waterWallEscape(RocketWorld *w) {
+    auto &body=w->car->_rigidBody;
+    std::array<btVector3,12> normals;size_t count=0;
+    auto add=[&](btVector3 normal) {
+        if(normal.length2()<.5f)return;
+        normal.normalize();
+        if(normal.z()>=.5f)return; // leave floors and traversable slopes alone
+        for(size_t i=0;i<count;++i)if(normals[i].dot(normal)>.99f)return;
+        if(count<normals.size())normals[count++]=normal;
+    };
+    for(int i=0;i<4;++i) {
+        const auto &ray=w->car->_bulletVehicle.m_wheelInfo[i].m_raycastInfo;
+        if(ray.m_isInContact)add(ray.m_contactNormalWS);
+    }
+    auto *dispatcher=w->arena->_bulletWorld.getDispatcher();
+    for(int i=0;i<dispatcher->getNumManifolds();++i) {
+        auto *manifold=dispatcher->getManifoldByIndexInternal(i);
+        bool first=manifold->getBody0()==&body;
+        if(!first&&manifold->getBody1()!=&body)continue;
+        for(int j=0;j<manifold->getNumContacts();++j) {
+            const auto &point=manifold->getContactPoint(j);
+            if(point.m_userPersistentData==&rejectedHostContact||point.getDistance()>.02f)continue;
+            add(point.m_normalWorldOnB*(first?1.f:-1.f));
+        }
+    }
+    if(!count)return;
+    const float scale=rocket_speed_multiplier(w->speedPercent)*UU_TO_BT;
+    btVector3 velocity=body.getLinearVelocity(),before=velocity;
+    // Two passes cover ordinary corners without unbounded iterative impulses.
+    for(int pass=0;pass<2;++pass)for(size_t i=0;i<count;++i) {
+        float missing=220.f*scale-velocity.dot(normals[i]);
+        if(missing>0)velocity+=normals[i]*std::min(missing,180.f*scale);
+    }
+    btVector3 delta=velocity-before;const float limit=440.f*scale;
+    if(delta.length2()>limit*limit)delta=delta.normalized()*limit;
+    body.setLinearVelocity(before+delta);
+}
 extern "C" int rocket_world_frame(RocketWorld *w,uint64_t frame,const RocketInput *in,int paused,int blocked) {
     if(!w||!w->ready||!in) {error="World not ready or missing input";return -1;}
     unsigned held=(in->jump?1u:0u)|(in->boost?2u:0u)|(in->powerslide?4u:0u);
@@ -669,6 +710,7 @@ extern "C" int rocket_world_frame(RocketWorld *w,uint64_t frame,const RocketInpu
             // Jump becomes held swim-up; native car jump/flip impulses would
             // fight 3D swimming. Pitch/yaw/air-roll retain the car mapping.
             w->car->controls.jump=false;
+            if(c.jump)waterWallEscape(w);
             w->car->_internalState.isFlipping=false;
             const float depth=w->waterLevel-height;
             const float buoyancy=std::clamp((depth-110.f)*1.5f,-75.f,75.f);
