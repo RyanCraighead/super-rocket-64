@@ -445,9 +445,11 @@ static void test_platform_mesh(void){
 }
 #include "test_ccm_chimney_adapter.inc.c"
 #include "test_jrb_entry_adapter.inc.c"
+#include "test_pss_entry_adapter.inc.c"
 int main(int argc,char **argv){
     if(argc==2&&!strcmp(argv[1],"--ccm-body")){chimney_single_case(0);return 0;}
     if(argc==2&&!strcmp(argv[1],"--ccm-wheel")){chimney_single_case(1);return 0;}
+    test_pss_entry_adapter();
     test_jrb_entry_adapter();
     test_ccm_chimney_adapter();
     test_platform_mesh();test_shared_cap_geometry();test_water();

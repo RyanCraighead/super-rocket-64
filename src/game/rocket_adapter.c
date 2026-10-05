@@ -438,13 +438,14 @@ int rocket_adapter_enemy_visible(const float from[3],struct Object *object,unsig
 }
 #include "rocket_ccm_chimney.inc.h"
 #include "rocket_jrb_entry.inc.h"
+#include "rocket_pss_entry.inc.h"
 void rocket_adapter_prepare_interactions(struct MarioState *m) {
     if(!selected||!m||m!=player||!m->marioObj||!m->controller||!m->area||m->area!=area||
        level!=gCurrLevelNum||!supported(m->action)||m->health<0x100||m->heldObj||
        m->riddenObj||m->heldByObj||m->freeze||sCurrPlayMode==PLAY_MODE_PAUSED||
        0||!gObjectLists)return;
     cap_pickups(m);
-    if(ccm_chimney_interaction(m)||jrb_ship_interaction(m))return;
+    if(ccm_chimney_interaction(m)||jrb_ship_interaction(m)||pss_alcove_interaction(m))return;
     RocketSnapshot state;RocketInput keyboard=keyboard_input(m),input;
     if(!rocket_runtime_read_input(&keyboard,&input)||input.throttle<=.2f||input.jump||
        !rocket_runtime_snapshot(&state)||!state.grounded||state.basis[7]<.75f)return;
