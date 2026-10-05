@@ -39,46 +39,51 @@ static Result measure(unsigned height,unsigned speed,unsigned hold,unsigned seco
 }
 static void apex_tests(){
     float largestError=0,minimumHalf=1,maximumHalf=0;
-    for(unsigned speed:{75u,100u})for(unsigned hold=1;hold<=7;hold++){
+    for(unsigned speed:{50u,75u,100u})for(unsigned hold=1;hold<=7;hold++){
         auto original=measure(100,speed,hold);float previous=0;
-        for(unsigned height=50;height<=100;height++){
+        for(unsigned height=30;height<=100;height++){
             auto r=measure(height,speed,hold);float fraction=r.apex/original.apex;
             float error=std::fabs(fraction-height/100.f);largestError=std::max(largestError,error);
             if(error>.015f)fprintf(stderr,"height=%u speed=%u hold=%u actual=%f reference=%f fraction=%f\n",height,speed,hold,r.apex,original.apex,fraction);
             CHECK(error<.015f);CHECK(r.apex>=previous);previous=r.apex;
             CHECK(!r.doubled&&!r.flipped);
             if(height==50){minimumHalf=std::min(minimumHalf,fraction);maximumHalf=std::max(maximumHalf,fraction);}
-            if((height==50||height==100)&&(hold==1||hold==6))printf("apex: height=%u speed=%u hold_frames=%u rise=%.4f host units\n",height,speed,hold,r.apex);
+            if((height==30||height==50||height==100)&&(hold==1||hold==6))printf("apex: height=%u speed=%u hold_frames=%u rise=%.4f host units\n",height,speed,hold,r.apex);
         }
     }
     printf("all integer settings/hold lengths: maximum height-ratio error %.6f; 50%% ratios %.6f..%.6f\n",largestError,minimumHalf,maximumHalf);
     // Speed tuning cannot change jump height: compare actual 50/75/100 speed runs.
-    for(unsigned height:{50u,75u,100u})for(unsigned hold:{1u,3u,6u}){
+    for(unsigned height:{30u,50u,75u,100u})for(unsigned hold:{1u,3u,6u}){
         auto a=measure(height,50,hold),b=measure(height,75,hold),c=measure(height,100,hold);
         CHECK(a.apex==b.apex&&b.apex==c.apex);
     }
 }
 static void secondary_tests(){
-    for(unsigned speed:{75u,100u})for(unsigned hold:{1u,6u}){
+    for(unsigned speed:{50u,75u,100u})for(unsigned hold:{1u,6u}){
         unsigned second=hold==1?35:40;
         auto full=measure(100,speed,hold,second),half=measure(50,speed,hold,second);
+        auto hard=measure(30,speed,hold,second);CHECK(hard.doubled&&!hard.flipped&&hard.apex<half.apex&&hard.apex>measure(30,speed,hold).apex);
+        printf("hard double jump: speed=%u hold=%u rise=%.4f ratio=%.6f\n",speed,hold,hard.apex,hard.apex/full.apex);
         CHECK(full.doubled&&half.doubled&&!half.flipped);CHECK(half.apex<full.apex&&half.apex>measure(50,speed,hold).apex);
         CHECK(half.apex/full.apex>.35f&&half.apex/full.apex<.65f);
         printf("double jump: speed=%u hold_frames=%u rises=%.4f/%.4f ratio=%.6f\n",speed,hold,half.apex,full.apex,half.apex/full.apex);
         auto flipFull=measure(100,speed,hold,second,true),flipHalf=measure(50,speed,hold,second,true);
         CHECK(flipFull.flipped&&flipHalf.flipped&&!flipHalf.doubled);
+        auto flipHard=measure(30,speed,hold,second,true);CHECK(flipHard.flipped&&!flipHard.doubled&&flipHard.flipTime==flipFull.flipTime);
+        CHECK(std::fabs(flipHard.flipVelocity-flipFull.flipVelocity)<10.f);
         printf("flip: speed=%u hold_frames=%u forward=%.4f/%.4f timer=%.6f/%.6f\n",speed,hold,flipHalf.flipVelocity,flipFull.flipVelocity,flipHalf.flipTime,flipFull.flipTime);
         CHECK(std::fabs(flipFull.flipVelocity-flipHalf.flipVelocity)<10.f&&flipFull.flipTime==flipHalf.flipTime);
     }
     for(float slope:{-.2f,.2f})for(unsigned hold:{1u,6u}){
         auto full=measure(100,75,hold,0,false,slope),half=measure(50,75,hold,0,false,slope);
+        auto hard=measure(30,50,hold,0,false,slope);CHECK(hard.apex/full.apex>.20f&&hard.apex/full.apex<.40f);
         CHECK(half.apex<full.apex&&half.apex/full.apex>.35f&&half.apex/full.apex<.65f);
         printf("slope: rise/run=%.2f hold_frames=%u rises=%.4f/%.4f\n",slope,hold,half.apex,full.apex);
     }
 }
 static void unchanged_paths(){
-    for(unsigned speed:{75u,100u})for(unsigned scenario=0;scenario<6;scenario++){
-        auto full=create(100,speed,false),half=create(50,speed,false);
+    for(unsigned speed:{50u,75u,100u})for(unsigned scenario=0;scenario<6;scenario++){
+        auto full=create(100,speed,false),half=create(30,speed,false);
         if(scenario>=2&&scenario<=4){rocket_world_set_water(full.get(),1,30000,0);rocket_world_set_water(half.get(),1,30000,0);}
         if(scenario==3){rocket_world_set_metal_water(full.get(),1);rocket_world_set_metal_water(half.get(),1);}
         if(scenario==1||scenario==4){rocket_world_set_temporary_boost(full.get(),1);rocket_world_set_temporary_boost(half.get(),1);}
@@ -94,15 +99,16 @@ static void unchanged_paths(){
     }
 }
 static void changes_and_limits(){
-    CHECK(rocket_jump_preference(0)==50&&rocket_jump_preference(49)==50&&rocket_jump_preference(101)==50);
+    CHECK(rocket_jump_preference(0)==50&&rocket_jump_preference(29)==50&&rocket_jump_preference(101)==50);
     CHECK(rocket_jump_impulse_scale(100)==1.f&&rocket_jump_hold_scale(100)==1.f);
+    for(unsigned bad:{0u,29u,101u})CHECK(rocket_jump_impulse_scale(bad)==rocket_jump_impulse_scale(50)&&rocket_jump_hold_scale(bad)==rocket_jump_hold_scale(50));
     CHECK(!rocket_world_set_jump_height(nullptr,50));
     auto w=create(100);CHECK(rocket_world_jump_height(w.get())==100);
-    CHECK(!rocket_world_set_jump_height(w.get(),0)&&!rocket_world_set_jump_height(w.get(),49)&&!rocket_world_set_jump_height(w.get(),101));
+    CHECK(!rocket_world_set_jump_height(w.get(),0)&&!rocket_world_set_jump_height(w.get(),29)&&!rocket_world_set_jump_height(w.get(),101));
     CHECK(rocket_world_jump_height(w.get())==100);
     for(unsigned f=1;f<=45;f++){
         RocketInput in={};in.jump=f>=30&&f<=35;in.boost=f>32;auto before=step(w,f,in);
-        CHECK(rocket_world_set_jump_height(w.get(),f%2?50:100));RocketSnapshot after={};CHECK(rocket_world_snapshot(w.get(),&after));
+        CHECK(rocket_world_set_jump_height(w.get(),f%2?30:100));RocketSnapshot after={};CHECK(rocket_world_snapshot(w.get(),&after));
         CHECK(!memcmp(&before,&after,sizeof before));CHECK(rocket_world_speed(w.get())==75);
     }
 }

@@ -384,6 +384,8 @@ def launch(args, root=ROOT):
         # Check both leaves before any file writes, including an initial ROM copy.
         rom = old.private_path(save, 'baserom.us.z64')
         config = old.private_path(save, 'sm64config.txt')
+        for name in ('sm64config.txt.tmp', 'sm64config-backup.txt', 'sm64config-backup.txt.tmp'):
+            old.private_path(save, name)
         if not rom.exists():
             shutil.copyfile(old.private_path(source, 'baserom.us.z64'), rom)
         old.validate_sm64(rom)

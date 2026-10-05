@@ -2,7 +2,7 @@
 #define ROCKET_JUMP_POLICY_H
 #include <math.h>
 /* Height preference is independent of road speed and world gravity. */
-#define ROCKET_JUMP_MIN 50u
+#define ROCKET_JUMP_MIN 30u
 #define ROCKET_JUMP_MAX 100u
 #define ROCKET_JUMP_DEFAULT 50u
 static inline int rocket_jump_valid(unsigned percent) {
@@ -18,11 +18,16 @@ static inline unsigned rocket_jump_preference(unsigned percent) {
  * factors are exactly one. Slopes, momentum, double jumps and boost can change
  * absolute trajectory height; no body velocity, gravity or geometry is scaled. */
 static inline float rocket_jump_impulse_scale(unsigned percent) {
-    float q = sqrtf(rocket_jump_preference(percent) / 100.f);
-    return q + .10f * q * (1.f - q);
+    percent=rocket_jump_preference(percent);
+    float q = sqrtf(percent / 100.f);
+    float original=q + .10f * q * (1.f - q);
+    /* Extend the measured curve below 50 without changing any old setting. */
+    return percent<50 ? original + .11f*q*((50.f-percent)/100.f) : original;
 }
 static inline float rocket_jump_hold_scale(unsigned percent) {
-    float q = sqrtf(rocket_jump_preference(percent) / 100.f);
-    return q + .19f * q * (1.f - q);
+    percent=rocket_jump_preference(percent);
+    float q = sqrtf(percent / 100.f);
+    float original=q + .19f * q * (1.f - q);
+    return percent<50 ? original + .15f*q*((50.f-percent)/100.f) : original;
 }
 #endif

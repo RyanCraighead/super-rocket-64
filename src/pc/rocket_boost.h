@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include "../../codex/rocketleague/physics/boost_mode.h"
 #include "../../codex/rocketleague/physics/rocket_physics.h"
+#include "../../codex/rocketleague/physics/difficulty_policy.h"
 #define ROCKET_SESSION_RULE_BYTES 16
 #ifdef __cplusplus
 extern "C" {
@@ -14,6 +15,9 @@ int rocket_boost_mode(void);
 uint64_t rocket_boost_session_id(void);
 int rocket_boost_can_set_mode(void);
 int rocket_boost_set_mode(unsigned mode);
+unsigned rocket_difficulty(void);
+int rocket_difficulty_set(unsigned preset);
+const char *rocket_difficulty_scope_label(void);
 unsigned rocket_jump_percent(void);
 int rocket_jump_set_percent(unsigned percent);
 const char *rocket_jump_scope_label(void);

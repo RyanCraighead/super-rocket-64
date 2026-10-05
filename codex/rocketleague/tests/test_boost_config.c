@@ -1,5 +1,8 @@
 /* Actual config registry/serializer/parser, with an isolated filesystem shim. */
 #include "../../../src/pc/configfile.c"
+#include "../physics/difficulty_policy.h"
+#include <sys/stat.h>
+#include <unistd.h>
 static int checks;
 #define CHECK(x) do { ++checks; if(!(x)){fprintf(stderr,"line %d: %s\n",__LINE__,#x);exit(1);} } while(0)
 struct CLIOptions gCLIOpts;
@@ -78,17 +81,37 @@ int main(int argc,char **argv){
     }
     content("show_fps true\n");configRocketSpeedPercent=100;load();CHECK(configRocketSpeedPercent==75);
     CHECK(configRocketJumpPercent==50);
-    for(unsigned percent=50;percent<=100;percent++){
+    for(unsigned percent=30;percent<=100;percent++){
         configRocketJumpPercent=percent;configRocketSpeedPercent=75;
         configfile_save("fixture.cfg");configRocketJumpPercent=0;configRocketSpeedPercent=100;
         load();CHECK(configRocketJumpPercent==percent&&configRocketSpeedPercent==75);
     }
-    const char *badJump[]={"0","49","101","-50","50oops","50 extra","broken","99999999999999999999999999","50.0","+50"};
+    const char *badJump[]={"0","29","101","-50","50oops","50 extra","broken","99999999999999999999999999","50.0","+50"};
     for(unsigned i=0;i<sizeof badJump/sizeof *badJump;i++){
         char text[128];snprintf(text,sizeof text,"rocket_jump_height_percent %s\nrocket_speed_percent 100\n",badJump[i]);
         content(text);configRocketJumpPercent=100;load();CHECK(configRocketJumpPercent==50&&configRocketSpeedPercent==100);
     }
     content("rocket_speed_percent 100\nrocket_camera_mode 0\n");configRocketJumpPercent=100;load();
     CHECK(configRocketJumpPercent==50&&configRocketSpeedPercent==100&&configRocketCameraMode==0);
+    /* Derived presets never replace saved custom values, including old files. */
+    content("rocket_speed_percent 88\nrocket_jump_height_percent 67\n");load();
+    CHECK(rocket_difficulty_for(configRocketSpeedPercent,configRocketJumpPercent)==ROCKET_CUSTOM);
+    CHECK(configfile_save_atomic("fixture.cfg"));configRocketSpeedPercent=0;configRocketJumpPercent=0;load();
+    CHECK(configRocketSpeedPercent==88&&configRocketJumpPercent==67);
+    for(unsigned preset=0;preset<3;preset++){
+        unsigned speed,jump;CHECK(rocket_difficulty_values(preset,&speed,&jump));
+        configRocketSpeedPercent=speed;configRocketJumpPercent=jump;CHECK(configfile_save_atomic("fixture.cfg"));
+        configRocketSpeedPercent=0;configRocketJumpPercent=0;load();
+        CHECK(rocket_difficulty_for(configRocketSpeedPercent,configRocketJumpPercent)==preset);
+    }
+    /* A failed staged write cannot leave half of a saved preset. */
+    char blocked[2048];snprintf(blocked,sizeof blocked,"%s/fixture.cfg.tmp",directory);CHECK(!mkdir(blocked,0700));
+    configRocketSpeedPercent=100;configRocketJumpPercent=100;CHECK(!configfile_save_atomic("fixture.cfg"));
+    load();CHECK(configRocketSpeedPercent==50&&configRocketJumpPercent==30);CHECK(!rmdir(blocked));
+    content("show_fps true\n");load();CHECK(rocket_difficulty_for(configRocketSpeedPercent,configRocketJumpPercent)==ROCKET_MEDIUM);
+    content("rocket_speed_percent 49\nrocket_jump_height_percent 29\n");load();
+    CHECK(rocket_difficulty_for(configRocketSpeedPercent,configRocketJumpPercent)==ROCKET_MEDIUM);
+    content("rocket_speed_percent 88\n");load();CHECK(configRocketSpeedPercent==88&&configRocketJumpPercent==50);
+    content("rocket_jump_height_percent 30\n");load();CHECK(configRocketSpeedPercent==75&&configRocketJumpPercent==30);
     printf("boost, surface, sound and camera persistence: %d checks passed\n",checks);return 0;
 }
