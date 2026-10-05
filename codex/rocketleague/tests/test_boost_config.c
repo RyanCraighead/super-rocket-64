@@ -53,5 +53,12 @@ int main(int argc,char **argv){
     const char *invalid[]={"255","-1","broken","1oops","1 extra"};
     for(unsigned i=0;i<5;i++){char text[80];snprintf(text,sizeof text,"rocket_surface_mode %s\n",invalid[i]);content(text);configRocketSurfaceMode=0;load();CHECK(configRocketSurfaceMode==1);}
     content("show_fps true\n");configRocketSurfaceMode=0;load();CHECK(configRocketSurfaceMode==1);
-    printf("boost and surface persistence: %d checks passed\n",checks);return 0;
+    CHECK(configRocketSoundMode==1);
+    for(unsigned mode=0;mode<2;mode++){
+        configRocketSoundMode=mode;configfile_save("fixture.cfg");configRocketSoundMode=1-mode;load();CHECK(configRocketSoundMode==mode);
+        CHECK(configRocketSurfaceMode==1);
+    }
+    for(unsigned i=0;i<5;i++){char text[80];snprintf(text,sizeof text,"rocket_sound_mode %s\n",invalid[i]);content(text);configRocketSoundMode=0;load();CHECK(configRocketSoundMode==1);}
+    content("show_fps true\n");configRocketSoundMode=0;load();CHECK(configRocketSoundMode==1);
+    printf("boost, surface and sound persistence: %d checks passed\n",checks);return 0;
 }

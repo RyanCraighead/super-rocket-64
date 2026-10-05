@@ -57,6 +57,8 @@ def check_extra(target, character):
         require(isinstance(record, dict) and not any(c in name for c in ('\\', ':')) and
                 (name == 'save/baserom.us.z64' or name.startswith(folder + '/')), 'Unexpected local asset path or record')
         path = old.private_path(target, name)
+        if character == 'octane' and name.startswith('octane-model/audio/'):
+            continue  # Optional sounds validate separately; never disable the car.
         require(path.is_file() and path.stat().st_size == record['size'] and old.sha256(path) == record['sha256'],
                 'Local asset missing or changed: ' + name)
     old.validate_sm64(old.private_path(target, 'save/baserom.us.z64'))
@@ -146,6 +148,22 @@ def run_worker(command, root):
             process.wait(timeout=30)
 
 
+def prepare_car_audio(args, target, root=ROOT):
+    if (args.character or 'octane') != 'octane':
+        return
+    import rocket_audio_setup
+    directory = old.private_path(target, 'octane-model/audio')
+    cache = old.private_path(DATA_ROOT or root, '.runtime/tools/vgmstream-r2117')
+    try:
+        print('Checking local car sounds...', flush=True)
+        print(rocket_audio_setup.prepare(args.game, directory, cache, cancel_check), flush=True)
+    except InterruptedError:
+        raise
+    except (ValueError, OSError, KeyError, TypeError, subprocess.SubprocessError) as error:
+        print('Car sounds unavailable: ' + str(error) +
+              ' Gameplay assets are ready. Select Rocket League in Setup to retry audio; existing sounds are preserved.', flush=True)
+
+
 def setup(args, root=ROOT):
     character = args.character or 'octane'
     cancel_check()
@@ -159,6 +177,7 @@ def setup(args, root=ROOT):
             print('Existing ' + character + ' assets need repair: ' + str(error), flush=True)
         else:
             prepare_engine(root, target)
+            prepare_car_audio(args, target, root)
             print('Existing ' + character + ' assets and shared game data verified. Saves and controls preserved.')
             return
     source = args.sm64
@@ -241,6 +260,7 @@ def setup(args, root=ROOT):
     finally:
         lock.rmdir()
     prepare_engine(root, target)
+    prepare_car_audio(args, target, root)
     print('Setup complete: ' + character + ' assets extracted and verified. Ready to play. Original inputs unchanged.')
 
 

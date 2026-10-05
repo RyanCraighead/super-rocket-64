@@ -180,3 +180,43 @@ Cross maps to ollie/C-down; this patch does not claim universal controller
 interaction support for all optional characters. Mario retains native Cross
 or Circle text interaction. Live gameplay, physical controllers and two-PC
 acceptance remain pending; no foreground or game session was started.
+
+
+## v0.2.6 car handling, native interactions and optional sounds
+
+The Octane free-camera horizontal direction now matches the installed Rocket
+League factory mapping; vertical was already correct. Explicit inversion
+preferences remain available. New/missing surface settings choose Native;
+saved Car grip and Native choices are preserved. Only the static native ice
+inside CCM's slide receives the restricted 0.25 grip needed for steering and
+braking. Other ice, moving surfaces and Car grip retain their previous rules.
+
+The CCM chimney bridge accepts valid edge landings inside the actual opening,
+including after native warp/reset cycles. An upright car resting all four tires
+on an exposed prone Whomp back can now damage it, with native vulnerability,
+health/cooldown and host authority. Flip/dive attacks and blue switches remain.
+
+Setup can extract verified jump, flip, double-jump and standard boost effects
+from the player's supported Rocket League banks using pinned official tools.
+Options > Octane sounds saves Mario or Car locally. Missing optional audio
+falls back to Mario. Only the local simulated car emits these new events;
+remote render poses do not produce duplicate sound. Boost follows actual
+thrust/fuel and has separate start, loop and end clips. Pause, blocked input,
+warp/selection handoff and shutdown clear the voices. Master/SFX mute and
+volume use the existing game output; no second audio device is opened.
+
+Focused headless checks passed: 67 actual camera direction cases, 80 session
+rule cases, 82 config persistence cases, 56 native surface classifications and
+6,225 actual RocketSim environment assertions. CCM passed 780 adapter and
+2,801 native warp assertions; Whomp passed real-physics landing and native
+local/remote authority, vulnerability and contact regressions. The optional
+sound suite passed 395 actual mixer/event/physics checks, 18 native local
+sound-source checks and eight synthetic extraction/cache/cancel tests. Six
+owned clips decoded to the pinned hashes, loaded in the runtime mixer, and
+reused with unchanged bytes and timestamps. These assets remain private.
+
+This is headless regression coverage with explicit native-service fixtures,
+not live gameplay, physical-controller, audio-listening or two-PC acceptance.
+No active game was interrupted or brought to the foreground. Epic geometry
+support retains the earlier user verification; the new audio profile was
+automatically verified from Steam files and accepts only matching Epic banks.

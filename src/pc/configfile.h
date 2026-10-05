@@ -155,6 +155,7 @@ extern unsigned int configPlayerKnockbackStrength;
 extern unsigned int configStayInLevelAfterStar;
 extern bool         configNametags;
 extern bool         configModDevMode;
+extern unsigned int configRocketSoundMode; /* 0 Mario, 1 local car sounds (default) */
 extern unsigned int configRocketBoostMode; /* 0 coin only (default), 1 infinite */
 extern unsigned int configRocketSurfaceMode; /* 0 car grip, 1 native surfaces (default) */
 extern unsigned int configBouncyLevelBounds;

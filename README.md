@@ -1,6 +1,6 @@
 # Super Rocket 64
 
-**Jump, flip, boost and fly through Super Mario 64 in a Octane.**
+**Jump, flip, boost and fly through Super Mario 64 in an Octane.**
 
 ![Octane flying around Peach's Castle](docs/media/castle-flight.gif)
 
@@ -73,11 +73,15 @@ Door animations keep Octane facing through the doorway. Holding throttle through
 
 **Read signs / talk as Octane:** stop upright on the ground, move close, face the NPC or the readable front of the sign, then press **Cross / A** (your configured car Jump button). Release and press again to advance or close text. Away from an eligible target, the same button jumps. Remapped car Jump buttons work for interaction and dialog confirmation.
 
-Car bindings are editable under **Options > Controls > Car Controller**. Mappings and boost preferences are saved locally. Generic joysticks need an appropriate SDL controller mapping. Physical-controller verification for the public edition is pending.
+Car bindings are editable under **Options > Controls > Car Controller**. Mappings, boost, surface and sound preferences are saved locally. Generic joysticks need an appropriate SDL controller mapping. Physical-controller verification for the public edition is pending.
+
+**Options > Octane sounds** switches between **Mario** and locally extracted **Car** jump, flip and standard-boost effects. Car is the default; missing or unsupported sound assets fall back to Mario. Existing players can select their Rocket League folder in Setup again to add the sounds without rebuilding valid geometry or changing saves. Sounds use Master/SFX volume. Boost stops on release; pause and character/area handoffs clear all effects. Car effects currently play for your own Octane, including online; remote-car audio is not reconstructed from network poses.
+
+**Options > Octane surfaces** defaults to Native for new settings. Existing saved choices stay as selected. Native ice in the indoor Cool, Cool Mountain slide retains limited steering and braking. You can damage a prone Whomp by landing upright with all four tires on its exposed back; its normal vulnerable phase and recovery still apply.
 
 ## Credits
 
-Super Rocket 64 is a fan project by [Ryan Craighead](https://github.com/RyanCraighead), built from the work of the [SM64coopdx contributors](https://github.com/coop-deluxe/sm64coopdx), the SM64 decompilation community, [RocketSim](https://github.com/ZealanL/RocketSim), [Bullet](https://github.com/bulletphysics/bullet3), [UE Viewer](https://github.com/gildor2/UEViewer), and the original-data character research and conversion work documented with the project.
+Super Rocket 64 is a fan project by [Ryan Craighead](https://github.com/RyanCraighead), built from the work of the [SM64coopdx contributors](https://github.com/coop-deluxe/sm64coopdx), the SM64 decompilation community, [RocketSim](https://github.com/ZealanL/RocketSim), [Bullet](https://github.com/bulletphysics/bullet3), [UE Viewer](https://github.com/gildor2/UEViewer), [vgmstream](https://github.com/vgmstream/vgmstream), and the original-data character research and conversion work documented with the project.
 
 Mario and Super Mario 64 belong to Nintendo. Rocket League and Octane belong to Psyonix/Epic Games. Other characters, games and trademarks belong to their respective owners. This project is unaffiliated with those owners. Component licenses and attribution must be retained; no blanket license for proprietary game content is asserted.
 
