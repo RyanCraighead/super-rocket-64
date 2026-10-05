@@ -9,6 +9,7 @@
 #include "platform.h"
 #include "configfile.h"
 #include "rocket_bindings.h"
+#include "rocket_boost.h"
 #include "../../codex/rocketleague/physics/speed_policy.h"
 #include "../../codex/rocketleague/physics/jump_policy.h"
 #include "cliopts.h"
@@ -995,15 +996,13 @@ static void configfile_save_option(FILE *file, const struct ConfigOption *option
 
 #include "shared_controls.inc.h"
 
-// Writes the config file to 'filename'
-void configfile_save(const char *filename) {
-    FILE *file;
-
-    file = fopen(fs_get_write_path(filename), "w");
-    if (file == NULL) {
-        // error
-        return;
-    }
+// Stage the complete configuration before replacing the previous saved file.
+int configfile_save_atomic(const char *filename) {
+    char path[SYS_MAX_PATH],stage[SYS_MAX_PATH];
+    if(snprintf(path,sizeof path,"%s",fs_get_write_path(filename))>=(int)sizeof path||
+       snprintf(stage,sizeof stage,"%s.tmp",path)>=(int)sizeof stage)return 0;
+    FILE *file=fopen(stage,"wb");
+    if(!file)return 0;
 
     printf("Saving configuration to '%s'\n", filename);
 
@@ -1022,6 +1021,12 @@ void configfile_save(const char *filename) {
         functionOptions[i].write(file);
     }
 
-    fclose(file);
+    bool ok=!ferror(file);if(fclose(file))ok=false;
+    if(ok)ok=shared_controls_replace(stage,path);
+    if(!ok){remove(stage);fprintf(stderr,"Could not save configuration; previous file retained: %s\n",filename);return 0;}
     if (!strcmp(filename, configfile_name())) shared_controls_save();
+    return 1;
+}
+void configfile_save(const char *filename) {
+    (void)configfile_save_atomic(filename);
 }

@@ -8,6 +8,19 @@ static void sound_changed(struct DjuiBase *base) {
     (void)base; rocket_audio_stop(); configfile_save(configfile_name());
 }
 
+static unsigned difficultySelection;
+static void difficulty_refresh(struct DjuiBase *base, UNUSED bool *unused) {
+    difficultySelection=rocket_difficulty();
+    djui_selectionbox_update_value(base);
+    djui_base_set_enabled(base,rocket_boost_can_set_mode());
+}
+static void difficulty_changed(struct DjuiBase *base) {
+    rocket_difficulty_set(difficultySelection);
+    difficulty_refresh(base,NULL);
+}
+static void difficulty_scope(struct DjuiBase *base, UNUSED bool *unused) {
+    djui_text_set_text((struct DjuiText *)base,rocket_difficulty_scope_label());
+}
 static unsigned speedSelection;
 static void speed_refresh(struct DjuiBase *base, UNUSED bool *unused) {
     speedSelection = rocket_speed_percent();
@@ -61,6 +74,16 @@ static void scope(struct DjuiBase *base, UNUSED bool *unused) {
     djui_text_set_text((struct DjuiText *)base, rocket_boost_scope_label());
 }
 void djui_rocket_boost_create(struct DjuiBase *parent) {
+    char *presets[]={"Easy (100% / 100%)","Medium (75% / 50%)","Hard (50% / 30%)","Custom (use sliders)"};
+    difficultySelection=rocket_difficulty();
+    struct DjuiSelectionbox *difficulty=djui_selectionbox_create(parent,"Octane difficulty",presets,4,&difficultySelection,difficulty_changed);
+    difficulty->base.on_render_pre=difficulty_refresh;
+    difficulty_refresh(&difficulty->base,NULL);
+    struct DjuiRect *difficultyRow=djui_rect_container_create(parent,96);
+    struct DjuiText *difficultyText=djui_text_create(&difficultyRow->base,rocket_difficulty_scope_label());
+    djui_base_set_size_type(&difficultyText->base,DJUI_SVT_RELATIVE,DJUI_SVT_ABSOLUTE);
+    djui_base_set_size(&difficultyText->base,1,96);
+    difficultyText->base.on_render_pre=difficulty_scope;
     speedSelection = rocket_speed_percent();
     struct DjuiSlider *slider = djui_slider_create(parent, "Octane speed (%)", &speedSelection,
         ROCKET_SPEED_MIN, ROCKET_SPEED_MAX, speed_changed);

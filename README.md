@@ -56,14 +56,17 @@ Custom keyboard, controller and camera settings follow you between Offline, Host
 
 | Setting | Default | Choices |
 | --- | --- | --- |
+| **Options > Octane difficulty** | Medium | Easy: 100% speed / 100% jump; Medium: 75% / 50%; Hard: 50% / 30%. Custom reflects the sliders below. |
 | **Options > Octane speed (%)** | 75% | 50–100%; 100% restores original speed. Handling and speed-based attacks adjust together. |
-| **Options > Octane jump height (%)** | 50% | 50–100%; 100% restores original jump physics. Independent of car speed. |
+| **Options > Octane jump height (%)** | 50% | 30–100%; 100% restores original jump physics. Independent of car speed. |
 | **Options > Camera > Octane camera** | Car follow | Car follow or Mario camera; use the normal look/recenter controls. |
 | **Options > Octane boost** | Coin only | Coin only or Infinite. |
 | **Options > Octane sounds** | Car | Local Rocket League jump/flip/boost sounds, or Mario sounds. |
 | **Options > Octane surfaces** | Native surfaces | Native surfaces or Car grip. |
 
 Jump height is approximate: tap and held jumps reach roughly the selected fraction of normal height; second-jump timing and momentum affect total height. For higher ledges, hold jump, double jump, boost or choose 100%. Gravity, boost flight and swim-up stay independent of this setting.
+
+Difficulty changes only Octane speed and jump height. Existing saved choices are kept; manual values that do not match a preset show **Custom**. Hard has less unboosted reach, so some routes may need boost, a double jump, or a higher jump setting. [Preset details](docs/DIFFICULTY-PRESETS.md).
 
 Your choices are saved locally. Online, the host controls speed, jump height, boost and surfaces; joining keeps your offline preferences intact.
 

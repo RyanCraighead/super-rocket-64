@@ -14,6 +14,7 @@ static unsigned sessionJump = ROCKET_JUMP_DEFAULT;
 static u32 revision;
 static u64 session, previousSession;
 static double lastSent = -1;
+static int difficultySaveFailed;
 
 static unsigned preference(void) {
     return configRocketBoostMode == ROCKET_BOOST_INFINITE ? ROCKET_BOOST_INFINITE : ROCKET_BOOST_COIN_ONLY;
@@ -27,7 +28,7 @@ unsigned rocket_jump_percent(void) {
 }
 const char *rocket_jump_scope_label(void) {
     if (gNetworkType == NT_CLIENT) return revision ? "Jump height is controlled by the host" : "Waiting for host jump height (50%)";
-    return "50% default. 100% original height. Independent of speed. Boost and swim-up stay unchanged.";
+    return "30-100%. 50% default. 100% original height. Independent of speed. Boost and swim-up stay unchanged.";
 }
 unsigned rocket_speed_percent(void) {
     if (gNetworkType == NT_CLIENT) return gCLIOpts.characterNet && revision ? sessionSpeed : ROCKET_SPEED_DEFAULT;
@@ -140,6 +141,29 @@ int rocket_jump_set_percent(unsigned percent) {
     }
     rocket_boost_network_update();
     return 1;
+}
+unsigned rocket_difficulty(void) {
+    return rocket_difficulty_for(rocket_speed_percent(),rocket_jump_percent());
+}
+const char *rocket_difficulty_scope_label(void) {
+    if(gNetworkType==NT_CLIENT)return revision ? "Difficulty is controlled by the host; your offline choices are kept." : "Waiting for host difficulty (Medium).";
+    if(difficultySaveFailed)return "Could not save difficulty. Previous settings kept; check the save folder is writable.";
+    return "Speed / jump height only. Medium is the default. Use the sliders below for Custom.";
+}
+int rocket_difficulty_set(unsigned preset) {
+    unsigned speed,jump;
+    if(!rocket_boost_can_set_mode()||!rocket_difficulty_values(preset,&speed,&jump))return 0;
+    difficultySaveFailed=0;
+    unsigned oldSpeed=configRocketSpeedPercent,oldJump=configRocketJumpPercent;
+    if(oldSpeed==speed&&oldJump==jump)return 1;
+    /* Commit one complete pair before refreshing the host rule. Never emit an
+     * intermediate speed/jump combination or reset unrelated preferences. */
+    configRocketSpeedPercent=speed;configRocketJumpPercent=jump;
+    if(!configfile_save_atomic(configfile_name())) {
+        configRocketSpeedPercent=oldSpeed;configRocketJumpPercent=oldJump;
+        difficultySaveFailed=1;return 0;
+    }
+    rocket_boost_network_update();return 1;
 }
 int rocket_surface_set_mode(unsigned mode) {
     if (!rocket_boost_can_set_mode() || mode > ROCKET_SURFACES_NATIVE) return 0;

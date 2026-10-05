@@ -1,5 +1,14 @@
 # Verification and limitations
 
+## v0.2.12: Easy, Medium and Hard presets
+
+Options > Octane difficulty selects Easy (100% speed / 100% jump), Medium
+(75% / 50%, the unchanged default) or Hard (50% / 30%). Manual values show
+Custom. Existing saved choices survive upgrades. Presets save and broadcast
+one complete pair; clients retain their offline preferences. All online peers
+need this matching build. See [preset behavior and limits](DIFFICULTY-PRESETS.md).
+
+
 ## v0.2.11: keep custom controls across play modes and updates
 
 Native keyboard/controller, car bindings and camera preferences use one persistent

@@ -199,6 +199,7 @@ void enable_queued_dynos_packs(void);
 void configfile_reset_keybinds(bool extra);
 void configfile_load(void);
 int configfile_controls_probe(int argc, char **argv);
+int configfile_save_atomic(const char *filename);
 void configfile_save(const char *filename);
 const char *configfile_name(void);
 const char *configfile_backup_name(void);

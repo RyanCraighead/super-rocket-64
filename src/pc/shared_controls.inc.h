@@ -130,6 +130,12 @@ static void shared_controls_save(void) {
 }
 /* Internal acceptance entrypoint: no graphics, controllers, ROM or networking. */
 int configfile_controls_probe(int argc,char **argv) {
+    if(argc>=2&&!strcmp(argv[1],"--verify-difficulty")) {
+        if(argc!=3&&argc!=4)return 2;
+        fs_init(argv[2]);configfile_load();
+        if(argc==4){unsigned preset;if(!shared_number(argv[3],10,ROCKET_HARD,&preset)||!rocket_difficulty_set(preset))return 2;}
+        printf("DIFFICULTY %u %u %u\n",rocket_speed_percent(),rocket_jump_percent(),rocket_difficulty());return 0;
+    }
     if(argc==2&&!strcmp(argv[1],"--controls-defaults")){shared_controls_emit(stdout);return 0;}
     if(argc==3&&!strcmp(argv[1],"--validate-controls")) {
         char *data=shared_controls_read(argv[2]);
