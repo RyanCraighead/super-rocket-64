@@ -352,3 +352,16 @@ Super Rocket 64 original-source visual conversion
 The standard-library visual converter preserves the quantization in tools/n64graphics.c.
 The queueRAM MIT notice is retained in codex/windows/visual_inputs/sm64tools.LICENSE.
 Original PNG and inline-array provenance is tracked separately from converter licensing.
+
+
+OPTIONAL LOCAL CAR-AUDIO DECODER
+vgmstream project and contributors: https://github.com/vgmstream/vgmstream
+Official release: https://github.com/vgmstream/vgmstream/releases/tag/r2117
+Source license: https://github.com/vgmstream/vgmstream/blob/r2117/COPYING
+Setup downloads the original verified Windows archive on demand and retains
+its original notices. The decoder and codec libraries are not bundled here.
+The vgmstream source grant and the separate licenses of its codec dependencies
+apply to those components; this project's license does not replace them.
+Rocket League sound content remains the property of Psyonix/Epic Games and is
+extracted only from the player's local supported installation. No audio assets
+are licensed or redistributed by this project.

@@ -52,11 +52,49 @@ int main(){
     CHECK(rocket_world_mesh(mixed.w.get(),0,halves,4));mixed.mode(1);mixed.step(30);mixed.input.throttle=1;mixed.step(15);
     CHECK(mixed.state().position[2]>1&&mixed.state().position[2]<car.state().position[2]);
     halves[0].material=255;CHECK(!rocket_world_mesh(mixed.w.get(),0,halves,4));
+    for(unsigned tag:{8u,9u,10u,11u,12u,13u,15u,16u}){
+        halves[0].material=(uint8_t)tag;
+        CHECK(!rocket_world_mesh(mixed.w.get(),0,halves,4));
+        RocketPlatform platform={};platform.object_id=123;
+        platform.basis[0]=platform.basis[4]=platform.basis[8]=1;
+        platform.triangles=halves;platform.count=4;
+        CHECK(!rocket_world_platforms(mixed.w.get(),&platform,1));
+    }
     mixed.step();CHECK(std::isfinite(mixed.state().position[2]));
     // Real uphill grade: threshold-tagged native floor prevents ordinary tire climbing.
     Fixture rampCar,rampSlide;rampCar.mesh(6,.3f);rampSlide.mesh(6,.3f);rampSlide.mode(1);
     for(Fixture *f:{&rampCar,&rampSlide}){f->step(30);f->input.throttle=1;f->step(60);}
     CHECK(rampCar.state().position[2]>rampSlide.state().position[2]+100.f);
+    // The scoped ice race retains real steering and braking on a downhill
+    // grade. Compare identical states/inputs against zero grip and Car grip.
+    Fixture raceCoast,raceBrake,raceSteer,zeroBrake,zeroSteer,fullBrake;
+    for(Fixture *f:{&raceCoast,&raceBrake,&raceSteer,&zeroBrake,&zeroSteer,&fullBrake}){
+        f->mesh(f==&zeroBrake||f==&zeroSteer?6:14,-.3f);
+        f->mode(f==&fullBrake?0:1);
+        float p[]={0,80,0},v[]={0,0,1400};
+        CHECK(rocket_world_reset(f->w.get(),p,v,0));f->step(10);
+    }
+    raceBrake.input.throttle=zeroBrake.input.throttle=fullBrake.input.throttle=-1;
+    raceSteer.input.steer=zeroSteer.input.steer=1;
+    for(Fixture *f:{&raceCoast,&raceBrake,&raceSteer,&zeroBrake,&zeroSteer,&fullBrake})f->step(30);
+    auto coast=raceCoast.state(),brake=raceBrake.state(),steer=raceSteer.state();
+    auto zero=zeroBrake.state(),full=fullBrake.state();
+    std::printf("race speeds coast=%.1f brake=%.1f zero=%.1f full=%.1f; turn x=%.1f zero=%.1f\n",
+        coast.velocity[2],brake.velocity[2],zero.velocity[2],full.velocity[2],steer.position[0],zeroSteer.state().position[0]);
+    CHECK(brake.velocity[2]<coast.velocity[2]-100);
+    CHECK(brake.velocity[2]<zero.velocity[2]-100);
+    CHECK(brake.velocity[2]>full.velocity[2]+100); // still substantially slippery
+    CHECK(std::fabs(steer.position[0])>std::fabs(zeroSteer.state().position[0])+20);
+    // The tag never changes explicit Car grip; leaving/replacing race geometry
+    // removes the behavior immediately without a global persistent override.
+    Fixture scopedCar,plainCar;
+    scopedCar.mesh(14,-.3f);plainCar.mesh(6,-.3f);
+    for(int i=0;i<60;++i){scopedCar.input.throttle=plainCar.input.throttle=1;
+        scopedCar.step();plainCar.step();same(scopedCar.state(),plainCar.state());}
+    raceCoast.mesh(6,-.3f);raceCoast.reset();zeroBrake.reset();
+    raceCoast.step(30);zeroBrake.step(30);same(raceCoast.state(),zeroBrake.state());
+    raceCoast.mesh(14,-.3f);raceCoast.reset();raceBrake.reset();
+    raceCoast.step(30);raceBrake.step(30);same(raceCoast.state(),raceBrake.state());
     // Live mode and material transitions, including a replaced dynamic layer.
     slide.mode(0);slide.step(30);CHECK(slide.state().position[2]>100);
     slide.mode(1);slide.mesh(0);slide.step(30);CHECK(slide.state().velocity[2]>100);

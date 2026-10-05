@@ -41,6 +41,25 @@ int main(void){
     surface.type=SURFACE_DEFAULT;CHECK(rocket_environment_material(&m,&surface)==0);
     surface.normal.y=.7f;CHECK(rocket_environment_material(&m,&surface)==4);
     surface.type=SURFACE_HARD_NOT_SLIPPERY;CHECK(rocket_environment_material(&m,&surface)==0);
+    // Only static sloping ice inside CCM's race receives limited control.
+    area.terrainType=TERRAIN_SLIDE;area.index=2;gCurrLevelNum=LEVEL_CCM;
+    surface.type=SURFACE_DEFAULT;surface.normal.y=.98f;
+    CHECK(rocket_environment_material(&m,&surface)==14);
+    struct Object moving={0};surface.object=&moving;
+    CHECK(rocket_environment_material(&m,&surface)==6);surface.object=NULL;
+    surface.normal.y=1;CHECK(rocket_environment_material(&m,&surface)==2);
+    surface.normal.y=0;CHECK(rocket_environment_material(&m,&surface)==2);
+    surface.normal.y=-1;CHECK(rocket_environment_material(&m,&surface)==2);
+    surface.normal.y=.98f;surface.type=SURFACE_NOT_SLIPPERY;
+    CHECK(rocket_environment_material(&m,&surface)==4);
+    surface.type=SURFACE_SLIPPERY;CHECK(rocket_environment_material(&m,&surface)==5);
+    surface.type=SURFACE_DEFAULT;area.index=1;
+    CHECK(rocket_environment_material(&m,&surface)==6);
+    area.index=2;gCurrLevelNum=LEVEL_TTM;CHECK(rocket_environment_material(&m,&surface)==6);
+    area.index=1;gCurrLevelNum=LEVEL_PSS;CHECK(rocket_environment_material(&m,&surface)==6);
+    area.index=2;gCurrLevelNum=LEVEL_CCM;area.terrainType=TERRAIN_SNOW;
+    surface.type=SURFACE_ICE;CHECK(rocket_environment_material(&m,&surface)==6);
+    area.terrainType=0;area.index=0;gCurrLevelNum=0;
     // Ground wind follows native idle gusts, heading and moving-speed semantics.
     surface.type=SURFACE_HORIZONTAL_WIND;surface.force=0;gGlobalTimer=0;
     rocket_environment_sample(&m,&pose,&e);CHECK(fabsf(e.drift[2]-96.f)<.001f);

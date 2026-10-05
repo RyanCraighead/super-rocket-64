@@ -15,3 +15,8 @@
 *.exe
 *.dll
 __pycache__/
+
+# Owned optional car audio and private extraction intermediates
+*.bnk
+*.wem
+/codex/rocketleague/.local-audio/

@@ -2,6 +2,7 @@
  * No Psyonix source or decoded assets are present in this translation unit. */
 #include "rocket_runtime.h"
 #include "rocket_boost.h"
+#include "rocket_audio.h"
 extern "C" {
 #include "game/rocket_wing.h"
 }
@@ -20,6 +21,7 @@ extern "C" {
 #include "gfx/rocket_gl_state.h"
 extern "C" {
 #include "cliopts.h"
+#include "configfile.h"
 #include "sm64.h"
 extern const unsigned char mario_texture_metal_shade[],mario_texture_metal_light[];
 }
@@ -139,10 +141,11 @@ extern "C" int rocket_runtime_init(void){
         if(gCLIOpts.rocketCar||(gCLIOpts.characterNet&&gCLIOpts.characterWheel)){
             world.reset(rocket_world_create());if(!world)throw std::runtime_error(rocket_world_error());
         }
+        if(!gCLIOpts.headless)rocket_audio_load(base.c_str());
         status="Original Octane geometry; approximate RocketSim physics and host materials";std::fprintf(stderr,"%s\n",status.c_str());return 1;
     }catch(const std::exception &e){std::string why=e.what();rocket_runtime_shutdown();status="Rocket car disabled: "+why;return 0;}
 }
-extern "C" void rocket_runtime_shutdown(void){releaseGL();world.reset();body.clear();wheel.clear();stream.clear();drawable=false;capVisuals=0;current={};gamepad={};lastInput={};status="Rocket car disabled";}
+extern "C" void rocket_runtime_shutdown(void){rocket_audio_shutdown();releaseGL();world.reset();body.clear();wheel.clear();stream.clear();drawable=false;capVisuals=0;current={};gamepad={};lastInput={};status="Rocket car disabled";}
 extern "C" int rocket_runtime_enabled(void){return world?1:0;}
 extern "C" int rocket_runtime_boost_mode(void){return rocket_wing_boost_mode();}
 extern "C" int rocket_runtime_set_boost_mode(int mode){
@@ -157,13 +160,14 @@ extern "C" int rocket_runtime_collect_coin(void){
 }
 extern "C" uint32_t rocket_runtime_epoch(void){return epoch;}
 extern "C" void rocket_runtime_selection_changed(void){
+    rocket_audio_stop();
     if(++epoch==0)++epoch;
     rocket_world_interrupt(world.get());
 }
 extern "C" int rocket_runtime_owns_controls(void){return world&&drawable;}
 extern "C" void rocket_runtime_gamepad(const RocketGamepad *pad){
     RocketGamepad next=pad?*pad:RocketGamepad{};
-    if(next.ui_blocked||gamepad.connected!=next.connected||(next.connected&&gamepad.instance!=next.instance))rocket_world_interrupt(world.get());
+    if(next.ui_blocked||gamepad.connected!=next.connected||(next.connected&&gamepad.instance!=next.instance)){rocket_audio_stop();rocket_world_interrupt(world.get());}
     gamepad=next;
 }
 extern "C" void rocket_runtime_last_input(RocketInput *input){if(input)*input=lastInput;}
@@ -173,11 +177,11 @@ extern "C" int rocket_runtime_read_input(const RocketInput *keyboard,RocketInput
     if(!world||!drawable||!SDL_GetKeyboardFocus()||gamepad.ui_blocked){*input={};return 0;}
     return 1;
 }
-extern "C" void rocket_runtime_suspend(void){drawable=false;capVisuals=0;rocket_world_set_environment(world.get(),nullptr);rocket_world_set_water_query(world.get(),nullptr);rocket_world_set_water(world.get(),0,0,0);rocket_world_interrupt(world.get());}
+extern "C" void rocket_runtime_suspend(void){rocket_audio_stop();drawable=false;capVisuals=0;rocket_world_set_environment(world.get(),nullptr);rocket_world_set_water_query(world.get(),nullptr);rocket_world_set_water(world.get(),0,0,0);rocket_world_interrupt(world.get());}
 extern "C" void rocket_runtime_set_cap_visuals(uint32_t flags){capVisuals=flags&MARIO_SPECIAL_CAPS;}
 extern "C" int rocket_runtime_set_environment(const RocketEnvironment *environment){return rocket_world_set_environment(world.get(),environment);}
 extern "C" void rocket_runtime_set_metal_water(int active){rocket_world_set_metal_water(world.get(),active);}
-extern "C" void rocket_runtime_interrupt(void){rocket_world_interrupt(world.get());}
+extern "C" void rocket_runtime_interrupt(void){rocket_audio_stop();rocket_world_interrupt(world.get());}
 extern "C" void rocket_runtime_set_water(int present,float level,int metal){
     rocket_world_set_water(world.get(),present,level,metal);
     RocketSnapshot state;if(drawable&&rocket_world_snapshot(world.get(),&state))current.water_mode=state.water_mode;
@@ -187,9 +191,11 @@ extern "C" void rocket_runtime_set_water_query(RocketWaterQuery query){rocket_wo
 extern "C" int rocket_runtime_mesh(int layer,const RocketTriangle *triangles,size_t count){return rocket_world_mesh(world.get(),layer,triangles,count);}
 extern "C" int rocket_runtime_platforms(const RocketPlatform *platforms,size_t count){return rocket_world_platforms(world.get(),platforms,count);}
 extern "C" int rocket_runtime_reset(const float *position,const float *velocity,float yaw){
+    rocket_audio_reset();
     ++epoch;drawable=false;capVisuals=0;std::fill(spin,spin+4,0.f);return rocket_world_reset(world.get(),position,velocity,yaw);
 }
 extern "C" int rocket_runtime_recover(const RocketSnapshot *pose){
+    rocket_audio_stop();
     if(!rocket_world_recover(world.get(),pose))return 0;
     ++epoch; // Remote interpolation must not sweep a recovered car through the gate.
     return rocket_world_snapshot(world.get(),&current);
@@ -206,6 +212,7 @@ extern "C" int rocket_runtime_frame(uint64_t frame,const RocketInput *input,int 
         drawable=true;
         if(result>0){float forward=0;for(int k=0;k<3;++k)forward+=current.velocity[k]*current.basis[k];for(int i=0;i<4;++i)if(current.wheel_radius[i]>0)spin[i]=std::fmod(spin[i]+forward/(30.f*current.wheel_radius[i]),6.28318530718f);}
     }else drawable=false;
+    rocket_audio_update(drawable?&current:nullptr,configRocketSoundMode,drawable&&!paused&&!blocked&&!gCLIOpts.headless);
     return result;
 }
 extern "C" int rocket_runtime_snapshot(RocketSnapshot *snapshot){if(!drawable||!snapshot)return 0;*snapshot=current;return 1;}

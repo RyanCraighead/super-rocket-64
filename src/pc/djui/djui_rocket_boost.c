@@ -1,6 +1,12 @@
 #include "djui.h"
 #include "djui_rocket_boost.h"
 #include "pc/rocket_boost.h"
+#include "pc/rocket_audio.h"
+#include "pc/configfile.h"
+
+static void sound_changed(struct DjuiBase *base) {
+    (void)base; rocket_audio_stop(); configfile_save(configfile_name());
+}
 
 static unsigned selection;
 static unsigned surfaceSelection;
@@ -29,6 +35,8 @@ static void scope(struct DjuiBase *base, UNUSED bool *unused) {
     djui_text_set_text((struct DjuiText *)base, rocket_boost_scope_label());
 }
 void djui_rocket_boost_create(struct DjuiBase *parent) {
+    char *sounds[] = { "Mario", "Car (local Rocket League)" };
+    djui_selectionbox_create(parent, "Octane sounds", sounds, 2, &configRocketSoundMode, sound_changed);
     char *choices[] = { "Coin only", "Infinite" };
     selection = rocket_boost_mode();
     struct DjuiSelectionbox *box = djui_selectionbox_create(parent, "Octane boost", choices, 2, &selection, changed);

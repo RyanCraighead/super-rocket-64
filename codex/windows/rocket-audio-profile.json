@@ -1,0 +1,77 @@
+{
+  "schema": "rocket-owned-event-audio-v1",
+  "decoder": "vgmstream-r2117-win64",
+  "banks": {
+    "SFX_Car_Movements.bnk": "dd6faff42cddbdeb6bf3e1c506e8af7890968ba5267d90fe28bcbc6f6fa21e35",
+    "SFX_Boost_Standard.bnk": "8f523d2f2cc2b3ca6ab8aba0f29fc79161d9df867de1c2f4021da50ea9523d0f"
+  },
+  "events": {
+    "jump": 1787114991,
+    "flip": 1859710816,
+    "double_jump": 3420908428,
+    "boost_play": 2954340010,
+    "boost_stop": 2322705472
+  },
+  "clips": {
+    "jump": {
+      "bank": "SFX_Car_Movements.bnk",
+      "media_id": 936007845,
+      "size": 432044,
+      "sha256": "9fcb49f53fe36641796f93963d8ebd96cf7052456597c1d6863a40c82221d065",
+      "channels": 2,
+      "sample_width": 2,
+      "rate": 48000,
+      "frames": 108000
+    },
+    "flip": {
+      "bank": "SFX_Car_Movements.bnk",
+      "media_id": 727337332,
+      "size": 460844,
+      "sha256": "fbaa08fa9b9f7ff5301a2cf976cafc3b318484afdbcd9578e90299488e20d94e",
+      "channels": 2,
+      "sample_width": 2,
+      "rate": 48000,
+      "frames": 115200
+    },
+    "double_jump": {
+      "bank": "SFX_Car_Movements.bnk",
+      "media_id": 197493302,
+      "size": 437036,
+      "sha256": "78206288b9d5d7d8a50d3970fc790a75bfd3c9b82338367201aba866e8829bcd",
+      "channels": 2,
+      "sample_width": 2,
+      "rate": 48000,
+      "frames": 109248
+    },
+    "boost_start": {
+      "bank": "SFX_Boost_Standard.bnk",
+      "media_id": 145281985,
+      "size": 327692,
+      "sha256": "9f88bdf4d85765d195095282a84418efbae3ce863b067c30a91284f203e87be8",
+      "channels": 2,
+      "sample_width": 2,
+      "rate": 48000,
+      "frames": 81912
+    },
+    "boost_loop": {
+      "bank": "SFX_Boost_Standard.bnk",
+      "media_id": 468333342,
+      "size": 334380,
+      "sha256": "68e0379c6da74ab2546bc962e57aabe0326c9cd5d105a947bb1a162132b09087",
+      "channels": 2,
+      "sample_width": 2,
+      "rate": 48000,
+      "frames": 83584
+    },
+    "boost_end": {
+      "bank": "SFX_Boost_Standard.bnk",
+      "media_id": 114026251,
+      "size": 200076,
+      "sha256": "98884072d889741c8c700eef550918f1153e5680cc98251f0023a0fd6cdeac40",
+      "channels": 2,
+      "sample_width": 2,
+      "rate": 48000,
+      "frames": 50008
+    }
+  }
+}

@@ -26,7 +26,9 @@ void rocket_world_set_temporary_boost(RocketWorld *world,int active);
 int rocket_world_collect_coin(RocketWorld *world);
 enum { ROCKET_SURFACES_CAR = 0, ROCKET_SURFACES_NATIVE = 1 };
 enum { ROCKET_MATERIAL_NORMAL = 0, ROCKET_MATERIAL_SLIPPERY = 1,
-       ROCKET_MATERIAL_VERY_SLIPPERY = 2, ROCKET_MATERIAL_SLIDING = 4 };
+       ROCKET_MATERIAL_VERY_SLIPPERY = 2, ROCKET_MATERIAL_SLIDING = 4,
+       /* Restricted host tag: CCM indoor native ice race, not general ice. */
+       ROCKET_MATERIAL_RACE_SLIDE = 8 };
 typedef struct RocketTriangle { float v[3][3]; uint8_t material; } RocketTriangle;
 typedef struct RocketEnvironment {
     /* Host axes; temporary current/wind displacement velocity (units/second),

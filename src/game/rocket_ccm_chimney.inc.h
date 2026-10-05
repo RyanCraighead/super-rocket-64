@@ -72,10 +72,13 @@ static int ccm_chimney_interaction(struct MarioState *m) {
     if(!rocket_adapter_interaction_snapshot(&pose)||!rocket_body_pose_valid(&pose)||
        pose.basis[7]<.95f||pose.flipping||!isfinite(pose.velocity[1])||pose.velocity[1]>30.f||
        pose.position[1]<3115.f||pose.position[1]>3193.f)return 0;
-    /* Keep the native player's entry center clear of the shaft walls. The
-     * surrounding roof and a car merely grazing the chimney are not entry. */
-    if(pose.position[0]<=-263.f||pose.position[0]>=-98.f||
-       pose.position[2]<=-1568.f||pose.position[2]>=-1403.f)return 0;
+    /* Use the actual opening, inset one unit for native integer floor queries.
+     * A capsule-width margin rejected valid car rests near its edges, making
+     * a slightly different landing after re-entry appear to disable the warp.
+     * The car is handed to the native warp; no capsule is lowered into walls.
+     * Loaded shaft floor, real rim contact and clear ray are still mandatory. */
+    if(pose.position[0]<=-282.f||pose.position[0]>=-79.f||
+       pose.position[2]<=-1587.f||pose.position[2]>=-1384.f)return 0;
     float moved=0;for(int k=0;k<3;k++){float d=m->pos[k]-pose.position[k];moved+=d*d;}
     if(!isfinite(moved)||moved>4.f)return 0;
     struct Surface *floor=NULL;

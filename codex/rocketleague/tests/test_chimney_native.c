@@ -28,6 +28,8 @@ enum NetworkType gNetworkType;
 struct Area *gCurrentArea;
 const Collision warp_pipe_seg3_collision_03009AC8[]={0};
 static struct Object players[2],chimney;
+struct Object *gCurrentObject;
+#define o gCurrentObject
 static struct Area area;
 static struct ObjectWarpNode firstNode,chimneyNode;
 static unsigned checks,actionCalls,warpCalls,sounds,rumbles,animations,allowHooks,onHooks,allHooks;
@@ -112,6 +114,23 @@ int main(void){
     for(int role=NT_NONE;role<=NT_CLIENT;role++)for(unsigned a=0;a<sizeof actions/sizeof *actions;a++){
         struct MarioState *m=fresh(role,actions[a]);collided(m);mario_process_interactions(m);
         CHECK(allowHooks==1&&onHooks==1&&allHooks==1);accepted(m);
+    }
+    // Repeat dispatch through the actual warp behavior reset and post-warp
+    // countdown, without resetting static interaction globals between visits.
+    for(int role=NT_NONE;role<=NT_CLIENT;role++){
+        struct MarioState *again=fresh(role,ACT_IDLE);
+        for(int visit=0;visit<4;visit++){
+            gCurrentObject=&chimney;bhv_warp_loop();
+            CHECK(chimney.oInteractStatus==0&&chimney.hitboxRadius==150&&chimney.hitboxHeight==50);
+            again->action=ACT_IDLE;again->usedObj=again->interactObj=NULL;
+            again->skipWarpInteractionsTimer=30;
+            actionCalls=warpCalls=sounds=rumbles=animations=allowHooks=onHooks=allHooks=0;
+            for(int frame=0;frame<29;frame++){
+                collided(again);mario_process_interactions(again);
+                CHECK(!actionCalls&&!warpCalls&&again->action==ACT_IDLE);
+            }
+            collided(again);mario_process_interactions(again);accepted(again);
+        }
     }
     struct MarioState *m=fresh(NT_SERVER,ACT_IDLE);
     m->skipWarpInteractionsTimer=1;CHECK(!interact_warp(m,INTERACT_WARP,&chimney));CHECK(!actionCalls&&!warpCalls&&!m->usedObj);

@@ -146,4 +146,5 @@ int main(void){
     button(SDL_CONTROLLER_BUTTON_A,0);poll();
     controller_sdl_shutdown();SDL_JoystickClose(device);SDL_JoystickDetachVirtual(device_index);SDL_Quit();
     puts("PASS real SDL/keyboard readers: remaps, focus/menu/release gates, right-stick camera isolation, disabled/unplugged keyboard, held reconnect, Mario/Tony unchanged (windowless fixture)");
+    return 0;
 }

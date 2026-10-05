@@ -543,7 +543,7 @@ namespace SuperRocket64 {
             AddButton(homePage, "Refresh setup status", delegate { BeginOperation(Commands.Status(), false, null); });
             mute.Text = "Mute this game session"; mute.AutoSize = true; homePage.Controls.Add(mute);
 
-            AddPageText(setupPage, "Set up Octane", "Choose your original SM64 US ROM and Rocket League installation folder (Epic Games Store or Steam). Package versions are validated during setup. Setup downloads the pinned UE Viewer extractor automatically; it does not download Rocket League assets. Leave fields blank to validate and reuse an existing setup.");
+            AddPageText(setupPage, "Set up Octane", "Choose your original SM64 US ROM and Rocket League installation folder (Epic Games Store or Steam). Package versions are validated during setup. Setup provisions verified mesh and audio extractors automatically; game assets come from your installation. For an existing setup, select Rocket League to add or repair car sounds. Leave fields blank to validate and reuse assets.");
             AddPath(setupPage, "SM64 US ROM or single-ROM ZIP", rom, true);
             AddPath(setupPage, "Rocket League folder (contains TAGame)", game, false);
             AddButton(setupPage, "Set up SM64 + Octane", delegate { BeginOperation(Commands.Setup("octane", rom.Text, "", "", game.Text, true), true, delegate { ShowPage(optionalPromptPage); }); });

@@ -20,6 +20,7 @@
 #include "rom_assets.h"
 #include "rom_checker.h"
 #include "pc_main.h"
+#include "rocket_audio.h"
 #include "loading.h"
 #include "cliopts.h"
 #include "codex_offline.h"
@@ -364,6 +365,8 @@ inline static void buffer_audio(void) {
         create_next_audio_buffer(sAudioBuffer + i * (numAudioSamples * 2), numAudioSamples);
     }
 
+    rocket_audio_mix(sAudioBuffer, 2 * numAudioSamples, shouldMute ? 0.f :
+        (f32)configSfxVolume / 127.0f * (f32)gLuaVolumeSfx / 127.0f);
     if (!shouldMute) {
         for (u16 i=0; i < ARRAY_COUNT(sAudioBuffer); i++) {
             sAudioBuffer[i] *= gMasterVolume;
@@ -462,6 +465,7 @@ void produce_one_dummy_frame(void (*callback)(), u8 clearColorR, u8 clearColorG,
 }
 
 void audio_shutdown(void) {
+    rocket_audio_shutdown();
     if (gAudioApi) {
         if (gAudioApi->shutdown) gAudioApi->shutdown();
         gAudioApi = NULL;

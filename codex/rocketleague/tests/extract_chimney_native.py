@@ -30,6 +30,7 @@ def extract(output):
     sources = {
         'src/game/interaction.c': ('mario_get_collided_object', 'mario_stop_riding_object', 'interact_warp', 'mario_process_interactions'),
         'src/game/mario_step.c': ('stop_and_set_height_to_floor',),
+        'src/game/behaviors/warp.inc.c': ('bhv_warp_loop',),
         'src/game/mario_actions_cutscene.c': ('act_disappeared',),
         'src/game/area.c': ('area_get_warp_node', 'area_get_warp_node_from_params'),
     }

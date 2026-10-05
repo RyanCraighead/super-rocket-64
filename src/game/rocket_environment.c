@@ -3,6 +3,7 @@
 #include "sm64.h"
 #include "surface_terrains.h"
 #include "area.h"
+#include "level_table.h"
 #include "mario.h"
 #include "mario_step.h"
 #include "mario_actions_submerged.h"
@@ -23,6 +24,13 @@ unsigned rocket_environment_material(struct MarioState *m, struct Surface *surfa
     /* Native slope thresholds include slide terrain and explicit grippy overrides.
      * Leave walls/ceilings to the car; floor materials govern climbing routes. */
     if (surface->normal.y > .01f && mario_floor_is_slippery(&probe)) material |= ROCKET_MATERIAL_SLIDING;
+    /* CCM's indoor penguin race must retain tire steering/braking on its
+     * native ice slopes. Tag only those static slide floors; outdoor snow,
+     * other courses, grippy overrides and moving objects keep native rules. */
+    if (gCurrLevelNum == LEVEL_CCM && m->area->index == 2 &&
+        (m->area->terrainType & TERRAIN_MASK) == TERRAIN_SLIDE && !surface->object &&
+        material == (ROCKET_MATERIAL_VERY_SLIPPERY | ROCKET_MATERIAL_SLIDING))
+        material |= ROCKET_MATERIAL_RACE_SLIDE;
     return material;
 }
 

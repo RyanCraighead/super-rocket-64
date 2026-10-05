@@ -113,6 +113,26 @@ static void test_ccm_chimney_adapter(void){
         pose.wheel_position[0][0]=-181;pose.wheel_position[0][1]=3153;pose.wheel_position[0][2]=-1320;
         chimney_try(1);
     }
+    /* Repeat real adapter handoff/reacquisition with the same native pointers,
+     * as a reused area can have on painting re-entry. No fresh() between visits.
+     * Each visit lands on a different valid edge of the actual opening. */
+    const float landings[][2]={{-275,-1486},{-86,-1486},{-181,-1580},{-181,-1391},{-181,-1486}};
+    for(int role=NT_NONE;role<=NT_CLIENT;role++){
+        chimney_setup(role);
+        for(unsigned visit=0;visit<sizeof landings/sizeof *landings;visit++){
+            chimney_position(landings[visit][0],3120.15f,landings[visit][1]);
+            chimney_try(1);
+            mario.action=ACT_DISAPPEARED;chimneyWarp.oInteractStatus=INT_STATUS_INTERACTED;
+            CCM_CHECK(!rocket_adapter_update(&mario));
+            CCM_CHECK(!player&&!haveFrame&&!meshHashes[0]&&!meshHashes[1]);
+            object.numCollidedObjs=0;object.collidedObjInteractTypes=mario.collidedObjInteractTypes=0;
+            testArea.index=2;mario.action=ACT_FREEFALL;step();
+            rocket_adapter_suspend();testArea.index=1;chimneyWarp.oInteractStatus=0;
+            mario.action=ACT_FREEFALL;step();
+            mario.skipWarpInteractionsTimer=1;chimney_try(0);
+            mario.skipWarpInteractionsTimer=0; // native dispatch owns countdown
+        }
+    }
     chimney_setup(NT_SERVER);gCLIOpts.offline=true;gNetworkAreaLoaded=false;gNetworkAreaSyncing=true;
     gNetworkPlayerLocal=NULL;chimney_try(1); // --offline still runs the engine as a server.
 #define CCM_REJECT(change) do { chimney_setup(NT_CLIENT); change; chimney_try(0); } while(0)
@@ -172,6 +192,10 @@ static void test_ccm_chimney_adapter(void){
     CCM_REJECT(chimneyWarp.hitboxHeight=100);
     CCM_REJECT(chimneyWarp.hitboxDownOffset=10);
     CCM_REJECT(chimney_position(-350,3120.15f,-1486));
+    CCM_REJECT(chimney_position(-285,3120.15f,-1486));
+    CCM_REJECT(chimney_position(-76,3120.15f,-1486));
+    CCM_REJECT(chimney_position(-181,3120.15f,-1590));
+    CCM_REJECT(chimney_position(-181,3120.15f,-1381));
     CCM_REJECT(chimney_position(-181,3120.15f,-1370));
     CCM_REJECT(chimney_position(-181,3100,-1486));
     CCM_REJECT(chimney_position(-181,3300,-1486));

@@ -1,0 +1,17 @@
+{
+  "avcodec-vgmstream-59.dll": "4d6cf54e7b3c26ef06e95bdb515a10d1e1bed3ec1ffd87ec3e5c4fbcd2a883f6",
+  "avformat-vgmstream-59.dll": "0dde66ea268cccb67b1aa219c1ce879602b839e561a79a00c8215e2688f1a4b2",
+  "avutil-vgmstream-57.dll": "a999856c17cfdce3c22b92b6640a7ada6c4ab4c3c6841a863770b72fa0bc19b4",
+  "COPYING": "fcc26d35c4c4365e31f21734f846e4ee362ff0b57ba696085605a7b4768d8763",
+  "libatrac9.dll": "fe82f1ae13a798337e03942c35351997c23caadb5eb0c6b7a2dc2a521ed8b02e",
+  "libcelt-0061.dll": "542254723d9100f91cbf18e41c4aff80287c22a9859e9e545c413d984df440ad",
+  "libcelt-0110.dll": "bfcc51d865bb3b6a2793381bf535f23ec423feb722b46333fa8556ccdcafa61a",
+  "libg719_decode.dll": "aad61f205ce1f1b61285f6b37b90a331ec8c6ae2f94f361714dc21a12c236960",
+  "libmpg123-0.dll": "db9eb1d91b8eb9f47b0968201dbf6c51a9627e539a78afd9ad5f59c5d18fe4df",
+  "libspeex-1.dll": "04dbc85fcec6c54671535bf39937a70f2dd040a81ad670a0b84de6ca17b39bff",
+  "libvorbis.dll": "5f330a20b19b3c70dc43eedcc95891e65940fca04a77155c573efcdd4c2ca665",
+  "README.md": "1357f0d7f92461a094177e4686a90f42d64a05bec9ca0abb12bc08c181a1b7b8",
+  "swresample-vgmstream-4.dll": "688a81d31ef98a9a6143e1075b2f4c5b79bdfa51e7a14d50d662a0e916dac739",
+  "USAGE.md": "47d224e72ce3ff84569f65fe67d516b69feb81e9ec737f1570200e2b1ba7c38e",
+  "vgmstream-cli.exe": "29df08c557ada8269c92a6abfe3886ad2f65849b0b26ba78a0819b363bbc5b85"
+}
