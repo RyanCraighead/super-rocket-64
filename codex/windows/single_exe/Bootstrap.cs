@@ -248,17 +248,26 @@ namespace SuperRocket64 {
 
     internal sealed class Options {
         internal bool VerifyOnly;
+        internal bool UpdateProbe;
         internal bool ListAddresses;
+        internal bool CheckUpdates;
         internal string InstallBase;
+        internal string ReadyToken;
         internal static Options Parse(string[] args) {
             Options options = new Options();
             for (int i = 0; i < args.Length; i++) {
                 if (args[i] == "--verify-only" && !options.VerifyOnly) options.VerifyOnly = true;
+                else if (args[i] == "--update-probe" && !options.UpdateProbe) options.UpdateProbe = true;
+                else if (args[i] == "--update-ready" && options.ReadyToken == null && i + 1 < args.Length) options.ReadyToken = args[++i];
                 else if (args[i] == "--list-addresses" && !options.ListAddresses) options.ListAddresses = true;
+                else if (args[i] == "--check-updates" && !options.CheckUpdates) options.CheckUpdates = true;
                 else if (args[i] == "--install-dir" && options.InstallBase == null && i + 1 < args.Length && !args[i+1].StartsWith("--")) options.InstallBase = args[++i];
                 else throw new ArgumentException("Usage: Super-Rocket-64.exe [--install-dir BASE] [--verify-only] or --list-addresses");
             }
             Guard.Need(!options.ListAddresses || (!options.VerifyOnly && options.InstallBase == null), "--list-addresses cannot be combined with installation options");
+            Guard.Need(!options.UpdateProbe || (!options.VerifyOnly && !options.ListAddresses && options.InstallBase != null && options.ReadyToken == null), "Invalid update probe arguments");
+            Guard.Need(!options.CheckUpdates || (!options.VerifyOnly && !options.ListAddresses && !options.UpdateProbe && options.InstallBase == null && options.ReadyToken == null), "--check-updates cannot be combined with installation options");
+            Guard.Need(options.ReadyToken == null || (!options.VerifyOnly && !options.ListAddresses && options.InstallBase != null && Regex.IsMatch(options.ReadyToken, "^[a-f0-9]{32}$")), "Invalid update handshake");
             if (options.VerifyOnly) Guard.Need(options.InstallBase != null, "--verify-only requires --install-dir BASE");
             if (options.InstallBase == null) options.InstallBase = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SuperRocket64");
             return options;
@@ -550,7 +559,7 @@ namespace SuperRocket64 {
         }
     }
 
-    internal sealed class LauncherForm : Form {
+    internal sealed partial class LauncherForm : Form {
         private readonly TextBox install = new TextBox(), rom = new TextBox(), game = new TextBox(), optionalRom = new TextBox();
         private readonly TextBox host = new TextBox(), player = new TextBox();
         private readonly NumericUpDown port = new NumericUpDown();
@@ -642,9 +651,10 @@ namespace SuperRocket64 {
             layout.Controls.Add(pageHost, 0, 0); layout.Controls.Add(output, 0, 1); layout.Controls.Add(operations, 0, 2);
             layout.Controls.Add(TextBlock("ROMs and game assets are not included. Setup keeps versioned program files separate from private profiles and saves."), 0, 3);
             Controls.Add(layout);
+            InitializeUpdates();
             ShowPage(homePage);
-            Shown += delegate { RefreshAddresses(); };
-            FormClosing += delegate(object sender, FormClosingEventArgs e) { if (running) { e.Cancel = true; MessageBox.Show(this, cancellationAvailable ? "Use Cancel setup, then wait for the helper to finish cleaning its private stage." : "Wait for the current operation to finish. The launcher does not cancel gameplay.", Text); } };
+            Shown += delegate { RefreshAddresses(); StartupUpdates(); };
+            FormClosing += delegate(object sender, FormClosingEventArgs e) { if (running) { e.Cancel = true; MessageBox.Show(this, updateCancellation != null ? "Use Cancel update if available, then wait for update verification or restart to finish." : cancellationAvailable ? "Use Cancel setup, then wait for the helper to finish cleaning its private stage." : "Wait for the current operation to finish. The launcher does not cancel gameplay.", Text); } };
         }
         private static FlowLayoutPanel NewPage() { return new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoSize = true, Dock = DockStyle.Top, Padding = new Padding(4) }; }
         private static FlowLayoutPanel Row() { return new FlowLayoutPanel { AutoSize = true, WrapContents = true, Margin = new Padding(0, 3, 0, 3) }; }
@@ -719,10 +729,13 @@ namespace SuperRocket64 {
             Guard.Need(!running, "An operation is already running"); string basePath = install.Text.Trim();
             Installer.Destination(basePath, PayloadInfo.ZipSha256); running = true; cancelRequested = false; activeCancelFile = null;
             cancellationAvailable = allowCancellation && args.Count > 0 && args[0] == "setup";
+            cancelOperation.Text = "Cancel setup";
             pageHost.Enabled = false; cancelOperation.Visible = cancellationAvailable; cancelOperation.Enabled = cancellationAvailable;
             Task.Factory.StartNew(delegate {
                 bool succeeded = false; string cancelFile = null;
+                OperationLease lease = null;
                 try {
+                    lease = OperationLease.Acquire(basePath);
                     string root = Installer.Embedded(basePath, Log);
                     if (cancelRequested) { Log("Setup canceled after package verification; the verified versioned install is ready for retry."); return; }
                     string dataDirectory = Commands.DataDirectory(basePath);
@@ -746,6 +759,7 @@ namespace SuperRocket64 {
                     }
                 } catch (Exception error) { Log("Stopped: " + error.Message); }
                 finally {
+                    if (lease != null) lease.Dispose();
                     activeCancelFile = null;
                     if (cancelFile != null) try { Guard.NoRedirect(cancelFile); if (File.Exists(cancelFile)) File.Delete(cancelFile); } catch (IOException) { } catch (UnauthorizedAccessException) { }
                     if (!IsDisposed && !Disposing) try { BeginInvoke(new Action(delegate { running = false; cancellationAvailable = false; pageHost.Enabled = true; cancelOperation.Enabled = false; cancelOperation.Visible = false; if (succeeded && completed != null) completed(); })); } catch (InvalidOperationException) { }
@@ -758,6 +772,7 @@ namespace SuperRocket64 {
             catch (IOException) { if (!File.Exists(path)) throw; }
         }
         private void CancelOperation() {
+            if (updateCancellation != null) { updateCancellation.Cancel(); cancelOperation.Enabled = false; Log("Cancel requested; waiting for the update operation to stop."); return; }
             if (!running || !cancellationAvailable) return;
             cancelRequested = true; cancelOperation.Enabled = false;
             string marker = activeCancelFile;
@@ -771,20 +786,30 @@ namespace SuperRocket64 {
 
     internal static class Program {
         [STAThread] internal static int Main(string[] args) {
-            bool headless = Array.IndexOf(args, "--verify-only") >= 0 || Array.IndexOf(args, "--list-addresses") >= 0;
+            bool headless = Array.IndexOf(args, "--verify-only") >= 0 || Array.IndexOf(args, "--list-addresses") >= 0 || Array.IndexOf(args, "--update-probe") >= 0 || Array.IndexOf(args, "--check-updates") >= 0;
             try {
                 Options options = Options.Parse(args);
+                if (options.CheckUpdates) {
+                    ReleaseCheck check = ReleaseUpdates.Check(new OfficialUpdateTransport(), UpdateBuild.Version, System.Threading.CancellationToken.None);
+                    Console.WriteLine(new JavaScriptSerializer().Serialize(new { current_version = UpdateBuild.Version, message = check.Message, available_version = check.Available == null ? null : check.Available.Version, game_started = false, download_performed = false }));
+                    return 0;
+                }
                 if (options.ListAddresses) {
                     Console.WriteLine(new JavaScriptSerializer().Serialize(new { local_addresses = NetworkAddresses.Read(), read_only = true, game_started = false, remote_connection_tested = false }));
                     return 0;
                 }
-                if (options.VerifyOnly) {
+                if (options.VerifyOnly || options.UpdateProbe) {
                     string root = Installer.Embedded(options.InstallBase, delegate(string line) { Console.Error.WriteLine(line); });
-                    Console.WriteLine(new JavaScriptSerializer().Serialize(new { verified = true, install_root = root, payload_sha256 = PayloadInfo.ZipSha256, game_started = false, helper_started = false, network_used = false }));
+                    Console.WriteLine(new JavaScriptSerializer().Serialize(new { verified = true, install_root = root, payload_sha256 = PayloadInfo.ZipSha256, game_started = false, helper_started = false, network_used = false, version = UpdateBuild.Version, update_protocol = 1, data_contract = 1 }));
                     return 0;
                 }
+                if (options.ReadyToken == null && UpdateStore.RouteIfNeeded(options.InstallBase)) return 0;
                 Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false);
-                Application.Run(new LauncherForm(options.InstallBase)); return 0;
+                using (LauncherForm form = new LauncherForm(options.InstallBase)) {
+                    form.HandshakeToken = options.ReadyToken;
+                    Application.Run(form);
+                }
+                return 0;
             } catch (Exception error) {
                 if (headless) Console.Error.WriteLine("Verification failed: " + error.Message);
                 else MessageBox.Show(error.Message, "Super Rocket 64 — stopped", MessageBoxButtons.OK, MessageBoxIcon.Error);

@@ -46,6 +46,10 @@ namespace SuperRocket64 {
         static void Page(LauncherForm form,string name) {Need(Field<Control>(form,name).Visible,"Wrong page: "+name);}
         static void Snapshot(LauncherForm form,string output,string name) {Application.DoEvents();form.PerformLayout();using(Bitmap b=new Bitmap(form.Width,form.Height)){form.DrawToBitmap(b,new Rectangle(Point.Empty,b.Size));b.Save(Path.Combine(output,name+".png"),ImageFormat.Png);}}
         static void AssertSeparate(string expected) {Need(DesktopName(GetThreadDesktop(GetCurrentThreadId()))==expected,"Wrong thread desktop; refusing UI");Need(InputDesktop()!=expected,"Test desktop is active; refusing UI");}
+        static void WaitUpdate(LauncherForm form) {
+            Stopwatch timer=Stopwatch.StartNew();while(Field<bool>(form,"running")&&timer.ElapsedMilliseconds<15000){Application.DoEvents();Thread.Sleep(20);}
+            Need(!Field<bool>(form,"running")&&Field<Control>(form,"pageHost").Enabled,"Update did not finish/re-enable UI");
+        }
         static int Child(string expected,string output) {
             try {
                 AssertSeparate(expected);Application.EnableVisualStyles();Application.SetCompatibleTextRenderingDefault(false);
@@ -53,7 +57,35 @@ namespace SuperRocket64 {
                     // Disable automatic read-only address discovery so screenshots contain no private addresses.
                     Field<Button>(form,"refreshAddresses").Enabled=false;
                     Field<Label>(form,"addressStatus").Text="Test fixture: use a reachable LAN or existing Tailscale address.";
-                    form.Show();Application.DoEvents();AssertSeparate(expected);Page(form,"homePage");
+                    var transport = FakeUpdateTransport.New("0.3.0", Encoding.ASCII.GetBytes("synthetic update"));
+                    form.UpdateTransport = transport;
+                    string desktopFolder = Path.Combine(output,"shortcut-Desktop"), programsFolder = Path.Combine(output,"shortcut-Programs");
+                    Directory.CreateDirectory(desktopFolder); Directory.CreateDirectory(programsFolder);
+                    form.UpdateShortcuts = delegate(string root, bool desktopChoice, bool menuChoice) { LauncherShortcuts.Apply(root,desktopChoice,menuChoice,desktopFolder,programsFolder); };
+                    form.Show();Application.DoEvents();AssertSeparate(expected);Page(form,"settingsPage");
+                    Need(!Field<CheckBox>(form,"automaticUpdates").Checked && !Field<CheckBox>(form,"desktopShortcut").Checked && Field<CheckBox>(form,"menuShortcut").Checked,"First-run defaults are not opt-in");
+                    Snapshot(form,output,"first-run-updates");
+                    Click(Field<Control>(form,"settingsPage"),"Save preferences");Page(form,"homePage");
+                    string installRoot=Field<TextBox>(form,"install").Text;
+                    Need(UpdatePreferences.Load(installRoot).Configured&&!UpdatePreferences.Load(installRoot).AutomaticChecks,"First-run preferences not saved");
+                    string menuLink=Path.Combine(programsFolder,"Super Rocket 64","Super Rocket 64.lnk");
+                    Need(File.Exists(menuLink)&&LauncherShortcuts.Read(menuLink)[0]==LauncherShortcuts.StablePath(installRoot),"First-run shortcut target is not persistent");
+                    Click(Field<Control>(form,"homePage"),"Updates & settings");Page(form,"settingsPage");
+                    Click(Field<Control>(form,"settingsPage"),"Check for updates now");WaitUpdate(form);Page(form,"updatePage");
+                    Need(Field<Label>(form,"updateMessage").Text.Contains("0.3.0 preview"),"Preview/version not identified");Snapshot(form,output,"update-prompt");
+                    Click(Field<Control>(form,"updatePage"),"Don't tell me again");Page(form,"homePage");Need(!UpdatePreferences.Load(installRoot).AutomaticChecks,"Startup checks not disabled");
+                    Click(Field<Control>(form,"homePage"),"Updates & settings");Field<CheckBox>(form,"automaticUpdates").Checked=true;
+                    Click(Field<Control>(form,"settingsPage"),"Save preferences");WaitUpdate(form);Page(form,"updatePage");Need(UpdatePreferences.Load(installRoot).AutomaticChecks,"Opt-in not persisted");
+                    Click(Field<Control>(form,"updatePage"),"Later");Page(form,"homePage");
+                    Click(Field<Control>(form,"homePage"),"Updates & settings");transport.WaitForCancel=true;
+                    Click(Field<Control>(form,"settingsPage"),"Check for updates now");Need(Field<Button>(form,"cancelOperation").Visible,"No update cancel");Field<Button>(form,"cancelOperation").PerformClick();WaitUpdate(form);transport.WaitForCancel=false;
+                    Need(Field<RichTextBox>(form,"output").Text.Contains("Update canceled"),"Cancel not reported");
+                    transport.Offline=true;Click(Field<Control>(form,"settingsPage"),"Check for updates now");WaitUpdate(form);transport.Offline=false;
+                    Need(Field<RichTextBox>(form,"output").Text.Contains("Offline fixture"),"Offline failure not actionable");
+                    transport.Api=Encoding.UTF8.GetBytes("[]");Click(Field<Control>(form,"settingsPage"),"Check for updates now");WaitUpdate(form);Page(form,"settingsPage");
+                    Need(Field<RichTextBox>(form,"output").Text.Contains("No compatible public release"),"No-release message missing");
+                    Click(Field<Control>(form,"settingsPage"),"Remove launcher shortcuts");Need(!File.Exists(menuLink),"Shortcut removal failed");
+                    Field<CheckBox>(form,"automaticUpdates").Checked=false;Click(Field<Control>(form,"settingsPage"),"Save preferences");Page(form,"homePage");
                     Snapshot(form,output,"home-900");
                     Click(Field<Control>(form,"homePage"),"Setup SM64 + Rocket League");Page(form,"setupPage");
                     Field<TextBox>(form,"rom").Text="C:\\Owned Games\\sm64.us.z64";

@@ -2,8 +2,8 @@
 
 This first Windows release keeps Octane as the default, the character wheel,
 existing gameplay/progression fixes and direct-IP Mario/Octane multiplayer.
-The assistant integration is removed. The updater and shortcut work are
-reserved for a later release.
+The assistant integration is removed. v0.2.0 adds opt-in update checks,
+confirmed installation/rollback and optional persistent launcher shortcuts.
 
 The preserved baseline passed 71 setup/repair/cancel/integrity/launch checks,
 64 actual launcher UI checks on a separate never-activated desktop and six
@@ -51,3 +51,18 @@ uninspected Epic packages. No third-party implementation or game data was copied
 See [content and attribution](CONTENT-AUDIT.md), [supported inputs](ASSET-SOURCES.md)
 and [building from source](../BUILDING.md). Matching release hashes are provided
 with each release; do not assume an older development installer is identical.
+
+The v0.2.0 launcher passed 36 baseline checks, 22 updater/shortcut checks and
+85 actual UI checks on a never-activated desktop. Checks cover offline/no-release
+responses, manifest/version mismatches, partial downloads, cancellation, actual
+child probes/restart handshakes, failed restart rollback, operation locking and
+actual shortcut target/argument verification. The game engine is unchanged.
+
+The final v0.2.0 EXE passed a live official GitHub HTTPS check, its embedded
+update probe and an upgrade/reuse test against copied v0.1.1 data. All 130 data
+files retained their bytes and timestamps, including assets, saves and tool
+cache. Its actual restart UI was exercised on a never-activated desktop:
+game controls stayed disabled until the matching commit signal, then enabled;
+the launcher closed normally. The 1,864-entry payload/nested archive audit had
+no private-data or prohibited-input findings. These checks did not launch a game
+or alter real Desktop/Start Menu shortcuts, networking or security settings.

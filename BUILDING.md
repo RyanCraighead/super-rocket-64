@@ -20,7 +20,8 @@ The script validates the included RocketSim source snapshot, obtains and
 SHA-256 checks the pinned public upstream Lua library, then builds with two
 workers. It does not need a ROM, private repository, old object files or game
 assets. Output: `.build/windows/us_pc/sm64coopdx.exe`. Discord SDK, CoopNet and
-the updater are disabled; direct-IP networking remains available.
+the engine's built-in updater are disabled; direct-IP networking remains available.
+The separate Windows launcher provides the verified update flow described below.
 
 To reproduce the source-derived audio inputs, use GNU binutils and the host
 compiler with the checked-in maintainer script:
@@ -44,11 +45,17 @@ python3 tools/build_release_payload.py --engine .build/windows/us_pc/sm64coopdx.
   --dependencies /path/to/dependency-cache --output /path/to/new-release
 ```
 
-Compile `codex/windows/single_exe/Bootstrap.cs` with the generated
-`PayloadInfo.cs`, embedding `Payload.zip` as resource `Payload`, using the
-Windows .NET Framework 4.x C# compiler and references to System.Windows.Forms,
-System.Drawing, System.IO.Compression, System.IO.Compression.FileSystem and
-System.Web.Extensions. Use `/target:winexe /platform:x64 /optimize+`.
+Or build the payload, compile the complete launcher and generate the update
+manifest in one Windows PowerShell command:
+
+```powershell
+.\codex\windows\single_exe\build-release.ps1 -Engine .\.build\windows\us_pc\sm64coopdx.exe -Dependencies C:\build-cache -Output C:\release-output -Python python
+```
+
+The output contains the standalone Windows EXE and `Super-Rocket-64-update.json`.
+Upload both to the matching numeric version tag. GitHub's release asset digests
+must be present; the updater checks both digests and the manifest. Do not replace
+the EXE or manifest of an existing release after publication.
 
 Run the resulting EXE with `--verify-only --install-dir <new-empty-folder>` for
 windowless package validation. The engine's `--verify-local-engine-data` mode

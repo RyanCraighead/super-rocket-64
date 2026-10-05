@@ -1,28 +1,31 @@
-# Windows launcher source preview
+# Launcher tests
 
-This is the standalone Super Rocket 64 launcher and its headless test harness. It contains the versioned payload installer, guided setup UI, argument handling, stable data paths, cancel signaling and read-only LAN/Tailscale address detection.
-
-**This is not a playable release.** The game engine and runtime payload are deliberately absent while the [asset/license publication gate](../docs/RELEASE-STATUS.md) is unresolved. No private repository or private release archive is needed to run these tests.
-
-From Windows PowerShell, with the standard Windows .NET Framework compiler available:
-
-```powershell
-./launcher/test-headless.ps1
-```
-
-The harness compiles the source using a synthetic payload-info stub. Its 29 checks exercise safe extraction, tampering and malformed archive rejection, save preservation, CLI quoting, setup/online command construction, persistent data paths, optional game formats and Tailscale address classification. It does not show the UI, start a game/helper, configure a network or connect to another machine.
-
-The generated `BootstrapTests.exe` is a test runner, not the game. Production packaging must replace `PayloadInfo.Test.cs` with the audited payload's length/hash and embed that exact payload. UI/native-game testing and the complete packaged setup remain separate acceptance gates.
-
-The launcher source was authored for this project. Engine/dependency licenses and proprietary asset rights are separate and are not granted by this preview. No game assets or third-party executable files are included here.
-## Launcher UI checks without taking foreground
+The playable Windows release is on the repository's Releases page. Production
+launcher source is in `codex/windows/single_exe`; the `Bootstrap.cs` copy in this
+folder is retained for existing source references. These scripts compile the
+production files with synthetic test payload metadata using Windows' .NET
+Framework C# compiler. No private repository or game inputs are required.
 
 ```powershell
-./launcher/test-desktop.ps1
+.\launcher\test-headless.ps1
+.\launcher\test-updates.ps1
+.\launcher\test-desktop.ps1
 ```
 
-This test compiles the actual launcher into a test executable and starts it on a separate Windows desktop that is never activated. Before creating any form, the child verifies that its desktop differs from the input desktop. It checks 48 navigation, input, online-mode and error-recovery conditions and saves nine page renders under a fresh temporary directory. It does not start a helper/game, discover addresses, inject global input, or change networking. The test runner is not a playable release.
+- 36 baseline checks cover extraction/hash validation, path handling, saved data,
+  commands, optional source formats and LAN/Tailscale address classification.
+- 22 updater checks cover release selection, offline/no-release responses,
+  metadata/version mismatch, corrupted/partial downloads, cancellation, caching,
+  operation locks, actual synthetic child probes/restart, rollback and actual
+  shortcut targets/removal in isolated temporary folders.
+- 85 UI checks exercise first-run choices, saved opt-in, manual checks, prompts,
+  disabling checks, cancellation, offline/no-release messages, shortcuts and the
+  existing setup/online navigation. The child runs on a new Windows desktop that
+  is never activated. No global input is injected. It writes screenshots and an
+  isolation report to the temporary output path printed by the script.
 
-Additional private validation exercised the real embedded runtime through the same UI: missing-input failure, cancel before worker startup, clean owned-input Octane extraction, retry, and reuse with blank source fields while preserving a synthetic save. That run passed 64 UI checks on the separate desktop and never started gameplay. Its private payload and extracted assets are excluded here.
-
-For an existing setup, leave source fields blank and select setup again. The helper validates the cached profile before reusing it; if repair or missing data needs a source, the error identifies it. Supplied paths are still checked. No repeated extraction or tool download is needed for a valid existing profile.
+The tests do not launch gameplay, change networking or write to the user's real
+Desktop/Start Menu. The test-only child executable simulates updater protocol
+messages; production package verification and owned-input checks are separate.
+The release was also checked with its actual embedded runtime and an existing
+data folder. Two-PC/WAN and physical-controller acceptance remain pending.
