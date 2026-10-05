@@ -71,6 +71,8 @@ Tailscale is configured by you outside the launcher. Address detection does not 
 
 Door animations keep Octane facing through the doorway. Holding throttle through a door does not switch camera modes; unassigned camera controls remain available.
 
+**Read signs / talk as Octane:** stop upright on the ground, move close, face the NPC or the readable front of the sign, then press **Cross / A** (your configured car Jump button). Release and press again to advance or close text. Away from an eligible target, the same button jumps. Remapped car Jump buttons work for interaction and dialog confirmation.
+
 Car bindings are editable under **Options > Controls > Car Controller**. Mappings and boost preferences are saved locally. Generic joysticks need an appropriate SDL controller mapping. Physical-controller verification for the public edition is pending.
 
 ## Credits

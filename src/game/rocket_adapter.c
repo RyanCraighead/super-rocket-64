@@ -34,6 +34,8 @@ static struct MarioState *player;
 static struct Area *area;
 static s16 level;
 static int ownHide,haveFrame;
+static int textJumpHeld=1,textJumpPressed,textHaveFrame;
+static u32 textInputFrame;
 static int selected = 1; /* Standalone launch retains ownership by default. */
 static u32 previousFrame;
 static uint64_t frame,meshHashes[2];
@@ -204,6 +206,7 @@ void rocket_adapter_suspend(void) {
     if(ownHide&&player&&player->marioObj)player->marioObj->header.gfx.node.flags&=~GRAPH_RENDER_INVISIBLE;
     ownHide=0;player=NULL;area=NULL;haveFrame=0;frame=0;meshHashes[0]=meshHashes[1]=0;
     phaseActive=haveClearPose=0;
+    textJumpHeld=1;textJumpPressed=textHaveFrame=0;
     memset(platformIdentities,0,sizeof(platformIdentities));
     rocket_runtime_suspend();
 }
@@ -439,7 +442,34 @@ int rocket_adapter_enemy_visible(const float from[3],struct Object *object,unsig
 #include "rocket_ccm_chimney.inc.h"
 #include "rocket_jrb_entry.inc.h"
 #include "rocket_pss_entry.inc.h"
+/* Read the already-remapped car jump without forwarding it to unrelated
+ * native actions. No target consumes it here: ordinary jumping stays intact. */
+static void prepare_text_input(struct MarioState *m) {
+    if(!m||m->playerIndex)return;
+    if(textHaveFrame&&textInputFrame==gGlobalTimer)return;
+    textInputFrame=gGlobalTimer;textHaveFrame=1;textJumpPressed=0;
+    if(!selected||m!=player||!m->controller){textJumpHeld=1;return;}
+    RocketInput keyboard=keyboard_input(m),input;
+    if(!rocket_runtime_read_input(&keyboard,&input)){textJumpHeld=1;return;}
+    textJumpPressed=input.jump&&!textJumpHeld;
+    textJumpHeld=!!input.jump;
+}
+int rocket_adapter_text_pressed(struct MarioState *m,struct Object *o) {
+    RocketSnapshot state;
+    if(!m||m->playerIndex||m!=player||!m->area||!m->marioObj||!o||!textHaveFrame||textInputFrame!=gGlobalTimer||!textJumpPressed||
+       !(o->activeFlags&ACTIVE_FLAG_ACTIVE)||o->header.gfx.activeAreaIndex!=m->area->index||
+       o->oIntangibleTimer||!(o->oInteractType&INTERACT_TEXT)||
+       (o->oInteractStatus&INT_STATUS_INTERACTED)||
+       (gNetworkType!=NT_NONE&&(!gNetworkAreaLoaded||gNetworkAreaSyncing||!gNetworkPlayerLocal))||
+       !rocket_adapter_interaction_snapshot(&state)||!state.grounded||state.flipping||!isfinite(state.basis[7])||state.basis[7]<.75f)return 0;
+    /* Keep native range/collision arbitration. Do not scan for or extend reach
+     * to NPCs/signs, and never borrow another player's input or remote pose. */
+    int collided=0;
+    for(int i=0;i<m->marioObj->numCollidedObjs&&i<4;i++)if(m->marioObj->collidedObjs[i]==o)collided=1;
+    return collided&&rocket_adapter_enemy_visible(state.position,o,0);
+}
 void rocket_adapter_prepare_interactions(struct MarioState *m) {
+    prepare_text_input(m);
     if(!selected||!m||m!=player||!m->marioObj||!m->controller||!m->area||m->area!=area||
        level!=gCurrLevelNum||!supported(m->action)||m->health<0x100||m->heldObj||
        m->riddenObj||m->heldByObj||m->freeze||sCurrPlayMode==PLAY_MODE_PAUSED||

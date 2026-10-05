@@ -80,6 +80,7 @@ static RocketInput poll(void){
 }
 static void button(SDL_GameControllerButton b,int down){assert(!SDL_JoystickSetVirtualButton(device,b,down));}
 #include "test_door_input_handoff.inc.c"
+#include "test_text_gamepad.inc.c"
 int main(void){
     /* Ignore physical devices; the reader opens only our explicit virtual index. */
     SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS,"1");
@@ -136,6 +137,7 @@ int main(void){
     button(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,0);poll();button(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,1);assert(poll().boost);
     button(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,0);poll();
     test_door_input_handoff();
+    test_text_gamepad();
     /* The car profile never changes the standard Mario / Tony bindings. */
     car_enabled=car_selected=0;configRocketBindings.action[RA_JUMP]=RB_RB;poll();
     button(SDL_CONTROLLER_BUTTON_A,1);poll();assert(host_pad.button&A_BUTTON);
