@@ -1,6 +1,6 @@
 # Supported source games
 
-These are the exact profiles accepted by the existing conversion code. The first Windows release verifies these identities during setup. Ownership alone does not make a different region, revision, patch or packaging format compatible.
+These are the exact profiles accepted by the existing conversion code. Setup validates these identities before conversion. Ownership alone does not make a different region, revision, patch or packaging format compatible.
 
 | Character | Required source | Accepted input | Identity after byte-order normalization |
 | --- | --- | --- | --- |
@@ -18,8 +18,7 @@ Extensions are hints; headers, size and checksums determine acceptance. ZIP inpu
 
 Both stores use the installation root containing `TAGame/CookedPCConsole`. Use the same Rocket League **Browse** folder picker for either store. It does not need a Steam account or running Steam client. Package contents, not the store or installation folder name, determine compatibility.
 
-The exact package pair below was tested automatically from Steam build **25535926**. Matching Epic files use the same extraction path. On **October 5, 2026 at 01:31 UTC**, Ryan reported that he tested the Epic installation and it worked. Epic installation is therefore **user-verified**; the automated coverage consists of Steam-input extraction and shared folder-selection checks for both store layouts. The report did not specify an Epic build number or supply a separate automated test log. Future Epic or Steam updates may change these hashes.
-
+The supported package pair is listed below and corresponds to Steam build **25535926**. Epic installations are accepted when these package contents match. Compatibility is determined by the package hashes, not the storefront. New Epic or Steam updates may require a new extraction profile.
 
 | File | SHA-256 |
 | --- | --- |
@@ -34,7 +33,7 @@ No ROM or proprietary asset downloads are provided. Keep installed asset folders
 
 ## Optional Octane event audio
 
-Setup also checks `SFX_Car_Movements.bnk` and `SFX_Boost_Standard.bnk` under the same `TAGame/CookedPCConsole` directory. The exact accepted bank hashes, event IDs and six decoded WAV hashes are recorded in [`rocket-audio-profile.json`](../codex/windows/rocket-audio-profile.json). These banks were decoded and verified from the owned Steam 25535926 installation. Matching Epic banks follow the same content-checked path; the separate Epic geometry acceptance report above did not test these new sounds. Unknown sound banks leave the car playable with Mario sounds and report which optional bank needs an updated profile.
+Setup also checks `SFX_Car_Movements.bnk` and `SFX_Boost_Standard.bnk` under the same `TAGame/CookedPCConsole` directory. The exact accepted bank hashes, event IDs and six decoded WAV hashes are recorded in [`rocket-audio-profile.json`](../codex/windows/rocket-audio-profile.json). The audio profile accepts the listed bank contents from Steam build 25535926 or matching Epic files. Geometry compatibility alone does not guarantee that the sound banks match. Unknown sound banks leave the car playable with Mario sounds and report which optional bank needs an updated profile.
 
 The decoder is the original [vgmstream r2117 Windows x64 release](https://github.com/vgmstream/vgmstream/releases/tag/r2117). Its archive SHA-256 is `6c4a8a3813864fefed081bbd337dbc0ad93bf88e0b92f5db98d7ab258b22dc6c`; the executable and supporting file hashes are pinned in `vgmstream-r2117.json`. Setup verifies the original download, every extracted tool file, the input banks and every decoded clip. It retains the original COPYING/README/USAGE files with the local tool. Valid cached tools and audio are reused; invalid audio is backed up only after a complete replacement validates. Canceling or failing extraction does not discard the existing geometry or save profile.
 

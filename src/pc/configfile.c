@@ -10,6 +10,7 @@
 #include "configfile.h"
 #include "rocket_bindings.h"
 #include "../../codex/rocketleague/physics/speed_policy.h"
+#include "../../codex/rocketleague/physics/jump_policy.h"
 #include "cliopts.h"
 #include "gfx/gfx_screen_config.h"
 #include "gfx/gfx_window_manager_api.h"
@@ -211,6 +212,7 @@ unsigned int configPlayerKnockbackStrength        = 25;
 unsigned int configStayInLevelAfterStar           = 0;
 bool         configNametags                       = true;
 bool         configModDevMode                     = false;
+unsigned int configRocketJumpPercent = ROCKET_JUMP_DEFAULT;
 unsigned int configRocketSpeedPercent = ROCKET_SPEED_DEFAULT;
 unsigned int configRocketCameraMode = 1;
 unsigned int configRocketSoundMode = 1;
@@ -379,6 +381,7 @@ static const struct ConfigOption options[] = {
     {.name = "coop_stay_in_level_after_star",  .type = CONFIG_TYPE_UINT,   .uintValue   = &configStayInLevelAfterStar},
     {.name = "coop_nametags",                  .type = CONFIG_TYPE_BOOL,   .boolValue   = &configNametags},
     {.name = "coop_mod_dev_mode",              .type = CONFIG_TYPE_BOOL,   .boolValue   = &configModDevMode},
+    {.name = "rocket_jump_height_percent", .type = CONFIG_TYPE_UINT, .uintValue = &configRocketJumpPercent},
     {.name = "rocket_speed_percent", .type = CONFIG_TYPE_UINT, .uintValue = &configRocketSpeedPercent},
     {.name = "rocket_camera_mode", .type = CONFIG_TYPE_UINT, .uintValue = &configRocketCameraMode},
     {.name = "rocket_sound_mode", .type = CONFIG_TYPE_UINT, .uintValue = &configRocketSoundMode},
@@ -701,6 +704,7 @@ const char *configfile_backup_name(void) {
 
 // Loads the config file specified by 'filename'
 static void configfile_load_internal(const char *filename, bool* error) {
+    configRocketJumpPercent = ROCKET_JUMP_DEFAULT;
     configRocketSpeedPercent = ROCKET_SPEED_DEFAULT;
     configRocketCameraMode = 1; /* Missing/malformed preference uses car follow. */
     configRocketSoundMode = 1; /* Missing preference: car sounds, with Mario fallback. */
@@ -785,7 +789,12 @@ static void configfile_load_internal(const char *filename, bool* error) {
                                 *option->boolValue = false;
                             break;
                         case CONFIG_TYPE_UINT:
-                            if (option->uintValue == &configRocketSpeedPercent) {
+                            if (option->uintValue == &configRocketJumpPercent) {
+                                char *end = NULL;
+                                unsigned long value = strtoul(tokens[1], &end, 10);
+                                *option->uintValue = numTokens == 2 && tokens[1][0] >= '0' && tokens[1][0] <= '9' && end && !*end &&
+                                    value >= ROCKET_JUMP_MIN && value <= ROCKET_JUMP_MAX ? (unsigned)value : ROCKET_JUMP_DEFAULT;
+                            } else if (option->uintValue == &configRocketSpeedPercent) {
                                 char *end = NULL;
                                 unsigned long value = strtoul(tokens[1], &end, 10);
                                 *option->uintValue = numTokens == 2 && tokens[1][0] >= '0' && tokens[1][0] <= '9' && end && !*end &&
@@ -848,6 +857,7 @@ NEXT_OPTION:
 
     fs_close(file);
 
+    configRocketJumpPercent = rocket_jump_preference(configRocketJumpPercent);
     configRocketSpeedPercent = rocket_speed_preference(configRocketSpeedPercent);
     if (configRocketCameraMode > 1) { configRocketCameraMode = 1; }
     if (configRocketSoundMode > 1) { configRocketSoundMode = 1; }

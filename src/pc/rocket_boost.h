@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include "../../codex/rocketleague/physics/boost_mode.h"
 #include "../../codex/rocketleague/physics/rocket_physics.h"
-#define ROCKET_SESSION_RULE_BYTES 15
+#define ROCKET_SESSION_RULE_BYTES 16
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -14,9 +14,12 @@ int rocket_boost_mode(void);
 uint64_t rocket_boost_session_id(void);
 int rocket_boost_can_set_mode(void);
 int rocket_boost_set_mode(unsigned mode);
+unsigned rocket_jump_percent(void);
+int rocket_jump_set_percent(unsigned percent);
+const char *rocket_jump_scope_label(void);
 unsigned rocket_speed_percent(void);
 float rocket_speed_scale(void);
-/* Monotonic within an online session; offline changes are tagged by percent. */
+/* Monotonic within an online session; offline changes include both independent preferences. */
 uint32_t rocket_rule_revision(void);
 int rocket_speed_set_percent(unsigned percent);
 const char *rocket_speed_scope_label(void);

@@ -165,3 +165,7 @@ add_test(NAME rocket_speed_physics COMMAND rocket_speed_physics_test)
 add_executable(rocket_speed_impact_test tests/test_speed_impacts.c)
 target_link_libraries(rocket_speed_impact_test PRIVATE rocket_physics)
 add_test(NAME rocket_speed_impacts COMMAND rocket_speed_impact_test)
+
+add_executable(rocket_jump_height_test tests/test_jump_height.cpp)
+target_link_libraries(rocket_jump_height_test PRIVATE rocket_physics)
+add_test(NAME rocket_jump_height COMMAND rocket_jump_height_test)

@@ -4,57 +4,34 @@
 
 ![Octane flying around Peach's Castle](docs/media/castle-flight.gif)
 
-Take a rocket-powered car into a familiar world: launch over the castle moat, climb the hills of Bob-omb Battlefield, and find a different line through every course. Octane is the default character.
+Launch over the castle moat, powerslide through familiar courses and find new ways to reach the stars. Octane is your starting character, with Mario and an optional cast available from the character wheel.
 
-**Windows x64 preview available.** Download the standalone EXE from [Releases](https://github.com/RyanCraighead/super-rocket-64/releases). You supply the supported games locally; setup handles Python and the pinned extraction tool. See [verification and limitations](docs/RELEASE-STATUS.md).
+**[Download for Windows x64](https://github.com/RyanCraighead/super-rocket-64/releases)** · [Supported game files](docs/ASSET-SOURCES.md) · [Report a problem](https://github.com/RyanCraighead/super-rocket-64/issues)
 
-## What to expect
+## Features
 
-- Car movement built on RocketSim: throttle, brake, reverse, powerslide, jumps, directional flips, boost and aerial control.
-- SM64 exploration and progression, with car interactions for enemies, bosses, doors, caps, platforms and blue coin switches.
-- Five boost points per collected coin, capped at 100. No passive boost refill.
-- An offline character wheel with Mario, Octane, Link, Bomberman, Banjo-Kazooie, Spider-Man and Tony Hawk when their assets are installed.
-- Direct-IP multiplayer for **Mario and Octane only**, over a reachable LAN or a user-configured Tailscale connection.
-
-RocketSim is an approximate reconstruction. This is a fan project, not Rocket League's original physics engine or a complete port of any optional character's game. Some gameplay and multiplayer cases still need native acceptance testing.
+- RocketSim car movement: throttle, brake, reverse, powerslide, variable-height jumps, directional flips, boost and aerial control.
+- Explore SM64 with car interactions for enemies, bosses, doors, caps, platforms and blue coin switches.
+- Collect coins for boost: five points per coin, up to 100, with no passive refill.
+- Adjustable car speed and jump height, a car-follow camera and customizable controller bindings.
+- Play as **Mario and Octane online**, or add Link, Bomberman, Banjo-Kazooie, Spider-Man and Tony Hawk for offline play.
 
 ![Octane jumping through Bob-omb Battlefield](docs/media/battlefield-jumps.gif)
 
-
 ## Install and play
 
-First-time setup:
+1. Download **Super-Rocket-64-Windows-x64.exe** from [Releases](https://github.com/RyanCraighead/super-rocket-64/releases) and open it.
+2. Choose **Setup SM64 + Rocket League**. Select your supported SM64 ROM and Rocket League installation using the file and folder pickers.
+3. Choose **No** to optional characters, or **Yes** to select the ones you want. Setup asks only for their required files.
+4. Choose **Offline** to enter the game as Octane. On safe ground, hold **F7** or **Back / Share** to open the character wheel.
 
-1. Download the **Super Rocket 64 Windows x64 EXE** from this repository's Releases page.
-2. Open it, save your update/shortcut preferences, then choose **Setup SM64 + Rocket League** and your own supported **Super Mario 64 US ROM** and **Rocket League installation**. Setup checks their contents, obtains the pinned extraction tools, and builds your assets locally. You do not install Python or manage UE Viewer yourself.
-3. Choose **No** for optional characters to finish, or **Yes** to select additional characters and provide only their required game files.
-4. Choose **Offline** to enter the game as Octane. Hold **F7** or the controller's **Share/Back** button to open the character wheel on safe ground.
+You need your own game data:
 
-Use **Browse** beside the Rocket League folder field to choose your **Epic Games Store or Steam** installation containing `TAGame`. Both stores use this same picker. Setup accepts either store when the two required packages match the supported profile; it does not require the Steam client.
+- **Super Mario 64:** original US release, 8 MiB, as `.z64`, `.v64`, `.n64`, or a ZIP containing exactly one N64 image.
+- **Rocket League for Windows:** an **Epic Games Store or Steam** installation containing `TAGame/CookedPCConsole`. Both stores use the same folder picker. The required packages must match a supported extraction profile; not every update is compatible.
+- **Optional characters:** the supported releases of Ocarina of Time, Bomberman 64, Banjo-Kazooie, Spider-Man or Tony Hawk's Pro Skater. See [exact versions, formats and checksums](docs/ASSET-SOURCES.md) before selecting files.
 
-Your ROMs, extracted assets, saves and controller settings stay on your PC. They are never part of the public download. Setup is designed to validate cached tools and completed profiles, resume after a failed optional installation, and preserve saves across launcher updates.
-
-## Updates and shortcuts
-
-Startup update checks are opt-in. **Updates & settings** lets you check manually, change the preference, create Desktop/Start Menu shortcuts, or remove those shortcuts without deleting your data. New releases ask before downloading and restarting; the previous launcher is retained for rollback. [Update, shortcut and removal details](docs/UPDATES.md).
-
-## Play together
-
-1. Both players prepare their own SM64 and Octane assets and use matching Super Rocket 64 builds.
-2. Choose **Online**, then **Host** or **Join**. Only Mario and Octane are supported online.
-3. **Host:** choose a port, starting with **7777**. Share your reachable LAN address, or your Tailscale address if both PCs already have access to the same tailnet. The listen address is not an address to send to your friend.
-4. **Join:** enter the host's IP address and matching port.
-
-Tailscale is configured by you outside the launcher. Address detection does not prove another PC can connect. The launcher does not change your firewall, VPN, router or security settings. Two-PC/WAN acceptance is still pending; direct-IP support is not a guarantee that every network route works.
-
-## Setup and recovery
-
-- **Reusing a valid setup:** leave source fields blank and run setup; it verifies existing assets first and asks for inputs only if needed.
-- **A ROM is rejected:** check the exact region/revision and accepted format in the source-game list. Renaming a file does not convert or validate it.
-- **Rocket League is rejected:** finish the installation/update and select the root folder containing `TAGame`. Missing-file errors name the required package; unsupported-version errors include its SHA-256. A newer or modified package may need a new extraction profile regardless of store. Existing verified assets can still be reused.
-- **An optional character fails:** the completed SM64/Octane setup remains available. Go Back to play, or correct that game's input and retry only its setup.
-- **Setup is canceled:** wait for cleanup to finish, then retry. Completed profiles are reused; an incomplete new stage is discarded. A repaired profile retains its previous copy for recovery.
-- **A stale lock is reported after a crash:** first close every setup/game instance using that data folder. Remove only the empty lock directory named by the error (`.seven-setup-lock` or `.launch-lock`), then retry. Keep the profiles, save files and controller configuration.
+Setup manages Python and extraction tools automatically, validates the files and reuses completed assets. ROMs, extracted assets, saves and settings stay on your PC; they are not included in the download.
 
 ## Controls
 
@@ -67,28 +44,52 @@ Tailscale is configured by you outside the launcher. Address detection does not 
 | Boost | B / Circle | Comma |
 | Powerslide / air roll | X / Square | K with A / D |
 | Pause | Start / Options | Space |
-| Character wheel | Back / Share | Hold F7 |
+| Character wheel | Hold Back / Share | Hold F7 |
 
-Door animations keep Octane facing through the doorway. Holding throttle through a door does not switch camera modes; unassigned camera controls remain available.
+Hold jump for more height. Press jump again in the air for a second jump, or add a direction for a flip. To read a sign or talk as Octane, stop upright nearby, face the target and press your jump button; release and press again to advance or close the text.
 
-**Read signs / talk as Octane:** stop upright on the ground, move close, face the NPC or the readable front of the sign, then press **Cross / A** (your configured car Jump button). Release and press again to advance or close text. Away from an eligible target, the same button jumps. Remapped car Jump buttons work for interaction and dialog confirmation.
+Change bindings under **Options > Controls > Car Controller**. Generic joysticks may need an SDL controller mapping.
 
-**Options > Octane speed (%)** starts at **75%**. Choose **50–100%**; **100%** restores the original speed. Acceleration, braking, boost and speed-based attacks adjust together. Vertical jumps and flip timing keep their normal strength and timing; forward flips cover less distance at lower settings, and very long falls have a lower terminal-speed cap. Online, the host chooses the shared speed; joining never overwrites your saved offline choice.
+## Make it yours
 
-**Options > Camera > Octane camera** offers **Car follow** (default) and **Mario**. Use the normal right stick, mouse or C buttons to look around. The follow camera stays level through flips and shortens against walls.
+| Setting | Default | Choices |
+| --- | --- | --- |
+| **Options > Octane speed (%)** | 75% | 50–100%; 100% restores original speed. Handling and speed-based attacks adjust together. |
+| **Options > Octane jump height (%)** | 50% | 50–100%; 100% restores original jump physics. Independent of car speed. |
+| **Options > Camera > Octane camera** | Car follow | Car follow or Mario camera; use the normal look/recenter controls. |
+| **Options > Octane boost** | Coin only | Coin only or Infinite. |
+| **Options > Octane sounds** | Car | Local Rocket League jump/flip/boost sounds, or Mario sounds. |
+| **Options > Octane surfaces** | Native surfaces | Native surfaces or Car grip. |
 
-Car bindings are editable under **Options > Controls > Car Controller**. Mappings, speed, camera, boost, surface and sound preferences are saved locally. Generic joysticks need an appropriate SDL controller mapping. Physical-controller verification for the public edition is pending.
+Jump height is approximate: tap and held jumps reach roughly the selected fraction of normal height; second-jump timing and momentum affect total height. For higher ledges, hold jump, double jump, boost or choose 100%. Gravity, boost flight and swim-up stay independent of this setting.
 
-**Options > Octane sounds** switches between **Mario** and locally extracted **Car** jump, flip and standard-boost effects. Car is the default; missing or unsupported sound assets fall back to Mario. Existing players can select their Rocket League folder in Setup again to add the sounds without rebuilding valid geometry or changing saves. Sounds use Master/SFX volume. Boost stops on release; pause and character/area handoffs clear all effects. Car effects currently play for your own Octane, including online; remote-car audio is not reconstructed from network poses.
+Your choices are saved locally. Online, the host controls speed, jump height, boost and surfaces; joining keeps your offline preferences intact.
 
-**Options > Octane surfaces** defaults to Native for new settings. Existing saved choices stay as selected. Native ice in the indoor Cool, Cool Mountain slide retains limited steering and braking. You can damage a prone Whomp by landing upright with all four tires on its exposed back; its normal vulnerable phase and recovery still apply.
+## Play together
 
-## Credits
+1. Each player completes setup and uses the **same Super Rocket 64 build**.
+2. Choose **Online**, then **Host** or **Join**. Online characters are **Mario and Octane only**.
+3. **Host:** choose a port, default **7777**, and share your reachable LAN IP or Tailscale IP. Share your PC's address, not a listen address such as `0.0.0.0`.
+4. **Join:** enter the host's IP and matching port.
 
-Super Rocket 64 is a fan project by [Ryan Craighead](https://github.com/RyanCraighead), built from the work of the [SM64coopdx contributors](https://github.com/coop-deluxe/sm64coopdx), the SM64 decompilation community, [RocketSim](https://github.com/ZealanL/RocketSim), [Bullet](https://github.com/bulletphysics/bullet3), [UE Viewer](https://github.com/gildor2/UEViewer), [vgmstream](https://github.com/vgmstream/vgmstream), and the original-data character research and conversion work documented with the project.
+For Tailscale, configure both PCs outside the launcher and allow them to reach each other. Internet play needs a reachable network route; detecting an address does not guarantee a connection. The launcher never changes firewall, router, VPN or security settings automatically.
 
-Mario and Super Mario 64 belong to Nintendo. Rocket League and Octane belong to Psyonix/Epic Games. Other characters, games and trademarks belong to their respective owners. This project is unaffiliated with those owners. Component licenses and attribution must be retained; no blanket license for proprietary game content is asserted.
+## Updates and troubleshooting
 
-Gameplay GIFs are cropped in time from the creator's own captured footage. The chat introduction and audio are excluded.
+Use **Updates & settings** to check for a release, enable optional startup checks or manage Desktop/Start Menu shortcuts. Updates preserve local data and retain the previous launcher for rollback. [Update and removal help](docs/UPDATES.md).
 
-[Release status](docs/RELEASE-STATUS.md) · [Source games](docs/ASSET-SOURCES.md) · [Maintaining the public edition](docs/MAINTENANCE.md)
+- **Already installed assets?** Leave the source fields blank and run Setup to reuse them. Missing or invalid inputs are reported by name.
+- **Rejected game files?** Check the [supported versions and formats](docs/ASSET-SOURCES.md). Renaming a file does not convert it. New or modified Rocket League packages may need a new extraction profile.
+- **An optional character failed?** Keep playing with completed characters, or use Back and retry that character after correcting its input.
+- **Canceled setup?** Wait for cleanup, then retry. Completed profiles are reused.
+- **Missing car sounds?** Select your Rocket League folder in Setup again. Unsupported sound banks fall back to Mario sounds. Car audio currently plays for your own Octane only.
+
+This is a Windows preview fan project. RocketSim approximates Rocket League physics; original paint shaders and complete Rocket League materials are not reproduced. Gameplay and multiplayer bugs are still possible. Include your build, selected character and steps to reproduce when [reporting an issue](https://github.com/RyanCraighead/super-rocket-64/issues).
+
+## Credits and licenses
+
+Created by [Ryan Craighead](https://github.com/RyanCraighead), building on [SM64coopdx](https://github.com/coop-deluxe/sm64coopdx), the SM64 decompilation community, [RocketSim](https://github.com/ZealanL/RocketSim), [Bullet](https://github.com/bulletphysics/bullet3), [UE Viewer](https://github.com/gildor2/UEViewer), [vgmstream](https://github.com/vgmstream/vgmstream), and the character research and conversion work credited in the source. Gameplay footage comes from the creator's captures.
+
+Mario and Super Mario 64 belong to Nintendo. Rocket League and Octane belong to Psyonix/Epic Games. Other games, characters and trademarks belong to their respective owners. This project is unaffiliated with those owners. Retain the included component licenses and attribution; proprietary game content is not licensed or distributed by this project.
+
+[License information](LICENSE.md) · [Contributor credits](credits.txt) · [Third-party notices](codex/windows/THIRD_PARTY_NOTICES.txt)

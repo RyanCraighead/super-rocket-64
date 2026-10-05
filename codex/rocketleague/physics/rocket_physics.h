@@ -5,6 +5,7 @@
 #include "water_mode.h"
 #include "boost_mode.h"
 #include "speed_policy.h"
+#include "jump_policy.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -20,6 +21,9 @@ typedef struct RocketWorld RocketWorld;
  * Valid changes preserve body, fuel, input gates and ability timers. */
 int rocket_world_set_speed(RocketWorld *world, unsigned percent);
 unsigned rocket_world_speed(RocketWorld *world);
+/* Standalone API retains 100%; the game supplies the saved/host 50% default. */
+int rocket_world_set_jump_height(RocketWorld *world, unsigned percent);
+unsigned rocket_world_jump_height(RocketWorld *world);
 /* Matches the settings sibling contract: snapshots always carry finite fuel.
  * Infinite steps borrow an allowance, preserving the stored balance. */
 int rocket_world_set_boost_mode(RocketWorld *world, int mode);

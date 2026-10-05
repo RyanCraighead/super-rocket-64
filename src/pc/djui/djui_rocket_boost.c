@@ -21,6 +21,19 @@ static void speed_changed(struct DjuiBase *base) {
 static void speed_scope(struct DjuiBase *base, UNUSED bool *unused) {
     djui_text_set_text((struct DjuiText *)base, rocket_speed_scope_label());
 }
+static unsigned jumpSelection;
+static void jump_refresh(struct DjuiBase *base, UNUSED bool *unused) {
+    jumpSelection = rocket_jump_percent();
+    djui_slider_update_value(base);
+    djui_base_set_enabled(base, rocket_boost_can_set_mode());
+}
+static void jump_changed(struct DjuiBase *base) {
+    rocket_jump_set_percent(jumpSelection);
+    jump_refresh(base, NULL);
+}
+static void jump_scope(struct DjuiBase *base, UNUSED bool *unused) {
+    djui_text_set_text((struct DjuiText *)base, rocket_jump_scope_label());
+}
 static unsigned selection;
 static unsigned surfaceSelection;
 static void surface_refresh(struct DjuiBase *base, UNUSED bool *unused) {
@@ -58,6 +71,16 @@ void djui_rocket_boost_create(struct DjuiBase *parent) {
     djui_base_set_size_type(&speedText->base, DJUI_SVT_RELATIVE, DJUI_SVT_ABSOLUTE);
     djui_base_set_size(&speedText->base, 1, 96);
     speedText->base.on_render_pre = speed_scope;
+    jumpSelection = rocket_jump_percent();
+    struct DjuiSlider *jumpSlider = djui_slider_create(parent, "Octane jump height (%)", &jumpSelection,
+        ROCKET_JUMP_MIN, ROCKET_JUMP_MAX, jump_changed);
+    jumpSlider->base.on_render_pre = jump_refresh;
+    jump_refresh(&jumpSlider->base, NULL);
+    struct DjuiRect *jumpRow = djui_rect_container_create(parent, 96);
+    struct DjuiText *jumpText = djui_text_create(&jumpRow->base, rocket_jump_scope_label());
+    djui_base_set_size_type(&jumpText->base, DJUI_SVT_RELATIVE, DJUI_SVT_ABSOLUTE);
+    djui_base_set_size(&jumpText->base, 1, 96);
+    jumpText->base.on_render_pre = jump_scope;
     char *sounds[] = { "Mario", "Car (local Rocket League)" };
     djui_selectionbox_create(parent, "Octane sounds", sounds, 2, &configRocketSoundMode, sound_changed);
     char *choices[] = { "Coin only", "Infinite" };

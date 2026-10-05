@@ -77,5 +77,18 @@ int main(int argc,char **argv){
         content(text);configRocketSpeedPercent=100;load();CHECK(configRocketSpeedPercent==75);
     }
     content("show_fps true\n");configRocketSpeedPercent=100;load();CHECK(configRocketSpeedPercent==75);
+    CHECK(configRocketJumpPercent==50);
+    for(unsigned percent=50;percent<=100;percent++){
+        configRocketJumpPercent=percent;configRocketSpeedPercent=75;
+        configfile_save("fixture.cfg");configRocketJumpPercent=0;configRocketSpeedPercent=100;
+        load();CHECK(configRocketJumpPercent==percent&&configRocketSpeedPercent==75);
+    }
+    const char *badJump[]={"0","49","101","-50","50oops","50 extra","broken","99999999999999999999999999","50.0","+50"};
+    for(unsigned i=0;i<sizeof badJump/sizeof *badJump;i++){
+        char text[128];snprintf(text,sizeof text,"rocket_jump_height_percent %s\nrocket_speed_percent 100\n",badJump[i]);
+        content(text);configRocketJumpPercent=100;load();CHECK(configRocketJumpPercent==50&&configRocketSpeedPercent==100);
+    }
+    content("rocket_speed_percent 100\nrocket_camera_mode 0\n");configRocketJumpPercent=100;load();
+    CHECK(configRocketJumpPercent==50&&configRocketSpeedPercent==100&&configRocketCameraMode==0);
     printf("boost, surface, sound and camera persistence: %d checks passed\n",checks);return 0;
 }

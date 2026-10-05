@@ -1,5 +1,22 @@
 # Verification and limitations
 
+## v0.2.10: independent Octane jump height
+
+Options > Octane jump height (%) defaults to 50%, with 50–100% available and
+100% restoring original jump physics. The calibrated initial/held lift gives
+roughly half the single-jump height while preserving gravity and the hold
+window. The host chooses the online rule; saved client preferences remain
+local. Everyone in an online session must update. Speed stays independent.
+
+All 13 physics tests pass, including 250,020 jump-height assertions. Original
+100% physics matches the previous backend byte for byte across 1,920 frames.
+Production rule/config tests and native gameplay regressions pass. Owned
+King/button geometry replays pass at jump 50% with speed 50% and 75%.
+The Windows engine builds. See [jump height measurements and limits](CAR-JUMP-HEIGHT.md).
+Reduced unboosted ledge reach may need a held/double jump, boost or 100%.
+Full playthrough, physical-controller feel and two-PC/WAN testing remain pending.
+
+
 ## v0.2.9 camera, contacts and configurable speed
 
 This release adds non-damaging car/player bumps, a saved car-follow camera,
