@@ -4,7 +4,7 @@
 static void door_assert_yaw(s16 yaw) {
     RocketSnapshot snapshot;assert(character_presentation_car_snapshot(&snapshot));
     assert(fabsf(snapshot.basis[0]-sins(yaw))<.0001f&&fabsf(snapshot.basis[2]-coss(yaw))<.0001f);
-    CharacterNetState sent={0},received={0};uint8_t wire[CNET_WIRE_SIZE];
+    CharacterNetState sent={0},received={0};sent.speed_percent=100;uint8_t wire[CNET_WIRE_SIZE];
     sent.kind=CNET_OCTANE;sent.active=CNET_PRESENTATION;sent.car=snapshot;
     assert(character_net_encode(wire,sizeof wire,&sent)&&character_net_decode(&received,wire,sizeof wire));
     assert(received.active==CNET_PRESENTATION&&!received.interaction);

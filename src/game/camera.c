@@ -3226,6 +3226,7 @@ void update_camera(struct Camera *c) {
         play_sound_if_cam_switched_to_lakitu_or_mario();
     }
 
+    rocket_camera_sync();
     // Initialize the camera
     sStatusFlags &= ~CAM_FLAG_FRAME_AFTER_CAM_INIT;
     if (gCameraMovementFlags & CAM_MOVE_INIT_CAMERA) {

@@ -146,7 +146,7 @@ bool network_init(enum NetworkType inNetworkType, bool reconnecting) {
     crash_handler_init();
 
     // set server settings
-    gServerSettings.playerInteractions = gCLIOpts.characterNet ? PLAYER_INTERACTIONS_NONE : configPlayerInteraction;
+    gServerSettings.playerInteractions = configPlayerInteraction;
     gServerSettings.bouncyLevelBounds = configBouncyLevelBounds;
     gServerSettings.playerKnockbackStrength = configPlayerKnockbackStrength;
     gServerSettings.stayInLevelAfterStar = configStayInLevelAfterStar;

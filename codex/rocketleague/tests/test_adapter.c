@@ -1,3 +1,4 @@
+#include "speed_fixture_stubs.h"
 /* Real host adapter; explicit runtime/surface mocks. No physics parity claim. */
 #include <assert.h>
 #include <stdio.h>

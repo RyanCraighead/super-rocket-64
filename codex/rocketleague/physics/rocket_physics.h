@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "water_mode.h"
 #include "boost_mode.h"
+#include "speed_policy.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -15,6 +16,10 @@ extern "C" {
 #define ROCKET_SUBSTEPS 4
 #define ROCKET_TICK_SECONDS (1.0f/120.0f)
 typedef struct RocketWorld RocketWorld;
+/* Standalone worlds start at 100%; the game supplies its saved/host rule.
+ * Valid changes preserve body, fuel, input gates and ability timers. */
+int rocket_world_set_speed(RocketWorld *world, unsigned percent);
+unsigned rocket_world_speed(RocketWorld *world);
 /* Matches the settings sibling contract: snapshots always carry finite fuel.
  * Infinite steps borrow an allowance, preserving the stored balance. */
 int rocket_world_set_boost_mode(RocketWorld *world, int mode);
@@ -96,6 +101,8 @@ int rocket_world_frame(RocketWorld *world, uint64_t frame_id,
 /* Only the session-rule adapter calls this. Switching never awards finite boost.
  * Infinite steps borrow a full tank and restore the finite balance afterward. */
 int rocket_world_set_boost_mode(RocketWorld *world, int mode);
+/* Bounded owner-local velocity change; no reset, fuel or ability modification. */
+int rocket_world_bump(RocketWorld *world,const float delta_velocity[3]);
 int rocket_world_snapshot(RocketWorld *world, RocketSnapshot *out);
 const char *rocket_world_error(void);
 void rocket_to_host(const float rl[3], float host[3], float scale);

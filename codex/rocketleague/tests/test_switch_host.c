@@ -44,6 +44,7 @@ static void switch_loop(void){
     bhv_blue_coin_switch_loop();checkLoopOrder=0;
 }
 static void switch_hit(void){switch_loop();assert(enemy.oAction==0&&!sends);localCar=flip_pose(1,104,1);gGlobalTimer++;switch_loop();}
+#ifndef ROCKET_SWITCH_FIXTURE_NO_MAIN
 int main(void){
     for(int client=0;client<2;client++){
         switch_start(1);gNetworkType=client?NT_CLIENT:NT_SERVER;
@@ -67,10 +68,10 @@ int main(void){
         if(invalid==2)localCar.grounded=1;
         if(invalid==3)visible=0;
         if(invalid==4)backSurface.object=&players[0];
-        if(invalid==5)localCar.position[0]=300;
+        if(invalid==5)localCar.position[0]=500;
         if(invalid==6)localCar.angular_velocity[0]=0;
         if(invalid==7)localCar.air_time=0;
-        switch_loop();localCar=flip_pose(1,104,1);if(invalid==5)localCar.position[0]=300;
+        switch_loop();localCar=flip_pose(1,104,1);if(invalid==5)localCar.position[0]=500;
         gGlobalTimer++;switch_loop();assert(enemy.oAction==BLUE_COIN_SWITCH_ACT_IDLE&&!sends);
     }
     // Reconnect/area reset, character change/reset, unload/reuse and pause.
@@ -87,3 +88,5 @@ int main(void){
     assert(!sends&&enemy.oAction==BLUE_COIN_SWITCH_ACT_IDLE); // Never duplicate another peer's switch event.
     puts("PASS native blue switch: host/client local zero-boost flip, single native event, Mario, timer/respawn/deletion, passive/geometry rejection, reconnect/epoch/pause/pool resets, no remote replay");
 }
+
+#endif

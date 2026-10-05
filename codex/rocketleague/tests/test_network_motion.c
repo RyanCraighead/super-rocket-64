@@ -109,7 +109,7 @@ static void receive(struct Packet packet,int active) {
             double duration=fmin(fmax(fixtureNow-lastDelivery,1./30),.2);
             CHECK(draw_at(fixtureNow+duration*.25));
             for(int k=0;k<3;k++)CHECK(fabsf(drawnSnapshot.position[k]-(previous.position[k]+(source.position[k]-previous.position[k])*.25f))<.02f);
-            CharacterNetState sampled={0};sampled.kind=CNET_OCTANE;sampled.active=active;sampled.car=drawnSnapshot;
+            CharacterNetState sampled={0};sampled.speed_percent=100;sampled.kind=CNET_OCTANE;sampled.active=active;sampled.car=drawnSnapshot;
             uint8_t bytes[CNET_WIRE_SIZE];CHECK(character_net_encode(bytes,sizeof bytes,&sampled));
         }else same_snapshot(&drawnSnapshot,&source);
         CHECK(draw_at(fixtureNow+.21));

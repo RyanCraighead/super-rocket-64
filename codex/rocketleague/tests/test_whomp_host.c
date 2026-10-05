@@ -38,12 +38,16 @@ static s16 collision[]={TERRAIN_LOAD_VERTICES,8,
 int boss_net_simulates(const struct Object *obj){assert(obj==&enemy);return authority;}
 int boss_net_managed(const struct Object *obj){assert(obj==&enemy);return gCLIOpts.characterNet;}
 uint32_t boss_net_epoch(const struct Object *obj){assert(obj==&enemy);return authorityEpoch;}
+#ifndef ROCKET_ATTACK_NATIVE_GEOMETRY
 int rocket_adapter_whomp_path_clear(const float a[3],const float b[3],struct Object *obj){(void)a;(void)b;assert(obj==&enemy);return visible;}
+#endif
+#ifndef ROCKET_ATTACK_NATIVE_GEOMETRY
 f32 find_floor(f32 x,f32 y,f32 z,struct Surface **floor){
     (void)x;(void)y;(void)z;
     if(checkLoopOrder){assert(collisionLoads==1&&!nativeActions&&!nativeMoved);witnessQueries++;}
     *floor=wrongWheel&&x>0&&z>300?&otherSurface:&backSurface;return 100.f*enemy.header.gfx.scale[2];
 }
+#endif
 /* These services let bhv_whomp_loop itself dispatch the real native actions. */
 struct SyncObject *sync_object_init(struct Object *obj,float distance){
     (void)obj;(void)distance;assert(0);return NULL; // Fixture identity is already initialized.
@@ -60,11 +64,13 @@ void cur_obj_call_action_function(void (*actions[])(void),uint32_t count){
 }
 void cur_obj_move_standard(s16 slope){assert(slope==-20);nativeMoved++;}
 s32 cur_obj_hide_if_mario_far_away_y(f32 distance){(void)distance;return 0;}
+#ifndef ROCKET_ATTACK_NATIVE_GEOMETRY
 void load_object_collision_model(void){
     assert(gCurrentObject==&enemy&&checkLoopOrder);
     collisionLoads++;loadedY=enemy.oPosY;loadedPitch=enemy.oFaceAnglePitch;
     loadedAfterAction=nativeActions;loadedAfterMove=nativeMoved;
 }
+#endif
 struct Object *nearest_player_to_object(struct Object *obj){(void)obj;return &players[0];}
 struct MarioState *nearest_mario_state_to_object(struct Object *obj){(void)obj;return &gMarioStates[0];}
 s32 cur_obj_is_mario_ground_pounding_platform(void){return groundPound;}
@@ -115,7 +121,7 @@ static RocketSnapshot down(float gap,uint64_t ticks){
 static void start(int king,int net){
     fresh(king?bhvWhompKingBoss:bhvSmallWhomp,net);memset(whompHistories,0,sizeof whompHistories);
     enemy.oBehParams2ndByte=king;enemy.oHealth=3;enemy.oAction=6;enemy.oFaceAnglePitch=0x4000;
-    enemy.oNumLootCoins=5;enemy.collisionData=collision;
+    enemy.oNumLootCoins=5;enemy.collisionData=collision;enemy.oIntangibleTimer=-1; // Native surface-object allocation default.
     for(int k=0;k<3;k++)enemy.header.gfx.scale[k]=1;
     memset(&backSurface,0,sizeof backSurface);backSurface.object=&enemy;backSurface.normal.y=1;
     gTimeStopState=groundPound=onPlatform=loot=stars=deleted=wrongWheel=0;authority=authorityEpoch=1;
@@ -123,7 +129,7 @@ static void start(int king,int net){
 }
 static int advance(void){assert(!rocket_whomp_ground_pound(&enemy));localCar=down(1,104);gGlobalTimer++;return rocket_whomp_ground_pound(&enemy);}
 static void send_down(unsigned index,float gap,unsigned sequence){
-    CharacterNetState state={0},decoded;uint8_t wire[CNET_WIRE_SIZE];
+    CharacterNetState state={0},decoded;state.speed_percent=100;uint8_t wire[CNET_WIRE_SIZE];
     state.kind=CNET_OCTANE;state.active=CNET_DRIVING;state.interaction=1;state.epoch=1;state.sequence=sequence;
     state.car=down(gap,96+4*sequence);
     assert(character_net_encode(wire,sizeof wire,&state)&&character_net_decode(&decoded,wire,sizeof wire));
@@ -175,7 +181,7 @@ static RocketSnapshot flip_down(float gap,uint64_t ticks,int end){
     return c;
 }
 static void send_flip(unsigned index,float gap,unsigned sequence,int end){
-    CharacterNetState state={0},decoded;uint8_t wire[CNET_WIRE_SIZE];
+    CharacterNetState state={0},decoded;state.speed_percent=100;uint8_t wire[CNET_WIRE_SIZE];
     state.kind=CNET_OCTANE;state.active=CNET_DRIVING;state.interaction=1;state.epoch=1;state.sequence=sequence;
     state.car=flip_down(gap,96+4*sequence,end);
     assert(character_net_encode(wire,sizeof wire,&state)&&character_net_decode(&decoded,wire,sizeof wire));
@@ -192,7 +198,7 @@ static RocketSnapshot resting(uint64_t ticks){
     return c;
 }
 static void send_rest(unsigned sequence){
-    CharacterNetState s={0},decoded;uint8_t wire[CNET_WIRE_SIZE];
+    CharacterNetState s={0},decoded;s.speed_percent=100;uint8_t wire[CNET_WIRE_SIZE];
     s.kind=CNET_OCTANE;s.active=CNET_DRIVING;s.interaction=1;s.epoch=1;s.sequence=sequence;
     s.car=resting(100+4*sequence);
     assert(character_net_encode(wire,sizeof wire,&s)&&character_net_decode(&decoded,wire,sizeof wire));
@@ -230,7 +236,7 @@ static void resting_native_tests(void){
             case 5:localCar.position[1]=90;break;
             case 6:enemy.oAction=5;break;
             case 7:enemy.oSubAction=1;break;
-            case 8:enemy.oIntangibleTimer=-1;break;
+            case 8:backSurface.flags=SURFACE_FLAG_INTANGIBLE;break;
             case 9:authority=0;break;
             case 10:backSurface.object=&players[0];break;
             case 11:backSurface.normal.y=.5f;break;
@@ -273,7 +279,7 @@ static void flip_native_tests(void){
         start(1,1);localActive=0;send_flip(1,45,1,0);assert(!rocket_whomp_ground_pound(&enemy));
         if(reset==0)character_net_clear(1);
         if(reset==1)authorityEpoch++;
-        if(reset==2){CharacterNetState mario={0};mario.kind=CNET_MARIO;mario.epoch=1;mario.sequence=2;assert(character_net_accept(1,&mario));}
+        if(reset==2){CharacterNetState mario={0};mario.speed_percent=100;mario.kind=CNET_MARIO;mario.epoch=1;mario.sequence=2;assert(character_net_accept(1,&mario));}
         if(reset==3)rocket_whomp_forget(&enemy);
         if(reset==4)authority=0;
         send_flip(1,1,3,1);gGlobalTimer++;assert(!rocket_whomp_ground_pound(&enemy));

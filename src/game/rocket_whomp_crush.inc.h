@@ -19,7 +19,7 @@ static void whomp_crush_forget(struct Object *object) {
 static int crush_object(const struct Object *o,const struct MarioState *m,int entering) {
     if(!o||(o->behavior!=bhvSmallWhomp&&o->behavior!=bhvWhompKingBoss)||
        !(o->activeFlags&ACTIVE_FLAG_ACTIVE)||(o->activeFlags&(ACTIVE_FLAG_DORMANT|ACTIVE_FLAG_IN_DIFFERENT_ROOM))||
-       o->header.gfx.activeAreaIndex!=m->area->index||o->oSyncDeath||o->oIntangibleTimer||
+       o->header.gfx.activeAreaIndex!=m->area->index||o->oSyncDeath||
        (o->header.gfx.node.flags&GRAPH_RENDER_INVISIBLE))return 0;
     if(entering)return o->oAction==4||o->oAction==5||(o->oAction==6&&o->oSubAction!=10);
     return o->oAction>=4&&o->oAction<=6;

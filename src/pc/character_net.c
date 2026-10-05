@@ -1,6 +1,8 @@
 #include "game/rocket_caps.h"
 #include "character_net.h"
+#include "player_bump.h"
 #include "rocket_runtime.h"
+#include "rocket_boost.h"
 #include "network/network.h"
 #include "utils/misc.h"
 #include "game/area.h"
@@ -20,7 +22,7 @@ static uint32_t sequence;
 static unsigned draws[MAX_PLAYERS];
 static void record_motion(const char *stage,unsigned index,const CharacterNetState *s);
 #endif
-void character_net_clear(unsigned index){if(index<MAX_PLAYERS){rocket_caps_clear(index);if(gMarioStates[index].marioObj)gMarioStates[index].marioObj->platform=NULL;memset(&tracks[index],0,sizeof tracks[index]);generations[index]++;network_coin_boost_clear(index);}}
+void character_net_clear(unsigned index){if(index<MAX_PLAYERS){player_bump_clear(index);rocket_caps_clear(index);if(gMarioStates[index].marioObj)gMarioStates[index].marioObj->platform=NULL;memset(&tracks[index],0,sizeof tracks[index]);generations[index]++;network_coin_boost_clear(index);}}
 void character_net_clear_all(void){for(unsigned i=0;i<MAX_PLAYERS;i++)character_net_clear(i);}
 unsigned character_net_local_kind(void){
     if(character_switch_enabled())return character_switch_active()==CHARACTER_OCTANE?CNET_OCTANE:CNET_MARIO;
@@ -30,30 +32,36 @@ int character_net_write(struct Packet *p){
     CharacterNetState s={0};s.sequence=++sequence;s.epoch=rocket_runtime_epoch();
     s.area_sequence=gNetworkPlayerLocal?gNetworkPlayerLocal->currLevelAreaSeqId:0;
     s.kind=character_net_local_kind();
-    s.active=s.kind==CNET_OCTANE&&rocket_runtime_snapshot(&s.car);
+    s.speed_percent=rocket_speed_percent();s.rule_revision=rocket_rule_revision();
+    s.active=s.kind==CNET_OCTANE&&rocket_runtime_rule_ready()&&rocket_runtime_snapshot(&s.car);
     if(s.kind==CNET_OCTANE&&!s.active&&character_presentation_car_snapshot(&s.car))s.active=CNET_PRESENTATION;
     RocketSnapshot contact;
-    s.interaction=s.active==CNET_DRIVING&&rocket_adapter_interaction_snapshot(&contact);
+    s.interaction=s.active==CNET_DRIVING&&rocket_runtime_rule_ready()&&rocket_adapter_interaction_snapshot(&contact);
     uint8_t wire[CNET_WIRE_SIZE];
     if(!character_net_encode(wire,sizeof wire,&s)||p->cursor+sizeof wire+4>=PACKET_LENGTH)return 0;
 #ifdef ROCKET_CAR_QA
     record_motion("sent",0,&s);
 #endif
-    packet_write(p,wire,sizeof wire);return !p->error&&!p->writeError;
+    packet_write(p,wire,sizeof wire);
+    if(!p->error&&!p->writeError)player_bump_observe(0,&s,gMarioStates[0].pos,gMarioStates[0].vel);
+    return !p->error&&!p->writeError;
 }
 int character_net_read(struct Packet *p,unsigned index,CharacterNetState *state){
     if(!state||index==0||index>=MAX_PLAYERS||p->error||p->cursor+CNET_WIRE_SIZE!=p->dataLength)return 0;
     if(!character_net_decode(state,p->buffer+p->cursor,CNET_WIRE_SIZE))return 0;
-    if(state->area_sequence!=gNetworkPlayers[index].currLevelAreaSeqId)return 0;
+    if(state->area_sequence!=gNetworkPlayers[index].currLevelAreaSeqId||
+       state->speed_percent!=rocket_speed_percent()||state->rule_revision!=rocket_rule_revision())return 0;
     p->cursor+=CNET_WIRE_SIZE;
     if(tracks[index].valid){uint32_t delta=state->sequence-tracks[index].latest.sequence;if(!delta||delta>=0x80000000u)return 0;}
     return 1;
 }
 int character_net_accept(unsigned index,const CharacterNetState *state){
-    if(!state||index==0||index>=MAX_PLAYERS)return 0;
+    if(!state||index==0||index>=MAX_PLAYERS||state->speed_percent!=rocket_speed_percent()||
+       state->rule_revision!=rocket_rule_revision())return 0;
     const CharacterNetTrack *track=&tracks[index];
     int transition=track->valid&&(state->kind!=track->latest.kind||state->epoch!=track->latest.epoch||
-        state->area_sequence!=track->latest.area_sequence);
+        state->area_sequence!=track->latest.area_sequence||state->speed_percent!=track->latest.speed_percent||
+        state->rule_revision!=track->latest.rule_revision);
     int ok=character_net_track_push(&tracks[index],state,clock_elapsed_f64());
     /* A complete round trip may arrive between two native contact boundaries.
      * Invalidate only pose continuity, including accepted same-epoch kind
@@ -83,7 +91,8 @@ static int physical_state(unsigned index,CharacterNetState *out,uint32_t *genera
     const CharacterNetTrack *track=&tracks[index];
     double now=clock_elapsed_f64();
     if(!(interaction?character_net_track_contact(track,now,out):character_net_track_support(track,now,out))||
-       track->latest.area_sequence!=gNetworkPlayers[index].currLevelAreaSeqId)return 0;
+       track->latest.area_sequence!=gNetworkPlayers[index].currLevelAreaSeqId||
+       track->latest.speed_percent!=rocket_speed_percent()||track->latest.rule_revision!=rocket_rule_revision())return 0;
     *out=track->latest;if(generation)*generation=generations[index];return 1;
 }
 int character_net_interaction_state(unsigned index,CharacterNetState *out,uint32_t *generation){

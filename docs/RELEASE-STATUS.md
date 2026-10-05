@@ -1,5 +1,25 @@
 # Verification and limitations
 
+## v0.2.9 camera, contacts and configurable speed
+
+This release adds non-damaging car/player bumps, a saved car-follow camera,
+prevents Octane from entering Mario's native tree-climbing state, repairs the
+Whomp King surface eligibility and real-size blue-switch impact witness, and
+adds a host-controlled 50-100% speed setting (75% default, 100% original).
+The combined Windows engine and standalone EXE build. The package audit
+checks 1,867 entries and 777 notice paths with no flagged files. The actual
+EXE preserves all 132 copied data files and timestamps, plus launcher
+preferences, and verifies the 115 shared engine-data files. All 12 backend tests pass, including
+9,609 speed-physics and 191 impact-boundary assertions. The 100% replay matches
+the saved previous backend byte for byte across 1,920 frames/eight scenarios.
+Owned native collision/behavior replay passes 16,423 assertions at each of
+50% and 75%, including three King hits/one star and blue-switch flips.
+Rule/config/network, camera, tree, platform, cap and traversal regressions
+pass. Details and scope are in [the speed audit](LOCAL-CAR-SPEED.md) and the
+linked local-change documents. Full-game feel, physical controllers and
+two-PC/WAN acceptance remain unverified. No live game was used for these tests.
+
+
 This first Windows release keeps Octane as the default, the character wheel,
 existing gameplay/progression fixes and direct-IP Mario/Octane multiplayer.
 The assistant integration is removed. v0.2.0 adds opt-in update checks,

@@ -38,6 +38,7 @@ static void initialize_camera(int heading,int invertX,int invertY) {
     gNewCamera.deceleration=50;gNewCamera.invertX=invertX;gNewCamera.invertY=invertY;
     newcam_position_cam();
 }
+#ifndef CAMERA_DIRECTION_NO_MAIN
 int main(void) {
     SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS,"1");assert(!SDL_Init(SDL_INIT_GAMECONTROLLER|SDL_INIT_EVENTS));init_ok=true;
     attach();rocket_bindings_reset();poll();unsigned checks=0;
@@ -68,3 +69,5 @@ int main(void) {
     printf("PASS camera look direction: %u checks; actual SDL/free-camera matrices, 8 headings, right/left/up/down, explicit inversion, other characters and steering isolation\n",checks);
     return 0;
 }
+
+#endif

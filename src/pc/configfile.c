@@ -9,6 +9,7 @@
 #include "platform.h"
 #include "configfile.h"
 #include "rocket_bindings.h"
+#include "../../codex/rocketleague/physics/speed_policy.h"
 #include "cliopts.h"
 #include "gfx/gfx_screen_config.h"
 #include "gfx/gfx_window_manager_api.h"
@@ -210,6 +211,8 @@ unsigned int configPlayerKnockbackStrength        = 25;
 unsigned int configStayInLevelAfterStar           = 0;
 bool         configNametags                       = true;
 bool         configModDevMode                     = false;
+unsigned int configRocketSpeedPercent = ROCKET_SPEED_DEFAULT;
+unsigned int configRocketCameraMode = 1;
 unsigned int configRocketSoundMode = 1;
 unsigned int configRocketBoostMode = 0;
 unsigned int configRocketSurfaceMode = ROCKET_SURFACES_NATIVE;
@@ -376,6 +379,8 @@ static const struct ConfigOption options[] = {
     {.name = "coop_stay_in_level_after_star",  .type = CONFIG_TYPE_UINT,   .uintValue   = &configStayInLevelAfterStar},
     {.name = "coop_nametags",                  .type = CONFIG_TYPE_BOOL,   .boolValue   = &configNametags},
     {.name = "coop_mod_dev_mode",              .type = CONFIG_TYPE_BOOL,   .boolValue   = &configModDevMode},
+    {.name = "rocket_speed_percent", .type = CONFIG_TYPE_UINT, .uintValue = &configRocketSpeedPercent},
+    {.name = "rocket_camera_mode", .type = CONFIG_TYPE_UINT, .uintValue = &configRocketCameraMode},
     {.name = "rocket_sound_mode", .type = CONFIG_TYPE_UINT, .uintValue = &configRocketSoundMode},
     {.name = "rocket_boost_mode", .type = CONFIG_TYPE_UINT, .uintValue = &configRocketBoostMode},
     {.name = "rocket_surface_mode", .type = CONFIG_TYPE_UINT, .uintValue = &configRocketSurfaceMode},
@@ -696,6 +701,8 @@ const char *configfile_backup_name(void) {
 
 // Loads the config file specified by 'filename'
 static void configfile_load_internal(const char *filename, bool* error) {
+    configRocketSpeedPercent = ROCKET_SPEED_DEFAULT;
+    configRocketCameraMode = 1; /* Missing/malformed preference uses car follow. */
     configRocketSoundMode = 1; /* Missing preference: car sounds, with Mario fallback. */
     configRocketBoostMode = 0; /* Missing/malformed preferences fail to coin only. */
     configRocketSurfaceMode = ROCKET_SURFACES_NATIVE; /* Missing preference uses Native; explicit 0/1 stays saved. */
@@ -778,7 +785,14 @@ static void configfile_load_internal(const char *filename, bool* error) {
                                 *option->boolValue = false;
                             break;
                         case CONFIG_TYPE_UINT:
-                            if (option->uintValue == &configRocketSoundMode)
+                            if (option->uintValue == &configRocketSpeedPercent) {
+                                char *end = NULL;
+                                unsigned long value = strtoul(tokens[1], &end, 10);
+                                *option->uintValue = numTokens == 2 && tokens[1][0] >= '0' && tokens[1][0] <= '9' && end && !*end &&
+                                    value >= ROCKET_SPEED_MIN && value <= ROCKET_SPEED_MAX ? (unsigned)value : ROCKET_SPEED_DEFAULT;
+                            } else if (option->uintValue == &configRocketCameraMode)
+                                *option->uintValue = numTokens == 2 && strcmp(tokens[1], "0") == 0 ? 0 : 1;
+                            else if (option->uintValue == &configRocketSoundMode)
                                 *option->uintValue = numTokens == 2 && strcmp(tokens[1], "0") == 0 ? 0 : 1;
                             else if (option->uintValue == &configRocketBoostMode)
                                 *option->uintValue = numTokens == 2 && strcmp(tokens[1], "1") == 0 ? 1 : 0;
@@ -834,6 +848,8 @@ NEXT_OPTION:
 
     fs_close(file);
 
+    configRocketSpeedPercent = rocket_speed_preference(configRocketSpeedPercent);
+    if (configRocketCameraMode > 1) { configRocketCameraMode = 1; }
     if (configRocketSoundMode > 1) { configRocketSoundMode = 1; }
     if (configRocketBoostMode > 1) { configRocketBoostMode = 0; }
     if (configRocketSurfaceMode > 1) { configRocketSurfaceMode = ROCKET_SURFACES_NATIVE; }

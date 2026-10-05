@@ -4,6 +4,7 @@
 #include "rocket_adapter.h"
 #include "../../codex/rocketleague/physics/boss_impact.h"
 #include "pc/rocket_runtime.h"
+#include "pc/rocket_boost.h"
 #include "pc/cliopts.h"
 #include "pc/character_net.h"
 #include "pc/boss_net.h"
@@ -26,6 +27,7 @@
 /* One native boss per arena; a small bounded cache also handles object reloads.
  * Never use host interpolation or modify a car to manufacture a collision. */
 static struct BossHistory {
+    u32 rule;
     struct Object *object;
     u32 sync_id,frame;
     s16 level,area;
@@ -46,6 +48,8 @@ int rocket_boss_impact_yaw(struct Object *boss,enum RocketBossKind kind,s16 *yaw
     if(!history){history=oldest;memset(history,0,sizeof(*history));history->object=boss;}
     if(history->sync_id!=boss->oSyncID||history->level!=gCurrLevelNum||history->area!=gCurrentArea->index||
        history->authority!=boss_net_epoch(boss)||(u32)(gGlobalTimer-history->frame)>1)memset(history->contacts,0,sizeof(history->contacts));
+    if(history->rule!=rocket_rule_revision())memset(&history->contacts,0,sizeof history->contacts);
+    history->rule=rocket_rule_revision();
     history->authority=boss_net_epoch(boss);
     history->sync_id=boss->oSyncID;history->level=gCurrLevelNum;history->area=gCurrentArea->index;history->frame=gGlobalTimer;
     int eligible=boss->oHeldState==HELD_FREE&&boss->oHealth>0&&
@@ -92,7 +96,7 @@ int rocket_boss_impact_yaw(struct Object *boss,enum RocketBossKind kind,s16 *yaw
     float priorDistance=hypotf(priorX,priorZ);
     float rearCos=priorDistance>0?(priorX*target.forward[0]+priorZ*target.forward[1])/priorDistance:0;
 #endif
-    int contact=rocket_boss_contact(track,&car,epoch,&target);
+    int contact=rocket_bumper_contact(track,&car,epoch,&target,ROCKET_BOSS_MIN_SPEED*rocket_speed_scale());
 #ifdef ROCKET_CAR_QA
     if(wasArmed&&!track->armed)
         fprintf(stderr,"ROCKET_BOSS_CONTACT kind=%d frame=%u accepted=%d eligible=%d speed=%.2f action=%d health=%d rear_cos=%.4f source=%u authority=%u authority_epoch=%u source_epoch=%u source_tick=%llu\n",kind,gGlobalTimer,contact,eligible,car.velocity[0]*car.basis[0]+car.velocity[2]*car.basis[2],boss->oAction,boss->oHealth,rearCos,global,gNetworkPlayerLocal?gNetworkPlayerLocal->globalIndex:0,history->authority,epoch,(unsigned long long)car.ticks);

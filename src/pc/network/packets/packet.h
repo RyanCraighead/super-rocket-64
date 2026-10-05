@@ -82,6 +82,7 @@ enum PacketType {
     ///
     PACKET_ROCKET_BOOST_RULE = 240, /* Host-only; character protocol boost-mode1. */
     PACKET_ROCKET_CAP_STATE = 243, /* Host-only; caps1. */
+    PACKET_ROCKET_PLAYER_BUMP = 245, /* Area-authoritative, non-damaging player contact. */
     PACKET_ROCKET_CAP_CANCEL = 244, /* Owning client may revoke its current grant only. */
     PACKET_CUSTOM = 255,
 };

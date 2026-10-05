@@ -9,7 +9,7 @@ static struct Packet sample(u8 sender,u8 claimed,u8 destination,u32 sequence,int
  struct PacketPlayerData data={0};data.action=ACT_IDLE;data.health=0x880;data.levelSyncValid=data.areaSyncValid=1;
  data.flags=packetCaps;
  packet_write(&p,&data,sizeof data);
- CharacterNetState s={0};s.sequence=sequence;s.kind=CNET_OCTANE;s.active=active;
+ CharacterNetState s={0};s.speed_percent=rocket_speed_percent();s.rule_revision=rocket_rule_revision();s.sequence=sequence;s.kind=CNET_OCTANE;s.active=active;
  s.interaction=active==CNET_DRIVING;
  s.car.basis[0]=s.car.basis[4]=s.car.basis[8]=1;
  for(int i=0;i<4;i++)s.car.wheel_radius[i]=32;
@@ -44,6 +44,36 @@ static void test_native_caps(void){
   }
  }
  character_net_clear_all();unsigned before=drawCalls;character_net_draw(matrix,matrix,viewport);CHECK(drawCalls==before);
+}
+static void test_speed_transition(void){
+ character_net_clear_all();gNetworkType=NT_SERVER;gCLIOpts.characterNet=true;
+ gNetworkPlayerLocal=gNetworkPlayerServer=&gNetworkPlayers[0];gNetworkAreaLoaded=true;
+ for(int i=0;i<3;i++){
+  gNetworkPlayers[i].connected=true;gNetworkPlayers[i].globalIndex=i;gNetworkPlayers[i].currLevelAreaSeqId=0;
+  gNetworkPlayers[i].currPositionValid=gNetworkPlayers[i].currLevelSyncValid=gNetworkPlayers[i].currAreaSyncValid=true;
+  gNetworkPlayers[i].currCourseNum=gNetworkPlayers[i].currActNum=gNetworkPlayers[i].currLevelNum=gNetworkPlayers[i].currAreaIndex=0;
+  gMarioStates[i].health=0x880;gMarioStates[i].freeze=0;gMarioStates[i].heldObj=gMarioStates[i].heldByObj=gMarioStates[i].riddenObj=NULL;
+ }
+ fixtureSpeedPercent=75;fixtureRuleRevision=10;
+ struct Packet p=sample(1,1,PACKET_DESTINATION_BROADCAST,100,1),old=p;
+ packet_receive(&p);CharacterNetState state;u32 previousGeneration,generation;
+ CHECK(character_net_interaction_state(1,&state,&previousGeneration));CHECK(state.speed_percent==75&&state.rule_revision==10);
+ fixtureSpeedPercent=100;fixtureRuleRevision=11;
+ CHECK(!character_net_interaction_state(1,&state,NULL));
+ int count=accepted,relays=forwarded;old.cursor=3;packet_receive(&old);CHECK(accepted==count&&forwarded==relays);
+ p=sample(1,1,PACKET_DESTINATION_BROADCAST,101,1);packet_receive(&p);
+ CHECK(character_net_interaction_state(1,&state,&generation)&&generation!=previousGeneration);
+ CHECK(state.speed_percent==100&&state.rule_revision==11);
+ // A newer pose with an old percentage must fail before relay and native writes.
+ p=sample(1,1,PACKET_DESTINATION_BROADCAST,102,1);p.buffer[p.dataLength-5]=75;
+ count=accepted;relays=forwarded;packet_receive(&p);CHECK(accepted==count&&forwarded==relays);
+ fixtureSpeedPercent=75;fixtureRuleRevision=12;
+ old.cursor=3;packet_receive(&old);CHECK(accepted==count); /* A-B-A cannot revive old contacts */
+ p=sample(1,1,PACKET_DESTINATION_BROADCAST,103,1);packet_receive(&p);
+ CHECK(character_net_interaction_state(1,&state,NULL)&&state.rule_revision==12);
+ character_net_clear(1);p=sample(1,1,PACKET_DESTINATION_BROADCAST,1,1);packet_receive(&p);
+ CHECK(character_net_interaction_state(1,&state,NULL)&&state.sequence==1); /* reconnect/late pose */
+ fixtureSpeedPercent=100;fixtureRuleRevision=0;character_net_clear_all();
 }
 int main(void){
  static struct NetworkSystem system={.get_id_str=id,.requireServerBroadcast=true};gNetworkSystem=&system;
@@ -89,7 +119,7 @@ int main(void){
  /* Accepted native presentation is rendered remotely, never an impact source. */
  gNetworkPlayers[1].currPositionValid=true;gNetworkPlayers[1].currLevelSyncValid=true;gNetworkPlayers[1].currAreaSyncValid=true;
  gNetworkPlayerLocal->currLevelSyncValid=true;gNetworkPlayerLocal->currAreaSyncValid=true;
- CharacterNetState state={0};CHECK(character_net_interaction_snapshot(1,&state));
+ CharacterNetState state={0};state.speed_percent=100;CHECK(character_net_interaction_snapshot(1,&state));
  CHECK(state.active==CNET_DRIVING);
  fixtureNow+=.251;CHECK(!character_net_interaction_snapshot(1,&state));
  p=sample(1,0,1,4,CNET_PRESENTATION);packet_receive(&p);CHECK(accepted==4);
@@ -165,5 +195,6 @@ int main(void){
  character_net_draw(view,projection,viewport);CHECK(drawCalls==priorDraws);
  test_native_caps();
  test_online_switch_transport();
+ test_speed_transition();
  printf("character transport: %d checks passed (includes native cap remote material, expiry/replay, disconnect/slot reset)\n",checks);return 0;
 }

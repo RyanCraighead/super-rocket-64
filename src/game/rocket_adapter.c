@@ -533,7 +533,7 @@ int rocket_adapter_body_snapshot(struct Object *object,RocketSnapshot *state) {
        !m->area||m->area!=area||level!=gCurrLevelNum||!haveFrame||
        (u32)(gGlobalTimer-previousFrame)>1||!supported(m->action)||m->health<0x100||
        m->heldObj||m->heldByObj||m->riddenObj||m->freeze||sCurrPlayMode==PLAY_MODE_PAUSED||
-       !rocket_runtime_snapshot(state))return 0;
+       (!rocket_runtime_rule_ready()||!rocket_runtime_snapshot(state)))return 0;
     float distance=0;
     for(int k=0;k<3;k++){float d=m->pos[k]-state->position[k];distance+=d*d;}
     return distance<=500.f*500.f;

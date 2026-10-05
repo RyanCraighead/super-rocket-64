@@ -27,12 +27,13 @@ typedef struct RocketEnemyContact {
 static inline float rocket_enemy_dot(const float a[3], const float b[3]) {
     return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
 }
-static inline int rocket_enemy_supersonic(const RocketSnapshot *car) {
-    if (!car) return 0;
+static inline int rocket_enemy_supersonic_at_speed(const RocketSnapshot *car,float scale) {
+    if (!car || !isfinite(scale) || scale < .5f || scale > 1.f) return 0;
     for (int k=0;k<3;k++) if (!isfinite(car->velocity[k])) return 0;
     float speed2=rocket_enemy_dot(car->velocity,car->velocity);
-    return isfinite(speed2) && speed2>=ROCKET_ENEMY_SUPERSONIC_SPEED*ROCKET_ENEMY_SUPERSONIC_SPEED;
+    return isfinite(speed2) && speed2>=ROCKET_ENEMY_SUPERSONIC_SPEED*ROCKET_ENEMY_SUPERSONIC_SPEED*scale*scale;
 }
+static inline int rocket_enemy_supersonic(const RocketSnapshot *car) {return rocket_enemy_supersonic_at_speed(car,1.f);}
 static inline int rocket_enemy_valid_pose(const RocketSnapshot *car) {
     if (!car) return 0;
     for (int k=0;k<3;k++) if (!isfinite(car->position[k]) || !isfinite(car->velocity[k])) return 0;
@@ -56,8 +57,8 @@ static inline int rocket_enemy_axis(const float axis[3],const float p[3],const f
     *enter=fmaxf(*enter,fminf(a,b));*leave=fminf(*leave,fmaxf(a,b));
     return *enter<=*leave;
 }
-static inline int rocket_enemy_contact(RocketEnemyContact *track,const RocketSnapshot *car,
-        uint32_t epoch,const RocketEnemyTarget *target) {
+static inline int rocket_enemy_contact_at_speed(RocketEnemyContact *track,const RocketSnapshot *car,
+        uint32_t epoch,const RocketEnemyTarget *target,float scale) {
     if(!track) return 0;
     if(!rocket_enemy_valid_pose(car)||!target||!isfinite(target->radius)||target->radius<=0||
        !isfinite(target->height)||target->height<=0||!isfinite(target->bottom)) {
@@ -67,7 +68,7 @@ static inline int rocket_enemy_contact(RocketEnemyContact *track,const RocketSna
     uint64_t delta=car->ticks-track->previous.ticks;
     if(track->valid&&epoch==track->epoch&&!delta) return 0;
     int hit=0;
-    if(track->valid&&epoch==track->epoch&&delta>0&&delta<=24&&rocket_enemy_supersonic(car)) {
+    if(track->valid&&epoch==track->epoch&&delta>0&&delta<=24&&rocket_enemy_supersonic_at_speed(car,scale)) {
         const RocketSnapshot *old=&track->previous;
         float travel[3],p[3],d[3];
         float half[3]={target->radius,target->height*.5f,target->radius};
@@ -104,5 +105,9 @@ static inline int rocket_enemy_contact(RocketEnemyContact *track,const RocketSna
     }
     track->previous=*car;track->target=*target;track->epoch=epoch;track->valid=1;
     return hit;
+}
+static inline int rocket_enemy_contact(RocketEnemyContact *track,const RocketSnapshot *car,
+        uint32_t epoch,const RocketEnemyTarget *target) {
+    return rocket_enemy_contact_at_speed(track,car,epoch,target,1.f);
 }
 #endif

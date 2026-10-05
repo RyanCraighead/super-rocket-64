@@ -2,6 +2,7 @@
  * No Psyonix source or decoded assets are present in this translation unit. */
 #include "rocket_runtime.h"
 #include "rocket_boost.h"
+#include "player_bump.h"
 #include "rocket_audio.h"
 extern "C" {
 #include "game/rocket_wing.h"
@@ -162,6 +163,10 @@ extern "C" int rocket_runtime_collect_coin(void){
     if(drawable)rocket_world_snapshot(world.get(),&current);
     return 1;
 }
+static uint32_t appliedRule;
+extern "C" int rocket_runtime_rule_ready(void){
+    return world&&rocket_world_speed(world.get())==rocket_speed_percent()&&appliedRule==rocket_rule_revision();
+}
 extern "C" uint32_t rocket_runtime_epoch(void){return epoch;}
 extern "C" void rocket_runtime_selection_changed(void){
     rocket_audio_stop();
@@ -208,6 +213,12 @@ extern "C" int rocket_runtime_frame(uint64_t frame,const RocketInput *input,int 
     blocked=blocked||!SDL_GetKeyboardFocus()||gamepad.ui_blocked;
     if(!input)return -1;
     lastInput=rocket_gamepad_merge(input,&gamepad);
+    const unsigned percent=rocket_speed_percent();const uint32_t rule=rocket_rule_revision();
+    if(world&&(rocket_world_speed(world.get())!=percent||appliedRule!=rule)){
+        rocket_world_set_speed(world.get(),percent);appliedRule=rule;
+        if(!++epoch)++epoch;
+        player_bump_clear(0); // Retire grants without resetting physical state or fuel.
+    }
     rocket_world_set_boost_mode(world.get(), rocket_boost_mode());
     rocket_world_set_temporary_boost(world.get(), rocket_wing_active(0));
     rocket_world_set_surface_mode(world.get(), rocket_surface_mode());
@@ -219,6 +230,7 @@ extern "C" int rocket_runtime_frame(uint64_t frame,const RocketInput *input,int 
     rocket_audio_update(drawable?&current:nullptr,configRocketSoundMode,drawable&&!paused&&!blocked&&!gCLIOpts.headless);
     return result;
 }
+extern "C" int rocket_runtime_bump(const float delta[3]){if(!drawable||!rocket_world_bump(world.get(),delta))return 0;return rocket_world_snapshot(world.get(),&current);}
 extern "C" int rocket_runtime_snapshot(RocketSnapshot *snapshot){if(!drawable||!snapshot)return 0;*snapshot=current;return 1;}
 extern "C" const char *rocket_runtime_status(void){return status.c_str();}
 static int drawSnapshot(const RocketSnapshot *snapshot,uint32_t nativeFlags,const float squish[3],const float *view,const float *projection,const int *viewport){
@@ -271,6 +283,7 @@ extern "C" int rocket_runtime_set_boost_mode(int){return 0;}
 extern "C" int rocket_runtime_boost_mode(void){return ROCKET_BOOST_COIN_ONLY;}
 extern "C" int rocket_runtime_collect_coin(void){return 0;}
 extern "C" uint32_t rocket_runtime_epoch(void){return 0;}
+extern "C" int rocket_runtime_rule_ready(void){return 0;}
 extern "C" void rocket_runtime_selection_changed(void){}
 extern "C" int rocket_runtime_draw_snapshot(const RocketSnapshot*,const float*,const float*,const int*){return 0;}
 extern "C" int rocket_runtime_draw_snapshot_caps(const RocketSnapshot*,uint32_t,const float*,const float*,const int*){return 0;}
@@ -292,6 +305,7 @@ extern "C" int rocket_runtime_platforms(const RocketPlatform*,size_t){return 0;}
 extern "C" int rocket_runtime_reset(const float*,const float*,float){return 0;}
 extern "C" int rocket_runtime_recover(const RocketSnapshot*){return 0;}
 extern "C" int rocket_runtime_frame(uint64_t,const RocketInput*,int,int){return -1;}
+extern "C" int rocket_runtime_bump(const float*){return 0;}
 extern "C" int rocket_runtime_snapshot(RocketSnapshot*){return 0;}
 extern "C" int rocket_runtime_draw(const float*,const float*,const int*){return 0;}
 extern "C" const char *rocket_runtime_status(void){return "Rocket car is not compiled; build with ROCKET_CAR=1";}

@@ -4,6 +4,7 @@
 #include "rocket_caps.h"
 #include "../../codex/rocketleague/physics/enemy_impact.h"
 #include "pc/rocket_runtime.h"
+#include "pc/rocket_boost.h"
 #include "pc/character_net.h"
 #include "pc/network/network.h"
 #include "area.h"
@@ -22,6 +23,7 @@
 
 /* Bounded per-enemy/per-peer history, never stored in saves or object rawData. */
 static struct EnemyHistory {
+    u32 rule;
     struct Object *object;
     const BehaviorScript *behavior;
     u32 sync_id,frame;
@@ -126,6 +128,8 @@ int rocket_enemy_attack(struct Object *enemy) {
         memset(history,0,sizeof(*history));
     else if((u32)(gGlobalTimer-history->frame)>1)
         memset(history->car,0,sizeof history->car); // Observation gaps do not reset a lifetime's committed hit.
+    if(history->rule!=rocket_rule_revision())memset(&history->car,0,sizeof history->car);
+    history->rule=rocket_rule_revision();
     history->object=enemy;history->behavior=enemy->behavior;history->sync_id=enemy->oSyncID;
     history->level=gCurrLevelNum;history->area=gCurrentArea->index;history->frame=gGlobalTimer;
     int eligible=owner&&!history->committed&&sCurrPlayMode!=PLAY_MODE_PAUSED&&
@@ -162,7 +166,7 @@ int rocket_enemy_attack(struct Object *enemy) {
         RocketEnemyContact before=history->car[i];
 #endif
         float previous[3];memcpy(previous,history->car[i].previous.position,sizeof(previous));
-        int hit=rocket_enemy_contact(&history->car[i],&state.car,state.epoch,&target);
+        int hit=rocket_enemy_contact_at_speed(&history->car[i],&state.car,state.epoch,&target,rocket_speed_scale());
         if(!hit){
 #ifdef ROCKET_CAR_QA
             enemy_qa_decision(enemy,owner,eligible,i,&state,&before,0,-1,-1);

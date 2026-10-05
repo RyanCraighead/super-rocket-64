@@ -3,6 +3,7 @@
 #include <zlib.h>
 #include "../network.h"
 #include "pc/rocket_boost.h"
+#include "pc/player_bump.h"
 #include "pc/network/ban_list.h"
 #include "pc/debuglog.h"
 #include "pc/boss_net.h"
@@ -147,6 +148,7 @@ void packet_process(struct Packet* p) {
 
         case PACKET_ROCKET_CAP_STATE: rocket_caps_receive(p); break;
         case PACKET_ROCKET_CAP_CANCEL: rocket_caps_receive_cancel(p); break;
+        case PACKET_ROCKET_PLAYER_BUMP: player_bump_receive(p); break;
 
         // custom
         case PACKET_CUSTOM:                  network_receive_custom(p);                  break;
@@ -213,6 +215,7 @@ void packet_receive(struct Packet* p) {
 
     // parse the packet without processing the rest
     if (packet_initial_read(p)) {
+        if(packetType==PACKET_ROCKET_PLAYER_BUMP&&!player_bump_packet_allowed(p)){p->requestBroadcast=false;return;}
         if(packetType==PACKET_OBJECT&&!rocket_platform_packet_allowed(p)){p->requestBroadcast=false;return;}
         /* Effect authority and legacy bypass checks precede every relay path. */
         if ((packetType == PACKET_ROCKET_CAP_STATE && !rocket_caps_packet_allowed(p)) ||

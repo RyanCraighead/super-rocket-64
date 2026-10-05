@@ -30,7 +30,7 @@ static struct SurfaceNode ceilingNode;
 static Collision collisionIdentity[1];
 static void setup(float x,int upside,int network){
     fresh();memset(&whompCrush,0,sizeof whompCrush);memset(&crusher,0,sizeof crusher);memset(&ceiling,0,sizeof ceiling);
-    crusher.behavior=bhvSmallWhomp;crusher.activeFlags=ACTIVE_FLAG_ACTIVE;crusher.oAction=5;crusher.oSyncID=7;crusher.collisionData=collisionIdentity;
+    crusher.behavior=bhvSmallWhomp;crusher.activeFlags=ACTIVE_FLAG_ACTIVE;crusher.oAction=5;crusher.oSyncID=7;crusher.oIntangibleTimer=-1;crusher.collisionData=collisionIdentity;
     ceiling.object=&crusher;ceiling.flags=SURFACE_FLAG_DYNAMIC;ceiling.normal.y=-1;
     ceilingNode.surface=&ceiling;ceilingNode.next=NULL;gDynamicSurfacePartition[8][8][SPATIAL_PARTITION_CEILS].next=&ceilingNode;
     vec3s_set(ceiling.vertex1,-180,140,-500);vec3s_set(ceiling.vertex2,180,140,-500);vec3s_set(ceiling.vertex3,0,140,500);
@@ -70,7 +70,7 @@ static void full_cycle(float x,int upside,int network){
 static void gates(void){
     REJECT(crusher.oSubAction=10;crusher.oAction=6); // Stand-up back fling stays rigid.
     REJECT(crusher.oAction=3);REJECT(crusher.activeFlags=0);REJECT(crusher.oSyncDeath=1);
-    REJECT(crusher.oIntangibleTimer=-1);REJECT(crusher.header.gfx.activeAreaIndex++);
+    REJECT(crusher.header.gfx.node.flags|=GRAPH_RENDER_INVISIBLE);REJECT(crusher.header.gfx.activeAreaIndex++);
     REJECT(crusher.behavior=bhvFloorSwitchGrills);REJECT(mario.floor->object=&crusher);
     REJECT(mario.health=0xff);REJECT(mario.playerIndex=1);REJECT(mario.freeze=1);
     REJECT(sCurrPlayMode=PLAY_MODE_PAUSED);REJECT(gTimeStopState=TIME_STOP_ACTIVE);

@@ -94,7 +94,7 @@ int main(void){
  setup();transport.requireServerBroadcast=true;p=update(1,1,PACKET_DESTINATION_BROADCAST,1);
  u32 behavior=16,unknownSync=999;memcpy(p.buffer+11,&unknownSync,4);memcpy(p.buffer+19,&behavior,4);packet_receive(&p);CHECK(forwarded==0);unchanged(); // Actual boss legacy guard remains before relays.
  packet_init(&p,PACKET_BOSS_STATE,false,PLMT_AREA);p.localIndex=1;p.cursor=3;packet_receive(&p);CHECK(bossPackets==1&&forwarded==0);
- setup();gNetworkPlayers[0].currAreaIndex=1;CharacterNetState mario={0};mario.kind=CNET_MARIO;mario.sequence=1;CHECK(character_net_accept(1,&mario));
+ setup();gNetworkPlayers[0].currAreaIndex=1;CharacterNetState mario={0};mario.speed_percent=100;mario.kind=CNET_MARIO;mario.sequence=1;CHECK(character_net_accept(1,&mario));
  p=update(1,1,PACKET_DESTINATION_BROADCAST,1);u32 sync=20;behavior=18;memcpy(p.buffer+11,&sync,4);memcpy(p.buffer+19,&behavior,4);
  packet_receive(&p);CHECK(box.oExclamationBoxForce&&boxPackets==1&&forwarded==0&&!p.requestBroadcast);unchanged();
  printf("platform authenticated pre-relay/native-apply ingress: %d checks passed\n",checks);return 0;

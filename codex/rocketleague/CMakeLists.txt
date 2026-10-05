@@ -11,8 +11,8 @@ if(NOT ROCKETSIM_VERIFY_STATUS EQUAL 0)
   message(FATAL_ERROR "Pinned RocketSim source verification failed")
 endif()
 add_subdirectory("${ROCKETSIM}" RocketSim)
-# Preserve the audited vendor checkout. Build one generated translation unit
-# with defined initial wheel state; no backend equations/constants are replaced.
+# Preserve the audited vendor checkout. Generated units adapt verified sites
+# for wheel initialization/materials and the host-selected car speed rule.
 set(ROCKET_VEHICLE_SOURCE "${ROCKETSIM}/src/Sim/btVehicleRL/btVehicleRL.cpp")
 set(ROCKET_WHEEL_INIT "${CMAKE_CURRENT_SOURCE_DIR}/physics/wheel_init.inc")
 set(ROCKET_KINEMATIC_SUSPENSION "${CMAKE_CURRENT_SOURCE_DIR}/physics/kinematic_suspension.inc")
@@ -57,6 +57,25 @@ list(REMOVE_ITEM ROCKET_VENDOR_SOURCES "${ROCKET_VEHICLE_SOURCE}")
 set_property(TARGET RocketSim PROPERTY SOURCES "${ROCKET_VENDOR_SOURCES}" "${ROCKET_VEHICLE_GENERATED}")
 set_source_files_properties("${ROCKET_VEHICLE_GENERATED}" TARGET_DIRECTORY RocketSim
   PROPERTIES INCLUDE_DIRECTORIES "${ROCKETSIM}/src/Sim/btVehicleRL")
+# Speed changes apply inside each actual substep; pinned source hashes stay intact.
+set(ROCKET_CAR_SOURCE "${ROCKETSIM}/src/Sim/Car/Car.cpp")
+set(ROCKET_CAR_GENERATOR "${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_speed_car.py")
+set(ROCKET_CAR_GENERATED "${CMAKE_CURRENT_BINARY_DIR}/Car_speed.cpp")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${ROCKET_CAR_SOURCE}" "${ROCKET_CAR_GENERATOR}")
+execute_process(COMMAND "${Python3_EXECUTABLE}" "${ROCKET_CAR_GENERATOR}"
+  "${ROCKET_CAR_SOURCE}" "${ROCKET_CAR_GENERATED}" RESULT_VARIABLE ROCKET_SPEED_STATUS)
+if(NOT ROCKET_SPEED_STATUS EQUAL 0)
+  message(FATAL_ERROR "Pinned car speed adaptation failed")
+endif()
+get_target_property(ROCKET_SPEED_SOURCES RocketSim SOURCES)
+list(FIND ROCKET_SPEED_SOURCES "${ROCKET_CAR_SOURCE}" ROCKET_CAR_INDEX)
+if(ROCKET_CAR_INDEX LESS 0)
+  message(FATAL_ERROR "Pinned car translation unit missing from target")
+endif()
+list(REMOVE_ITEM ROCKET_SPEED_SOURCES "${ROCKET_CAR_SOURCE}")
+set_property(TARGET RocketSim PROPERTY SOURCES "${ROCKET_SPEED_SOURCES}" "${ROCKET_CAR_GENERATED}")
+set_source_files_properties("${ROCKET_CAR_GENERATED}" TARGET_DIRECTORY RocketSim
+  PROPERTIES INCLUDE_DIRECTORIES "${ROCKETSIM}/src/Sim/Car")
 add_library(rocket_physics STATIC physics/rocket_physics.cpp)
 target_include_directories(rocket_physics PRIVATE "${ROCKETSIM}/src" "${ROCKETSIM}/libsrc/bullet3-3.24")
 target_link_libraries(rocket_physics PUBLIC RocketSim)
@@ -135,3 +154,14 @@ add_test(NAME rocket_whomp_flip_physics COMMAND rocket_whomp_flip_physics_test)
 add_executable(rocket_whomp_crush_physics_test tests/test_whomp_crush_physics.cpp)
 target_link_libraries(rocket_whomp_crush_physics_test PRIVATE rocket_physics)
 add_test(NAME rocket_whomp_crush_physics COMMAND rocket_whomp_crush_physics_test)
+
+add_executable(rocket_player_bump_physics_test tests/test_player_bump_physics.cpp)
+target_link_libraries(rocket_player_bump_physics_test PRIVATE rocket_physics)
+add_test(NAME rocket_player_bump_physics COMMAND rocket_player_bump_physics_test)
+
+add_executable(rocket_speed_physics_test tests/test_speed_physics.cpp)
+target_link_libraries(rocket_speed_physics_test PRIVATE rocket_physics)
+add_test(NAME rocket_speed_physics COMMAND rocket_speed_physics_test)
+add_executable(rocket_speed_impact_test tests/test_speed_impacts.c)
+target_link_libraries(rocket_speed_impact_test PRIVATE rocket_physics)
+add_test(NAME rocket_speed_impacts COMMAND rocket_speed_impact_test)

@@ -7,12 +7,13 @@
  * their own state/effects/asset contracts are implemented and verified. */
 enum CharacterNetKind { CNET_MARIO=0, CNET_LINK=1, CNET_BOMBERMAN=2,
     CNET_BANJO=3, CNET_SPIDERMAN=4, CNET_TONY_HAWK=5, CNET_OCTANE=6 };
-#define CNET_WIRE_SIZE 208
-#define CNET_VERSION_SUFFIX "-cnet3-octane2-boost-mode1-enemy1-coin1-boss2-whomp2-switch1-vanish1-jet1-env1-metal1-caps1-platform1-wheel1"
+#define CNET_WIRE_SIZE 213
+#define CNET_VERSION_SUFFIX "-cnet4-octane2-boost-mode1-enemy1-coin1-boss2-whomp2-switch1-vanish1-jet1-env1-metal1-caps1-platform1-wheel1-bump1-speed1"
 /* Presentation has a valid mesh pose but MUST NOT participate in car contacts. */
 enum CharacterNetActivity { CNET_INACTIVE=0, CNET_DRIVING=1, CNET_PRESENTATION=2 };
 typedef struct CharacterNetState {
-    uint32_t sequence, epoch;
+    uint32_t sequence, epoch, rule_revision;
+    uint8_t speed_percent; /* 0 only for standalone callers; encoded as 100. */
     uint16_t area_sequence;
     uint8_t kind, active, interaction;
     RocketSnapshot car;
