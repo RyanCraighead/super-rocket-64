@@ -26,12 +26,14 @@ struct ObjectWarpNode *area_get_warp_node(u8 id){
     return NULL;
 }
 uint32_t rocket_caps_active_flags(unsigned index){(void)index;return player?player->flags:0;}
-s16 gCurrLevelNum,sCurrPlayMode;
+s16 gCurrLevelNum,sCurrPlayMode,gCurrActNum;
+static int shipWarps;
+s16 level_trigger_warp(struct MarioState *m,s32 op){assert(m->playerIndex==0&&op==WARP_OP_WARP_FLOOR);++shipWarps;sDelayedWarpOp=op;return 20;}
 u32 gGlobalTimer;
-static int enabled,focused,steps,resets,interrupts,meshCalls[2],meshCount[2],draw,uiBlocked,metalWater;
+static int enabled,steps,resets,interrupts,meshCalls[2],meshCount[2],draw,uiBlocked,metalWater;
 static int recoveries;
 struct LevelValues gLevelValues;
-const BehaviorScript bhvCapSwitch[]={0},bhvExclamationBox[]={1},bhvVanishCap[]={2},bhvWingCap[]={3},bhvMetalCap[]={4},bhvWarp[]={5};
+const BehaviorScript bhvCapSwitch[]={0},bhvExclamationBox[]={1},bhvVanishCap[]={2},bhvWingCap[]={3},bhvMetalCap[]={4},bhvWarp[]={5},bhvInSunkenShip[]={6},bhvUnagi[]={7},bhvUnagiSubobject[]={8};
 struct ObjectNode *gObjectLists;
 static struct ObjectNode objectLists[NUM_OBJ_LISTS];
 static RocketSnapshot pose;
@@ -82,7 +84,6 @@ int rocket_runtime_frame(uint64_t frame,const RocketInput *input,int paused,int 
 int rocket_runtime_snapshot(RocketSnapshot *out){if(!draw)return 0;*out=pose;return 1;}
 int rocket_runtime_recover(const RocketSnapshot *out){++recoveries;memcpy(pose.position,out->position,sizeof pose.position);memcpy(pose.basis,out->basis,sizeof pose.basis);memset(pose.velocity,0,sizeof pose.velocity);return 1;}
 int rocket_runtime_read_input(const RocketInput *keyboard,RocketInput *out){*out=*keyboard;return !uiBlocked&&draw&&enabled;}
-int codex_panel_gl_is_focused(void){return focused;}
 // The host exports a nonstandard atan2f. Heading conversion must not use it.
 f32 atan2f(f32 y,f32 x){(void)y;(void)x;return 1234.f;}
 s32 set_water_plunge_action(struct MarioState *m){m->action=ACT_WATER_PLUNGE;return 1;}
@@ -98,12 +99,12 @@ static struct SurfaceNode nodes[6];
 static void fresh(void){
     rocket_adapter_set_selected(1);rocket_adapter_suspend();memset(&mario,0,sizeof mario);memset(&object,0,sizeof object);memset(&controller,0,sizeof controller);memset(&testArea,0,sizeof testArea);
     memset(gStaticSurfacePartition,0,sizeof gStaticSurfacePartition);memset(gDynamicSurfacePartition,0,sizeof gDynamicSurfacePartition);memset(surfaces,0,sizeof surfaces);memset(nodes,0,sizeof nodes);
-    enabled=1;focused=steps=resets=interrupts=uiBlocked=0;memset(meshCalls,0,sizeof meshCalls);sCurrPlayMode=0;gGlobalTimer=0;
+    enabled=1;steps=resets=interrupts=uiBlocked=0;memset(meshCalls,0,sizeof meshCalls);sCurrPlayMode=0;gGlobalTimer=0;
     recoveries=0;memset(&gLevelValues,0,sizeof gLevelValues);
     memset(&gWarpTransition,0,sizeof gWarpTransition);memset(&sWarpDest,0,sizeof sWarpDest);
     memset(&gCLIOpts,0,sizeof gCLIOpts);memset(gNetworkPlayers,0,sizeof gNetworkPlayers);
     sDelayedWarpOp=WARP_OP_NONE;gTimeStopState=0;gNetworkType=NT_NONE;gNetworkPlayerLocal=NULL;
-    gNetworkAreaLoaded=gNetworkAreaSyncing=false;chimneyGeometry=0;gSurfaceNodesAllocated=32;gCurrLevelNum=LEVEL_BOB;
+    gNetworkAreaLoaded=gNetworkAreaSyncing=false;chimneyGeometry=0;gSurfaceNodesAllocated=32;gCurrLevelNum=LEVEL_BOB;gCurrActNum=1;shipWarps=0;
     environmentCalls=environmentSamples=environmentRegions=0;nativeWater=-10000;gLevelValues.floorLowerLimit=-11000;
     nativeFloor=&surfaces[1];recoveryFloor=&surfaces[0];recoveryWater=gLevelValues.floorLowerLimit;
     gObjectLists=objectLists;memset(objectLists,0,sizeof objectLists);
@@ -142,7 +143,7 @@ static void test_doors(void){
     rocket_adapter_prepare_interactions(&mario);assert(mario.collidedObjInteractTypes==INTERACT_DOOR&&door.oBehParams==(50u<<24)&&!door.oAction);
     door_setup();controller.rawStickY=0;no_door();controller.rawStickY=-80;no_door();
     door_setup();controller.buttonDown=A_BUTTON;no_door();
-    door_setup();focused=1;no_door();focused=0;uiBlocked=1;no_door();
+    door_setup();uiBlocked=1;no_door();
     door_setup();sCurrPlayMode=PLAY_MODE_PAUSED;no_door();sCurrPlayMode=0;mario.freeze=1;no_door();
     door_setup();pose.grounded=0;no_door();pose.grounded=1;pose.basis[7]=-.9f;no_door();
     door_setup();door.oPosZ=-200;no_door();door.oPosZ=400;no_door();door.oPosZ=200;door.oPosX=200;no_door();
@@ -172,8 +173,7 @@ static void test_interaction_snapshot(void){
     assert(rocket_adapter_interaction_snapshot(&snapshot)&&snapshot.ticks==pose.ticks);
     assert(rocket_adapter_interaction_snapshot(&snapshot)&&steps==before&&resets==oldResets);
     assert(!rocket_adapter_interaction_snapshot(NULL));
-    focused=1;assert(!rocket_adapter_interaction_snapshot(&snapshot));focused=0;
-    focused=1;assert(rocket_adapter_platform_snapshot(&snapshot));focused=0; // UI focus does not remove physical weight.
+    uiBlocked=1;assert(rocket_adapter_platform_snapshot(&snapshot));uiBlocked=0; // Menus do not remove physical weight.
     uiBlocked=1;assert(!rocket_adapter_interaction_snapshot(&snapshot));uiBlocked=0;
     sCurrPlayMode=PLAY_MODE_PAUSED;assert(!rocket_adapter_interaction_snapshot(&snapshot));sCurrPlayMode=0;
     mario.freeze=1;assert(!rocket_adapter_interaction_snapshot(&snapshot));mario.freeze=0;
@@ -195,8 +195,8 @@ static void test_body_snapshot(void){
     assert(!rocket_adapter_body_snapshot(&remote,&snapshot));
     assert(!rocket_adapter_body_snapshot(NULL,&snapshot));
     assert(!rocket_adapter_body_snapshot(&object,NULL));
-    focused=uiBlocked=1;assert(rocket_adapter_body_snapshot(&object,&snapshot));
-    focused=uiBlocked=0;gGlobalTimer++;assert(rocket_adapter_body_snapshot(&object,&snapshot));
+    uiBlocked=1;assert(rocket_adapter_body_snapshot(&object,&snapshot));
+    uiBlocked=0;gGlobalTimer++;assert(rocket_adapter_body_snapshot(&object,&snapshot));
     gGlobalTimer++;assert(!rocket_adapter_body_snapshot(&object,&snapshot));gGlobalTimer-=2;
     mario.freeze=1;assert(!rocket_adapter_body_snapshot(&object,&snapshot));mario.freeze=0;
     sCurrPlayMode=PLAY_MODE_PAUSED;assert(!rocket_adapter_body_snapshot(&object,&snapshot));sCurrPlayMode=0;
@@ -304,7 +304,7 @@ static void test_vanish_progression(void){
     surfaces[2].type=SURFACE_VANISH_CAP_WALLS;mario.flags=MARIO_VANISH_CAP;step();
     rocket_adapter_prepare_interactions(&mario);assert(object.numCollidedObjs==1);
     object.numCollidedObjs=0;door.oInteractType=INTERACT_STAR_OR_KEY;rocket_adapter_prepare_interactions(&mario);assert(object.numCollidedObjs==1);
-    object.numCollidedObjs=0;focused=1;rocket_adapter_prepare_interactions(&mario);assert(!object.numCollidedObjs);
+    object.numCollidedObjs=0;uiBlocked=1;rocket_adapter_prepare_interactions(&mario);assert(!object.numCollidedObjs);
 }
 static void test_water(void){
     fresh();nativeWater=mario.waterLevel=200;mario.pos[1]=-500;
@@ -369,7 +369,7 @@ static void test_switch_platform(void){
     floor->normal.y=0;assert(!rocket_adapter_platform_contact(&mario,floor,0));floor->normal.y=1;
     pose.basis[7]=0;assert(!rocket_adapter_platform_contact(&mario,floor,0));pose.basis[7]=1;
     struct MarioState remote=mario;remote.playerIndex=1;assert(!rocket_adapter_platform_contact(&remote,floor,0));
-    focused=1;assert(!rocket_adapter_platform_contact(&mario,floor,0));focused=0;
+    uiBlocked=1;assert(!rocket_adapter_platform_contact(&mario,floor,0));uiBlocked=0;
     mario.flags=MARIO_METAL_CAP;nativeWater=mario.waterLevel=200;step();assert(rocket_adapter_platform_contact(&mario,floor,0));
     assert(!door.oAction&&!door.oInteractStatus); // Supplies platform only, no switch/save unlock writes.
 }
@@ -444,9 +444,11 @@ static void test_platform_mesh(void){
 
 }
 #include "test_ccm_chimney_adapter.inc.c"
+#include "test_jrb_entry_adapter.inc.c"
 int main(int argc,char **argv){
     if(argc==2&&!strcmp(argv[1],"--ccm-body")){chimney_single_case(0);return 0;}
     if(argc==2&&!strcmp(argv[1],"--ccm-wheel")){chimney_single_case(1);return 0;}
+    test_jrb_entry_adapter();
     test_ccm_chimney_adapter();
     test_platform_mesh();test_shared_cap_geometry();test_water();
     fresh();step();assert(steps==1&&resets==1&&meshCount[0]==1&&meshCount[1]==1);assert(object.header.gfx.node.flags&GRAPH_RENDER_INVISIBLE);
@@ -457,7 +459,6 @@ int main(int argc,char **argv){
     controller.rawStickX=80;controller.rawStickY=80;controller.buttonDown=A_BUTTON|B_BUTTON|Z_TRIG;step();assert(observed.throttle==1&&observed.steer==-1&&observed.pitch==-1&&observed.roll==-1&&observed.yaw==0&&observed.powerslide&&observed.boost&&observed.jump);
     controller.rawStickX=-80;controller.rawStickY=0;controller.buttonDown=0;step();assert(observed.steer==1&&observed.yaw==1&&observed.roll==0&&observed.throttle==0);
     controller.rawStickY=80;controller.buttonDown=A_BUTTON|B_BUTTON;
-    focused=1;step();assert(!observed.throttle&&!observed.jump&&!observed.boost);focused=0;
     int before=steps;sCurrPlayMode=PLAY_MODE_PAUSED;step();step();assert(steps==before&&interrupts==2);sCurrPlayMode=0;step();assert(steps==before+1);
     mario.action=ACT_READING_AUTOMATIC_DIALOG;assert(!rocket_adapter_update(&mario));assert(!(object.header.gfx.node.flags&GRAPH_RENDER_INVISIBLE));
     fresh();mario.freeze=2;assert(!rocket_adapter_update(&mario));assert(!resets&&!(object.header.gfx.node.flags&GRAPH_RENDER_INVISIBLE));mario.freeze=0;step();assert(resets==1);

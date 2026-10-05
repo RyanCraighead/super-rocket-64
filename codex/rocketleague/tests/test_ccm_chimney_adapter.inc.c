@@ -121,7 +121,6 @@ static void test_ccm_chimney_adapter(void){
     CCM_REJECT(rocket_adapter_suspend());
     CCM_REJECT(enabled=0);
     CCM_REJECT(mario.playerIndex=1);
-    CCM_REJECT(focused=1);
     CCM_REJECT(uiBlocked=1);
     CCM_REJECT(mario.health=0xff);
     CCM_REJECT(mario.hurtCounter=1);
