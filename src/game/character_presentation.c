@@ -20,6 +20,7 @@
 
 static enum CharacterSwitchId kind;
 static int valid, presenting;
+static u32 frameStartAction;
 static struct MarioState *owner;
 static struct Object *object;
 static struct Area *area;
@@ -44,6 +45,7 @@ static enum CharacterSwitchId selected(void) {
 }
 void character_presentation_begin(struct MarioState *m) {
     if(!m||m->playerIndex)return;
+    frameStartAction=m->action;
     enum CharacterSwitchId next=selected();
     int changed=owner!=m||object!=m->marioObj||kind!=next||area!=m->area||level!=gCurrLevelNum;
     /* Asset poses can survive a warp; old world transforms and effects cannot.
@@ -77,6 +79,18 @@ void character_presentation_finish(struct MarioState *m,int source_owns_action) 
     switch(kind) {
         case CHARACTER_OCTANE: {
             if(!rocket_runtime_enabled())break;
+            /* Native push/pull root animation uses the door's authored yaw;
+             * its backward walk is encoded in Mario's animation, not that yaw.
+             * The car has no such animation: face the actual traversal side.
+             * On the final frame native code has already reset actionArg and
+             * corrected faceAngle, while the graphics angle can still be old. */
+            if((m->action==ACT_PULLING_DOOR||m->action==ACT_PUSHING_DOOR)&&m->usedObj)
+                yaw=(s16)(m->usedObj->oMoveAngleYaw+((m->actionArg&2)?0x8000:0));
+            else if(m->action==ACT_WARP_DOOR_SPAWN||m->action==ACT_ENTERING_STAR_DOOR||
+                    m->action==ACT_UNLOCKING_KEY_DOOR||m->action==ACT_UNLOCKING_STAR_DOOR||
+                    frameStartAction==ACT_PULLING_DOOR||frameStartAction==ACT_PUSHING_DOOR||
+                    frameStartAction==ACT_WARP_DOOR_SPAWN||frameStartAction==ACT_ENTERING_STAR_DOOR)
+                yaw=m->faceAngle[1];
             RocketSnapshot old=pose.car;
             memset(pose.car.basis,0,sizeof pose.car.basis);
             pose.car.basis[0]=sins(yaw);pose.car.basis[2]=coss(yaw);

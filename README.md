@@ -69,6 +69,8 @@ Tailscale is configured by you outside the launcher. Address detection does not 
 | Pause | Start / Options | Space |
 | Character wheel | Back / Share | Hold F7 |
 
+Door animations keep Octane facing through the doorway. Holding throttle through a door does not switch camera modes; unassigned camera controls remain available.
+
 Car bindings are editable under **Options > Controls > Car Controller**. Mappings and boost preferences are saved locally. Generic joysticks need an appropriate SDL controller mapping. Physical-controller verification for the public edition is pending.
 
 ## Credits

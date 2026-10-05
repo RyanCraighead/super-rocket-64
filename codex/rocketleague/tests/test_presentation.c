@@ -1,7 +1,10 @@
 /* Actual presentation bridge; source render services are explicit inert mocks. */
 #include <assert.h>
 #include <stdio.h>
-#include "../../../src/game/character_presentation.c"
+#ifndef CHARACTER_PRESENTATION_SOURCE
+#define CHARACTER_PRESENTATION_SOURCE "../../../src/game/character_presentation.c"
+#endif
+#include CHARACTER_PRESENTATION_SOURCE
 struct CLIOptions gCLIOpts;
 s16 gCurrLevelNum;
 static int available=1,snapshotReady,submits,draws,linkReady;
@@ -15,7 +18,7 @@ int character_switch_enabled(void){return 1;}
 enum CharacterSwitchId character_switch_active(void){return choice;}
 int rocket_runtime_enabled(void){return available;}
 int rocket_runtime_snapshot(RocketSnapshot *s){if(!snapshotReady)return 0;*s=car;return 1;}
-int rocket_runtime_draw_snapshot(const RocketSnapshot *s,const float *v,const float *p,const int *w){(void)s;(void)v;(void)p;(void)w;draws++;return 1;}
+int rocket_runtime_draw_snapshot(const RocketSnapshot *s,const float v[16],const float p[16],const int w[4]){(void)s;(void)v;(void)p;(void)w;draws++;return 1;}
 int bk_runtime_enabled(void){return available;}
 int bm64_runtime_enabled(void){return available;}
 int bk_runtime_snapshot(BkRenderSnapshot *s){if(!snapshotReady)return 0;*s=banjo;return 1;}
@@ -27,9 +30,9 @@ int spiderman_runtime_submit(const SpidermanRenderSnapshot *s){spider=*s;submits
 int thps_runtime_snapshot(ThpsRenderSnapshot *s){if(!snapshotReady)return 0;*s=tony;return 1;}
 int thps_runtime_submit(const ThpsRenderSnapshot *s){tony=*s;submits++;return available;}
 int oot_link_runtime_snapshot(OotLinkSnapshot *s){memset(s,0,sizeof *s);s->drawable=snapshotReady;return 1;}
-int oot_link_runtime_present(const float *p,int16_t y){(void)p;(void)y;linkReady++;return available;}
-int spiderman_runtime_draw(const float *v,const float *p,const int *w){(void)v;(void)p;(void)w;draws++;return 1;}
-int thps_runtime_draw(const float *v,const float *p,const int *w){(void)v;(void)p;(void)w;draws++;return 1;}
+int oot_link_runtime_present(const float p[3],int16_t y){(void)p;(void)y;linkReady++;return available;}
+int spiderman_runtime_draw(const float v[16],const float p[16],const int w[4]){(void)v;(void)p;(void)w;draws++;return 1;}
+int thps_runtime_draw(const float v[16],const float p[16],const int w[4]){(void)v;(void)p;(void)w;draws++;return 1;}
 static struct MarioState mario;
 static struct Object playerObject;
 static struct Area testArea;
@@ -48,7 +51,9 @@ static void fresh(enum CharacterSwitchId id){
  snapshotReady=1;character_presentation_begin(&mario);character_presentation_begin(&mario);
  snapshotReady=0; /* real adapter would suspend before native action execution */
 }
+#include "test_door_presentation.inc.c"
 int main(void){
+ test_door_presentation();
  for(int id=CHARACTER_LINK;id<CHARACTER_COUNT;id++){
   fresh(id);struct MarioState before=mario;character_presentation_finish(&mario,0);
   assert(presenting&&(playerObject.header.gfx.node.flags&GRAPH_RENDER_INVISIBLE));
@@ -74,4 +79,5 @@ int main(void){
  character_presentation_begin(&mario);playerObject.header.gfx.pos[2]+=25;character_presentation_finish(&mario,0);
  RocketSnapshot s;assert(character_presentation_car_snapshot(&s)&&s.position[2]==481&&s.ticks==88);
  puts("PASS presentation: six selected meshes, native injury state unchanged, host transform, remote snapshot, cutscene continuation, source/warp/switch/failure gates");
+ return 0;
 }
