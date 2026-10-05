@@ -104,3 +104,23 @@ These checks use explicit runtime/native mocks; they are not live game or
 two-PC acceptance. No foreground or gameplay session was started. The Windows
 release also undergoes package integrity, privacy/notice and copied-profile
 reuse checks before publication.
+
+## v0.2.3 stained-glass entrance patch
+
+The reported castle window is the Princess's Secret Slide entrance: castle
+area 1, object warp 0x0A to LEVEL_PSS. Its diagonal mouth is about 154 units
+wide, narrower than Octane's 173-unit chassis. The focused bridge stages the
+existing native warp when the car touches the actual alcove opening with an
+unobstructed path inside. It leaves the one-star room door, collision, slide
+timer, chests, stars, save flags and multiplayer protocol unchanged.
+
+Passed 436 PSS assertions plus the existing 341 JRB and 546 CCM assertions
+under ASan/UBSan, and the headless host/geometry/gamepad/export suite. The new
+slide case fails against released v0.2.2 and passes after the fix. An additional
+private replay used all 2,144 castle collision triangles from the owned ROM
+and confirmed five approach heights. That geometry was not added to public
+source or the release. These checks exercise the real adapter with explicit
+runtime/native mocks; live gameplay and two-PC acceptance remain pending.
+
+Version 0.2.2 was published and its public download verified before this
+follow-up began. The two fixes are separate releases; v0.2.3 includes v0.2.2.
