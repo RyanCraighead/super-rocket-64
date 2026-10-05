@@ -10,6 +10,7 @@ FLAGS=(-std=gnu11 -O1 -g -ffunction-sections -fdata-sections -fno-fast-math -ffp
 if [[ "${SANITIZE:-1}" == 1 ]]; then FLAGS+=(-fsanitize=address,undefined -fno-sanitize-recover=all); fi
 "${CC:-cc}" "${FLAGS[@]}" codex/rocketleague/tests/test_bobomb.c src/engine/math_util.c -Wl,--gc-sections -lm -o "$OUT/bobomb"
 "$OUT/bobomb"
-"${CC:-cc}" "${FLAGS[@]}" codex/rocketleague/tests/test_presentation.c src/engine/math_util.c -Wl,--gc-sections -lm -o "$OUT/presentation"
+"${CC:-cc}" "${FLAGS[@]}" codex/rocketleague/tests/test_presentation.c src/engine/math_util.c src/pc/character_net_codec.c -Wl,--gc-sections -lm -o "$OUT/presentation"
 "$OUT/presentation"
-python3 codex/rocketleague/tests/test_presentation_acceptance.py
+# Exercise the actual public packet path; the old QA-log verifier was private.
+bash codex/rocketleague/tests/test_network.sh

@@ -124,3 +124,29 @@ runtime/native mocks; live gameplay and two-PC acceptance remain pending.
 
 Version 0.2.2 was published and its public download verified before this
 follow-up began. The two fixes are separate releases; v0.2.3 includes v0.2.2.
+
+## v0.2.4 door orientation and controller handoff
+
+Octane now presents the native door action's travel heading on either side,
+including the final frame and destination spawn. This corrects a 180-degree
+display flip caused by copying Mario's authored animation root yaw. Native
+actions, warp timing, save state and the multiplayer protocol are unchanged;
+the corrected presentation snapshot uses the existing network packet path.
+
+Selected car bindings stay reserved while native animations temporarily own
+movement. Holding R2/RT therefore cannot become Mario's camera button during
+the handoff. A held binding must be released before taking a new meaning after
+a character switch or rebind. Deliberate unassigned camera controls and fresh
+menu/dialog confirmation still work.
+
+Headless validation passed 624 checks executing the actual push/pull action and
+door-spawn code with explicit animation-service mocks, 208 presentation cases
+with actual packet-codec round trips, and 133 handoff checks using the real SDL
+reader with a process-local virtual controller. Both new regressions fail
+behaviorally against v0.2.3. Existing network/transport tests and all 1,323
+PSS/JRB/CCM entrance assertions also passed with ASan/UBSan.
+
+These tests do not establish live animation playback, physical-controller or
+two-PC acceptance. No game or foreground window was started. The release is
+checked for package integrity, private/prohibited inputs, notices, and reuse
+of copied assets, saves and preferences before publication.

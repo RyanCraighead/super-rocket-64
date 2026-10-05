@@ -1,6 +1,9 @@
 /* Real SDL and keyboard readers with inert game/UI services. Virtual joystick
  * events stay inside this test process; no video, audio or OS input is used. */
-#include "../../../src/pc/controller/controller_sdl.c"
+#ifndef CONTROLLER_SDL_SOURCE
+#define CONTROLLER_SDL_SOURCE "../../../src/pc/controller/controller_sdl.c"
+#endif
+#include CONTROLLER_SDL_SOURCE
 #include "../../../src/pc/controller/controller_keyboard.c"
 #include <assert.h>
 #ifdef _WIN32
@@ -9,7 +12,7 @@ void WIN_UpdateKeymap(void){}
 #endif
 
 static RocketGamepad observed;
-static int car_enabled=1,car_selected=1,tony_enabled,panel_active,panel_focus,wheel_open;
+static int car_enabled=1,car_selected=1,car_drawable=1,wheel_enabled,tony_enabled,panel_active,panel_focus,wheel_open;
 static bool focused=true;
 static bool has_focus(void){return focused;}
 static struct GfxWindowManagerAPI window_api={.has_focus=has_focus};
@@ -30,10 +33,10 @@ KEY(A);KEY(B);KEY(X);KEY(Y);KEY(Z);KEY(L);KEY(R);KEY(Start);
 KEY(CUp);KEY(CDown);KEY(CLeft);KEY(CRight);KEY(StickUp);KEY(StickDown);KEY(StickLeft);KEY(StickRight);
 KEY(DUp);KEY(DDown);KEY(DLeft);KEY(DRight);
 int rocket_runtime_enabled(void){return car_enabled;}
-int rocket_runtime_owns_controls(void){return car_enabled&&car_selected;}
+int rocket_runtime_owns_controls(void){return car_enabled&&car_selected&&car_drawable;}
 void rocket_runtime_gamepad(const RocketGamepad *p){observed=p?*p:(RocketGamepad){0};}
 void rocket_runtime_interrupt(void){}
-int character_switch_enabled(void){return 0;}
+int character_switch_enabled(void){return wheel_enabled;}
 int character_switch_accepts(enum CharacterSwitchId id){(void)id;return car_selected;}
 enum CharacterSwitchId character_switch_active(void){return car_selected?CHARACTER_OCTANE:CHARACTER_MARIO;}
 int thps_runtime_enabled(void){return tony_enabled;}
@@ -76,6 +79,7 @@ static RocketInput poll(void){
     return rocket_gamepad_merge(&keyboard,&observed);
 }
 static void button(SDL_GameControllerButton b,int down){assert(!SDL_JoystickSetVirtualButton(device,b,down));}
+#include "test_door_input_handoff.inc.c"
 int main(void){
     /* Ignore physical devices; the reader opens only our explicit virtual index. */
     SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS,"1");
@@ -90,14 +94,13 @@ int main(void){
     panel_active=0;out=poll();assert(!out.boost); // held across closing settings
     button(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,0);poll();
     button(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,1);out=poll();assert(out.boost);
-    for(int capture=0;capture<6;++capture) {
+    for(int capture=0;capture<5;++capture) {
         switch(capture) {
             case 0:gDjuiConsoleFocus=true;break;
             case 1:gDjuiChatBoxFocus=true;break;
             case 2:gDialogID=0;break;
             case 3:sCurrPlayMode=PLAY_MODE_PAUSED;break;
-            case 4:panel_focus=1;break;
-            case 5:wheel_open=1;break;
+            case 4:wheel_open=1;break;
         }
         assert(!poll().boost);
         gDjuiConsoleFocus=gDjuiChatBoxFocus=false;gDialogID=DIALOG_NONE;
@@ -132,6 +135,7 @@ int main(void){
     attach();button(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,1);assert(!poll().boost);
     button(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,0);poll();button(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,1);assert(poll().boost);
     button(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,0);poll();
+    test_door_input_handoff();
     /* The car profile never changes the standard Mario / Tony bindings. */
     car_enabled=car_selected=0;configRocketBindings.action[RA_JUMP]=RB_RB;poll();
     button(SDL_CONTROLLER_BUTTON_A,1);poll();assert(host_pad.button&A_BUTTON);

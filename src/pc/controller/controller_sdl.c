@@ -62,6 +62,21 @@ static u32 last_gamepad = 0;
 static bool gamepad_rearm = true, gamepad_connected = false;
 static int gamepad_context = -1;
 static bool gamepad_window_active=true;
+/* Car controls keep their meaning while native door/star actions borrow motion.
+ * A held car binding must also be released before becoming a Mario/camera key
+ * after a character switch or rebind, including analog trigger deadzones. */
+static u32 rocket_reserved_held;
+static u32 controller_rocket_reserved_keys(void) {
+    static const int keys[RB_COUNT]={-1,SDL_CONTROLLER_BUTTON_A,SDL_CONTROLLER_BUTTON_B,
+        SDL_CONTROLLER_BUTTON_X,SDL_CONTROLLER_BUTTON_Y,SDL_CONTROLLER_BUTTON_LEFTSHOULDER,
+        SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,SDL_CONTROLLER_BUTTON_LEFTSTICK,SDL_CONTROLLER_BUTTON_RIGHTSTICK,
+        SDL_CONTROLLER_BUTTON_DPAD_UP,SDL_CONTROLLER_BUTTON_DPAD_DOWN,SDL_CONTROLLER_BUTTON_DPAD_LEFT,
+        SDL_CONTROLLER_BUTTON_DPAD_RIGHT,VK_LTRIGGER-VK_BASE_SDL_GAMEPAD,VK_RTRIGGER-VK_BASE_SDL_GAMEPAD};
+    const RocketBindings *b=rocket_bindings_valid(&configRocketBindings)?&configRocketBindings:&rocket_default_bindings;
+    u32 mask=0;
+    for(int i=0;i<RA_COUNT;i++)if(keys[b->action[i]]>=0)mask|=1u<<keys[b->action[i]];
+    return mask;
+}
 extern s16 gMenuMode;
 extern s32 gDialogID;
 static bool controller_game_ui_active(void) {
@@ -95,7 +110,7 @@ static void controller_release_gamepad(void) {
     last_joybutton=VK_INVALID;
     gamepad_rearm=true;
     if(gamepad_connected)thps_adapter_pause_inputs();
-    gamepad_connected=false;
+    gamepad_connected=false;rocket_reserved_held=0;
     character_wheel_gamepad(0,0,0,0,0,0);
 }
 
@@ -368,15 +383,20 @@ static void controller_sdl_read(OSContPad *pad) {
     rocketRaw.left_trigger=ltrig;rocketRaw.right_trigger=rtrig;
     for (unsigned i=0;i<MAX_JOYBUTTONS;++i) if(raw_buttons[i]) rocketRaw.buttons|=1u<<i;
     const bool rocketActive=rocket_runtime_enabled() && character_switch_accepts(CHARACTER_OCTANE);
-    const bool modern = thps_runtime_enabled() || character_switch_enabled() || rocketActive;
     const bool ui = controller_game_ui_active();
+    u32 heldKeys=rocketRaw.buttons;
+    if(rocket_pad_trigger(ltrig)>0)heldKeys|=1u<<(VK_LTRIGGER-VK_BASE_SDL_GAMEPAD);
+    if(rocket_pad_trigger(rtrig)>0)heldKeys|=1u<<(VK_RTRIGGER-VK_BASE_SDL_GAMEPAD);
+    rocket_reserved_held&=heldKeys;
+    if(rocketActive&&sdl_cntrl&&!ui)rocket_reserved_held|=controller_rocket_reserved_keys()&heldKeys;
+    const bool modern = thps_runtime_enabled() || character_switch_enabled() || rocketActive;
     const bool allowed = gamepad_window_active && gWindowApi->has_focus() && !0;
     bool modernBlocked = false;
     if (modern) {
         int context=(int)character_switch_active()*32 + (thps_adapter_controller_active()?1:0) + (ui?2:0) + (allowed?0:4) + (character_wheel_is_open()?8:0);
         if(context!=gamepad_context){gamepad_context=context;gamepad_rearm=true;thps_adapter_pause_inputs();}
         bool neutral=abs(leftx)<8000&&abs(lefty)<8000&&abs(rightx)<8000&&abs(righty)<8000;
-        if (rocketActive)
+        if (rocketActive || rocket_reserved_held)
             neutral = neutral && rocket_bindings_neutral(&rocketRaw);
         for(unsigned i=0;i<MAX_JOYBUTTONS;++i)if(raw_buttons[i])neutral=false;
         if(!allowed)gamepad_rearm=true;
@@ -388,7 +408,7 @@ static void controller_sdl_read(OSContPad *pad) {
         character_wheel_gamepad(sdl_cntrl!=NULL,allowed&&!ui,wheel_hold,raw_buttons[SDL_CONTROLLER_BUTTON_B],leftx,lefty);
         modernBlocked = gamepad_rearm || !allowed || character_wheel_blocks_gameplay();
     }
-    int rocketIsolated = sdl_cntrl && rocket_runtime_owns_controls() &&
+    int rocketIsolated = sdl_cntrl && rocketActive &&
         !ui && !modernBlocked;
     RocketGamepad rocketPad = {0};
     rocketPad.ui_blocked=ui||!allowed||modernBlocked;
@@ -459,14 +479,14 @@ static void controller_sdl_read(OSContPad *pad) {
     }
 
     if (rocketIsolated) {
-        // The car consumes raw standardized gamepad input; keep host pause and
-        // camera controls, and let the keyboard backend add its own bindings.
+        // Pause and deliberate camera bindings remain available. Assigned car
+        // controls cannot also trigger a camera action, even during cutscenes.
         if (SDL_GameControllerGetButton(sdl_cntrl,SDL_CONTROLLER_BUTTON_START)) buttons_down |= START_BUTTON;
-    } else {
-        for (u32 i = 0; i < num_joy_binds; ++i)
-            if (joy_buttons[joy_binds[i][0]])
-                buttons_down |= joy_binds[i][1];
     }
+    const u32 cameraMask=L_TRIG|R_TRIG|U_CBUTTONS|D_CBUTTONS|L_CBUTTONS|R_CBUTTONS;
+    for (u32 i = 0; i < num_joy_binds; ++i)
+        if (joy_buttons[joy_binds[i][0]] && !(rocket_reserved_held&(1u<<joy_binds[i][0])))
+            buttons_down |= rocketIsolated ? (joy_binds[i][1]&cameraMask) : joy_binds[i][1];
 
     pad->button |= buttons_down;
 
