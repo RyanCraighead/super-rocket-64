@@ -13,5 +13,8 @@ def prepare(destination):
     code='/* Generated verbatim from the native sources; do not commit. */\n'
     for path,names,variables in parts:
         code+=slice_source((repo/path).read_text(),names,variables)
+    # The extracted wind helpers do not use sockets. The public Windows-only
+    # tree intentionally excludes Linux socket implementations.
+    code=code.replace('#include "pc/network/socket/socket.h"', '')
     Path(destination).write_text(code)
 if __name__=='__main__':prepare(sys.argv[1])

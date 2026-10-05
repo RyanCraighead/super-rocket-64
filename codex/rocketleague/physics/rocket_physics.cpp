@@ -40,10 +40,18 @@ struct Mesh {
     bool hasPose=false,hasMotion=false;
 };
 constexpr int HOST_MESH_TAG=0x534d3634;
+bool validMaterial(unsigned material) {
+    if ((material & ~15u) || (material & 3u) == 3u) return false;
+    return !(material & ROCKET_MATERIAL_RACE_SLIDE) || material ==
+        (ROCKET_MATERIAL_RACE_SLIDE | ROCKET_MATERIAL_VERY_SLIPPERY | ROCKET_MATERIAL_SLIDING);
+}
 float materialGrip(const Mesh *mesh,int index) {
     if(!mesh||!mesh->surfaceMode||*mesh->surfaceMode!=ROCKET_SURFACES_NATIVE||
        index<0||(size_t)index>=mesh->faces.size())return 1.f;
     unsigned material=mesh->faces[index].material;
+    // Retain the ordinary native ice coefficient on the scoped race slopes.
+    // This restores steer/brake response without full Car-grip traction.
+    if(material&ROCKET_MATERIAL_RACE_SLIDE)return .25f;
     if(material&ROCKET_MATERIAL_SLIDING)return 0.f;
     // Ratios of native neutral slide losses: .02/.08 (ice), .04/.08
     // (slippery). These are a car adaptation, not Mario controller parity.
@@ -130,7 +138,7 @@ btVector3 angularVelocity(const btTransform &from,const btTransform &to,float dt
 void validatePlatformTriangles(const RocketPlatform &platform) {
     if(platform.count==0||platform.count>MAX_HOST_TRIANGLES||!platform.triangles)
         throw std::runtime_error("Invalid platform collision geometry");
-    for(size_t i=0;i<platform.count;++i)if((platform.triangles[i].material&~7u)||(platform.triangles[i].material&3u)==3u)throw std::runtime_error("Invalid platform material");
+    for(size_t i=0;i<platform.count;++i)if(!validMaterial(platform.triangles[i].material))throw std::runtime_error("Invalid platform material");
     for(size_t i=0;i<platform.count;++i)for(int v=0;v<3;++v){
         const float *point=platform.triangles[i].v[v];
         if(!finite3(point))throw std::runtime_error("Nonfinite platform vertex");
@@ -450,7 +458,7 @@ extern "C" int rocket_world_mesh(RocketWorld *w,int layer,const RocketTriangle *
         if(count) {
             next.triangles=std::make_unique<btTriangleMesh>();
             for(size_t i=0;i<count;++i) {
-                if((triangles[i].material&~7u)||(triangles[i].material&3u)==3u)throw std::runtime_error("Invalid surface material");
+                if(!validMaterial(triangles[i].material))throw std::runtime_error("Invalid surface material");
                 btVector3 p[3];
                 for(int v=0;v<3;++v) {
                     if(!finite3(triangles[i].v[v])) throw std::runtime_error("Nonfinite collision vertex");
