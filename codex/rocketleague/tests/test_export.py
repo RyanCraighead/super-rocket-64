@@ -3,8 +3,10 @@ from pathlib import Path
 import struct
 import sys
 import unittest
+import tempfile
+import hashlib
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tools'))
-from export_octane import compact_chunks
+from export_octane import compact_chunks, inspect_game, check_game
 
 class ChunkLayout(unittest.TestCase):
     def sample(self):
@@ -26,5 +28,39 @@ class ChunkLayout(unittest.TestCase):
             with self.assertRaises(ValueError):compact_chunks(data,0,2,package)
         package[20]=0
         with self.assertRaises(ValueError):compact_chunks(plain,0,2,package)
+
+class PackagePreflight(unittest.TestCase):
+    def test_missing_package_identifies_file_and_recovery(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaisesRegex(ValueError, 'Body_Octane_SF.upk.*finish or verify'):
+                check_game(Path(tmp))
+
+    def test_unsupported_packages_report_both_hashes_without_writing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cooked = root / 'TAGame/CookedPCConsole'
+            cooked.mkdir(parents=True)
+            for name in ('Body_Octane_SF.upk', 'wheel_sport80_SF.upk'):
+                (cooked / name).write_bytes(b'SYNTHETIC - NOT A PACKAGE')
+            before = {p.relative_to(root).as_posix(): (p.read_bytes(), p.stat().st_mtime_ns)
+                      for p in root.rglob('*') if p.is_file()}
+            report = inspect_game(root)
+            self.assertFalse(report['supported'])
+            self.assertEqual(len(report['packages']), 2)
+            with self.assertRaisesRegex(ValueError, 'Body_Octane_SF.upk.*wheel_sport80_SF.upk'):
+                check_game(root)
+            after = {p.relative_to(root).as_posix(): (p.read_bytes(), p.stat().st_mtime_ns)
+                     for p in root.rglob('*') if p.is_file()}
+            self.assertEqual(before, after)
+            for record in report['packages'].values():
+                self.assertEqual(record['sha256'], hashlib.sha256(b'SYNTHETIC - NOT A PACKAGE').hexdigest())
+
+    def test_empty_package_is_rejected_before_tools(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cooked = Path(tmp) / 'TAGame/CookedPCConsole'
+            cooked.mkdir(parents=True)
+            (cooked / 'Body_Octane_SF.upk').touch()
+            with self.assertRaisesRegex(ValueError, 'Invalid Rocket League package size'):
+                inspect_game(Path(tmp))
 
 if __name__=='__main__':unittest.main()
