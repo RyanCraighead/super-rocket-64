@@ -72,7 +72,8 @@ Host defaults to port 7777; share a reachable LAN/Tailscale address and port.
 Join uses your host's IP/address and port. Configure Tailscale yourself.
 No firewall, VPN or security settings are changed. Keep source games and saves
 private. Cancel/retry and cached verified assets are supported.
-This baseline does not create shortcuts or check for new releases.
+Updates & settings offers optional startup checks and Desktop/Start Menu shortcuts.
+Updates ask before downloading; the previous launcher is kept for rollback.
 See licenses/baseline and codex/windows/THIRD_PARTY_NOTICES.txt for attribution.
 '''
 manifest={'schema_version':4,'edition':'super-rocket-64','release_status':'public-preview','upstream_commit':'8cd6e5977d9f920d51ca71f2c61801d019ed79c6','files':{name:{'size':len(data),'sha256':sha(data)} for name,data in sorted(files.items())}}

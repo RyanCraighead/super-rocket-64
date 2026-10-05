@@ -25,13 +25,17 @@ RocketSim is an approximate reconstruction. This is a fan project, not Rocket Le
 First-time setup:
 
 1. Download the **Super Rocket 64 Windows x64 EXE** from this repository's Releases page.
-2. Open it and choose your own supported **Super Mario 64 US ROM** and **Rocket League installation**. Setup checks their contents, obtains the pinned extraction tools, and builds your assets locally. You do not install Python or manage UE Viewer yourself.
+2. Open it, save your update/shortcut preferences, then choose **Setup SM64 + Rocket League** and your own supported **Super Mario 64 US ROM** and **Rocket League installation**. Setup checks their contents, obtains the pinned extraction tools, and builds your assets locally. You do not install Python or manage UE Viewer yourself.
 3. Choose **No** for optional characters to finish, or **Yes** to select additional characters and provide only their required game files.
 4. Choose **Offline** to enter the game as Octane. Hold **F7** or the controller's **Share/Back** button to open the character wheel on safe ground.
 
 Exact supported releases matter. Rocket League extraction currently accepts the audited **Steam build 25535926** package profile; support for an arbitrary current Steam or Epic installation is not claimed. See [supported source games and formats](docs/ASSET-SOURCES.md) before preparing files.
 
 Your ROMs, extracted assets, saves and controller settings stay on your PC. They are never part of the public download. Setup is designed to validate cached tools and completed profiles, resume after a failed optional installation, and preserve saves across launcher updates.
+
+## Updates and shortcuts
+
+Startup update checks are opt-in. **Updates & settings** lets you check manually, change the preference, create Desktop/Start Menu shortcuts, or remove those shortcuts without deleting your data. New releases ask before downloading and restarting; the previous launcher is retained for rollback. [Update, shortcut and removal details](docs/UPDATES.md).
 
 ## Play together
 
