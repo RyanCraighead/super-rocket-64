@@ -248,3 +248,28 @@ entrance bridges, presentation and packet ingress are regression-tested.
 These are headless component tests with explicit service fixtures. Live
 Whomp gameplay, visual acceptance and two-PC testing remain pending. The
 active game, controller, saves and foreground were not used for these tests.
+
+
+## v0.2.8 native pipe entry
+
+Octane could balance on a standard pipe rim above its native warp cylinder.
+The reproduced fault affects the Bowser 1 and 3 lead-up pipes and all six
+Tiny-Huge Island size-change pipe endpoints. The adapter now stages a native
+warp interaction only for contact with the actual loaded, upright pipe rim,
+inside native horizontal reach, while descending or resting. Native dispatch
+still controls the destination, transition, emergence and re-entry cooldown.
+Blocked, stale, remote, scaled, altered and unsynchronized contacts are rejected.
+
+All nine native pipe/hole routes were audited. Bowser 2's larger floor hole
+already receives the car and is unchanged. Castle doors, star/key requirements,
+endless stairs, the CCM chimney, other warps and all save data are unchanged.
+
+Private owned geometry and actual RocketSim poses reproduced the original
+standard-pipe hang at four headings; the unmodified adapter failed the new
+behavior test. The corrected adapter passed 18,618 assertions with those
+inputs and 849 generated-fixture assertions. Exact native collision/dispatch
+bodies and route metadata passed 26,568 checks across all nine routes,
+including local offline/host/client ownership, repeat visits, emergence and
+the native 30-frame re-entry timer. These are headless component tests with
+explicit service boundaries, not live gameplay or two-PC acceptance. No
+extracted geometry or game assets are included in the source or release.

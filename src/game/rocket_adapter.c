@@ -444,6 +444,7 @@ int rocket_adapter_enemy_visible(const float from[3],struct Object *object,unsig
 #include "rocket_ccm_chimney.inc.h"
 #include "rocket_jrb_entry.inc.h"
 #include "rocket_pss_entry.inc.h"
+#include "rocket_pipe_entry.inc.h"
 /* Read the already-remapped car jump without forwarding it to unrelated
  * native actions. No target consumes it here: ordinary jumping stays intact. */
 static void prepare_text_input(struct MarioState *m) {
@@ -479,7 +480,7 @@ void rocket_adapter_prepare_interactions(struct MarioState *m) {
        m->riddenObj||m->heldByObj||m->freeze||sCurrPlayMode==PLAY_MODE_PAUSED||
        0||!gObjectLists)return;
     cap_pickups(m);
-    if(ccm_chimney_interaction(m)||jrb_ship_interaction(m)||pss_alcove_interaction(m))return;
+    if(rocket_pipe_interaction(m)||ccm_chimney_interaction(m)||jrb_ship_interaction(m)||pss_alcove_interaction(m))return;
     RocketSnapshot state;RocketInput keyboard=keyboard_input(m),input;
     if(!rocket_runtime_read_input(&keyboard,&input)||input.throttle<=.2f||input.jump||
        !rocket_runtime_snapshot(&state)||!state.grounded||state.basis[7]<.75f)return;
