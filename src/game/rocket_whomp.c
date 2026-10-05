@@ -63,8 +63,10 @@ static int whomp_back(struct Object *o,RocketWhompBack *b) {
     b->forward[0]=sins(o->oFaceAngleYaw);b->forward[1]=coss(o->oFaceAngleYaw);
     for(int k=0;k<2;k++){b->low[k]=low[k]*o->header.gfx.scale[k];b->high[k]=high[k]*o->header.gfx.scale[k];}
     b->height=o->oPosY-low[2]*o->header.gfx.scale[2];
+    /* Whomps are native collision surfaces. Their default -1 cylinder timer
+     * does not make the loaded back intangible; test the actual surface. */
     b->eligible=o->oAction==6&&o->oSubAction==0&&o->oTimer<=100&&
-        o->oIntangibleTimer==0&&!o->oSyncDeath&&!(o->header.gfx.node.flags&GRAPH_RENDER_INVISIBLE)&&
+        !o->oSyncDeath&&!(o->header.gfx.node.flags&GRAPH_RENDER_INVISIBLE)&&
         (o->oBehParams2ndByte==0||o->oHealth>0);
     return 1;
 }

@@ -60,17 +60,20 @@ static inline int rocket_whomp_wheels(const RocketSnapshot *c,const RocketWhompB
  * speed come from the immediately preceding airborne physical sample.
  * Flips damp center velocity in RocketSim. Measure the actual descending
  * chassis support instead, so pitching/rolling into the back needs no boost. */
-static inline int rocket_whomp_contact(RocketWhompContact *t,const RocketSnapshot *c,
-        uint32_t epoch,const RocketWhompBack *b,float witness[3]) {
+static inline int rocket_whomp_contact_with_support(RocketWhompContact *t,const RocketSnapshot *c,
+        uint32_t epoch,const RocketWhompBack *b,float witness[3],
+        int (*support)(const RocketSnapshot *,const RocketWhompBack *,float *)) {
     if(!t)return 0;
     if(!rocket_enemy_valid_pose(c)||!b){memset(t,0,sizeof(*t));return 0;}
     float p[3];rocket_whomp_lowest(c,p);
+    int overlap=!support||support(c,b,p);
     uint64_t dt=c->ticks-t->previous.ticks;
     if(t->valid&&epoch==t->epoch&&!dt)return 0;
     int hit=0,above=p[1]>b->height+ROCKET_WHOMP_SKIN+8.f;
     if(t->valid&&epoch==t->epoch&&dt>0&&dt<=12) {
         const RocketSnapshot *a=&t->previous;
         float old[3];rocket_whomp_lowest(a,old);
+        if(support)support(a,&t->back,old);
         float gap=old[1]-t->back.height,now=p[1]-b->height;
         float travel[3],distance=0,turn=0;
         for(int k=0;k<3;k++){travel[k]=c->position[k]-a->position[k];distance+=travel[k]*travel[k];}
@@ -82,14 +85,14 @@ static inline int rocket_whomp_contact(RocketWhompContact *t,const RocketSnapsho
         for(int k=0;k<2;k++)stationary=stationary&&fabsf(b->right[k]-t->back.right[k])<.001f&&
             fabsf(b->low[k]-t->back.low[k])<.001f&&fabsf(b->high[k]-t->back.high[k])<.001f;
         int wheels=0;for(int k=0;k<4;k++)wheels|=a->wheel_contacts[k];
-        int physical=t->armed&&contact&&b->eligible&&t->back.eligible&&stationary&&
+        int physical=overlap&&t->armed&&contact&&b->eligible&&t->back.eligible&&stationary&&
             !a->grounded&&a->air_time>=1.f/30.f&&now>=-12.f&&
             c->position[1]>b->height&&
             distance<=7500.f*7500.f*seconds*seconds&&
             /* Bound rotation by elapsed physics time, including a lost pose.
              * A fixed per-packet cap rejected valid 10 Hz flip samples. */
             turn<=2.f*ROCKET_WHOMP_MAX_SWEEP_SPIN*ROCKET_WHOMP_MAX_SWEEP_SPIN*seconds*seconds+.01f&&
-            rocket_whomp_inside(b,c->position)&&rocket_whomp_inside(b,p);
+            (support||rocket_whomp_inside(b,c->position))&&rocket_whomp_inside(b,p);
         if(physical) {
             float spin2=a->angular_velocity[0]*a->angular_velocity[0]+a->angular_velocity[2]*a->angular_velocity[2];
             int flip=a->flipped&&a->flipping&&isfinite(a->flip_time)&&a->flip_time>=0&&a->flip_time<=.65f&&
@@ -109,5 +112,9 @@ static inline int rocket_whomp_contact(RocketWhompContact *t,const RocketSnapsho
     } else t->armed=above;
     t->previous=*c;t->back=*b;t->epoch=epoch;t->valid=1;
     return hit;
+}
+static inline int rocket_whomp_contact(RocketWhompContact *t,const RocketSnapshot *c,
+        uint32_t epoch,const RocketWhompBack *b,float witness[3]) {
+    return rocket_whomp_contact_with_support(t,c,epoch,b,witness,NULL);
 }
 #endif

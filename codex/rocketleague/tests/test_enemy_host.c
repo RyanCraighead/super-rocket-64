@@ -1,3 +1,4 @@
+#include "player_bump_fixture_stubs.h"
 /* Production adapter + real raw-pose network accessor, inert world services.
  * No sockets, saves, renderer or controller are used. */
 #include "../../../src/game/rocket_enemy.c"

@@ -38,12 +38,16 @@ static s16 collision[]={TERRAIN_LOAD_VERTICES,8,
 int boss_net_simulates(const struct Object *obj){assert(obj==&enemy);return authority;}
 int boss_net_managed(const struct Object *obj){assert(obj==&enemy);return gCLIOpts.characterNet;}
 uint32_t boss_net_epoch(const struct Object *obj){assert(obj==&enemy);return authorityEpoch;}
+#ifndef ROCKET_ATTACK_NATIVE_GEOMETRY
 int rocket_adapter_whomp_path_clear(const float a[3],const float b[3],struct Object *obj){(void)a;(void)b;assert(obj==&enemy);return visible;}
+#endif
+#ifndef ROCKET_ATTACK_NATIVE_GEOMETRY
 f32 find_floor(f32 x,f32 y,f32 z,struct Surface **floor){
     (void)x;(void)y;(void)z;
     if(checkLoopOrder){assert(collisionLoads==1&&!nativeActions&&!nativeMoved);witnessQueries++;}
     *floor=wrongWheel&&x>0&&z>300?&otherSurface:&backSurface;return 100.f*enemy.header.gfx.scale[2];
 }
+#endif
 /* These services let bhv_whomp_loop itself dispatch the real native actions. */
 struct SyncObject *sync_object_init(struct Object *obj,float distance){
     (void)obj;(void)distance;assert(0);return NULL; // Fixture identity is already initialized.
@@ -60,11 +64,13 @@ void cur_obj_call_action_function(void (*actions[])(void),uint32_t count){
 }
 void cur_obj_move_standard(s16 slope){assert(slope==-20);nativeMoved++;}
 s32 cur_obj_hide_if_mario_far_away_y(f32 distance){(void)distance;return 0;}
+#ifndef ROCKET_ATTACK_NATIVE_GEOMETRY
 void load_object_collision_model(void){
     assert(gCurrentObject==&enemy&&checkLoopOrder);
     collisionLoads++;loadedY=enemy.oPosY;loadedPitch=enemy.oFaceAnglePitch;
     loadedAfterAction=nativeActions;loadedAfterMove=nativeMoved;
 }
+#endif
 struct Object *nearest_player_to_object(struct Object *obj){(void)obj;return &players[0];}
 struct MarioState *nearest_mario_state_to_object(struct Object *obj){(void)obj;return &gMarioStates[0];}
 s32 cur_obj_is_mario_ground_pounding_platform(void){return groundPound;}
@@ -115,7 +121,7 @@ static RocketSnapshot down(float gap,uint64_t ticks){
 static void start(int king,int net){
     fresh(king?bhvWhompKingBoss:bhvSmallWhomp,net);memset(whompHistories,0,sizeof whompHistories);
     enemy.oBehParams2ndByte=king;enemy.oHealth=3;enemy.oAction=6;enemy.oFaceAnglePitch=0x4000;
-    enemy.oNumLootCoins=5;enemy.collisionData=collision;
+    enemy.oNumLootCoins=5;enemy.collisionData=collision;enemy.oIntangibleTimer=-1; // Native surface-object allocation default.
     for(int k=0;k<3;k++)enemy.header.gfx.scale[k]=1;
     memset(&backSurface,0,sizeof backSurface);backSurface.object=&enemy;backSurface.normal.y=1;
     gTimeStopState=groundPound=onPlatform=loot=stars=deleted=wrongWheel=0;authority=authorityEpoch=1;
@@ -230,7 +236,7 @@ static void resting_native_tests(void){
             case 5:localCar.position[1]=90;break;
             case 6:enemy.oAction=5;break;
             case 7:enemy.oSubAction=1;break;
-            case 8:enemy.oIntangibleTimer=-1;break;
+            case 8:backSurface.flags=SURFACE_FLAG_INTANGIBLE;break;
             case 9:authority=0;break;
             case 10:backSurface.object=&players[0];break;
             case 11:backSurface.normal.y=.5f;break;

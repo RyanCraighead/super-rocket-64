@@ -1,7 +1,7 @@
 #include "rocket_switch.h"
 #include "sm64.h"
 #include "rocket_adapter.h"
-#include "../../codex/rocketleague/physics/whomp_impact.h"
+#include "../../codex/rocketleague/physics/switch_contact.h"
 #include "pc/rocket_runtime.h"
 #include "pc/network/network.h"
 #include "area.h"
@@ -80,7 +80,8 @@ int rocket_switch_ground_pound(struct Object *object) {
     RocketSnapshot car;RocketWhompBack top;
     if(!rocket_adapter_interaction_snapshot(&car)||!switch_top(object,&top)) {rocket_switch_forget(object);return 0;}
     float previous[3],point[3];rocket_whomp_lowest(&h->contact.previous,previous);
-    int kind=rocket_whomp_contact(&h->contact,&car,rocket_runtime_epoch(),&top,point);
+    rocket_switch_lowest(&h->contact.previous,&h->contact.back,previous);
+    int kind=rocket_switch_contact(&h->contact,&car,rocket_runtime_epoch(),&top,point);
     if(!kind)return 0;
     struct Surface *floor=NULL;struct Object *saved=gCurrentObject;gCurrentObject=m->marioObj;
     float height=find_floor(point[0],top.height+24.f,point[2],&floor);gCurrentObject=saved;
