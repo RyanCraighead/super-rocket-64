@@ -12,6 +12,10 @@ static struct {
     RocketSnapshot footprint;
     float anchor[3];
 } whompCrush;
+static void whomp_crush_forget(struct Object *object) {
+    /* Offline pool slots can be reused with the same zero sync ID and mesh. */
+    if(whompCrush.object==object)memset(&whompCrush,0,sizeof whompCrush);
+}
 static int crush_object(const struct Object *o,const struct MarioState *m,int entering) {
     if(!o||(o->behavior!=bhvSmallWhomp&&o->behavior!=bhvWhompKingBoss)||
        !(o->activeFlags&ACTIVE_FLAG_ACTIVE)||(o->activeFlags&(ACTIVE_FLAG_DORMANT|ACTIVE_FLAG_IN_DIFFERENT_ROOM))||

@@ -87,12 +87,13 @@ static void gates(void){
     setup(170,0,0);mario.floorHeight=chimneyFloorHeight=15;nativeFloor->flags=SURFACE_FLAG_DYNAMIC;
     rocket_adapter_prepare_interactions(&mario);CHECK(mario.pos[0]==170&&mario.pos[1]==15);
     // Identity/area/selection/respawn do not retain the old crusher or pose.
-    for(int reset=0;reset<4;reset++){
+    for(int reset=0;reset<5;reset++){
         setup(170,0,0);rocket_adapter_prepare_interactions(&mario);rocket_adapter_update(&mario);
         if(reset==0)crusher.oSyncID++;
         if(reset==1)gCurrLevelNum++;
         if(reset==2)selected=0;
         if(reset==3)mario.action=ACT_DISAPPEARED;
+        if(reset==4)rocket_adapter_forget_platform(&crusher);
         mario.ceil=NULL;mario.ceilHeight=20000;rocket_adapter_prepare_interactions(&mario);
         CHECK(!whompCrush.object&&!mario.ceil);selected=1;
     }

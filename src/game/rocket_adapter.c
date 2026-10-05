@@ -42,6 +42,7 @@ static uint64_t frame,meshHashes[2];
 static Vec3f lastPosition;
 static int phaseActive,haveClearPose;
 static RocketSnapshot clearPose;
+static void whomp_crush_forget(struct Object *object);
 static int native_phase_surface(const struct Surface *surface) {
     return surface&&surface->type==SURFACE_VANISH_CAP_WALLS&&
         (gLevelValues.fixVanishFloors||fabsf(surface->normal.y)<=.01f);
@@ -103,6 +104,7 @@ static struct PlatformIdentity {
 } platformIdentities[1024];
 static uint64_t nextPlatformId;
 void rocket_adapter_forget_platform(struct Object *object) {
+    whomp_crush_forget(object);
     for(size_t i=0;i<1024;i++)if(platformIdentities[i].object==object)
         memset(&platformIdentities[i],0,sizeof platformIdentities[i]);
 }
