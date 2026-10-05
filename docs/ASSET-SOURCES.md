@@ -16,9 +16,9 @@ Extensions are hints; headers, size and checksums determine acceptance. ZIP inpu
 
 ## Rocket League profile
 
-Both stores use the installation root containing `TAGame/CookedPCConsole`. The launcher can find completed Epic installations from local Epic manifests; Browse remains available for either store. It does not need a Steam account or running Steam client. Package contents, not the store or installation folder name, determine compatibility.
+Both stores use the installation root containing `TAGame/CookedPCConsole`. Use the same Rocket League **Browse** folder picker for either store. It does not need a Steam account or running Steam client. Package contents, not the store or installation folder name, determine compatibility.
 
-The exact package pair below was tested automatically from Steam build **25535926**. Matching Epic files use the same extraction path. On **October 5, 2026 at 01:31 UTC**, Ryan reported that he tested the Epic installation and it worked. Epic installation is therefore **user-verified**; the automated coverage consists of Steam-input extraction and synthetic Epic-manifest discovery checks. The report did not specify an Epic build number or supply a separate automated test log. Future Epic or Steam updates may change these hashes.
+The exact package pair below was tested automatically from Steam build **25535926**. Matching Epic files use the same extraction path. On **October 5, 2026 at 01:31 UTC**, Ryan reported that he tested the Epic installation and it worked. Epic installation is therefore **user-verified**; the automated coverage consists of Steam-input extraction and shared folder-selection checks for both store layouts. The report did not specify an Epic build number or supply a separate automated test log. Future Epic or Steam updates may change these hashes.
 
 
 | File | SHA-256 |

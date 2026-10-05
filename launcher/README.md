@@ -12,13 +12,13 @@ Framework C# compiler. No private repository or game inputs are required.
 .\launcher\test-desktop.ps1
 ```
 
-- 36 baseline checks cover extraction/hash validation, path handling, saved data,
-  commands, optional source formats and LAN/Tailscale address classification.
+- 31 baseline checks cover extraction/hash validation, path handling, saved data,
+  commands, both store folder layouts, optional source formats and LAN/Tailscale address classification.
 - 22 updater checks cover release selection, offline/no-release responses,
   metadata/version mismatch, corrupted/partial downloads, cancellation, caching,
   operation locks, actual synthetic child probes/restart, rollback and actual
   shortcut targets/removal in isolated temporary folders.
-- 85 UI checks exercise first-run choices, saved opt-in, manual checks, prompts,
+- 95 UI checks exercise first-run choices, saved opt-in, manual checks, prompts,
   disabling checks, cancellation, offline/no-release messages, shortcuts and the
   existing setup/online navigation. The child runs on a new Windows desktop that
   is never activated. No global input is injected. It writes screenshots and an

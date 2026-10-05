@@ -69,3 +69,17 @@ game controls stayed disabled until the matching commit signal, then enabled;
 the launcher closed normally. The 1,864-entry payload/nested archive audit had
 no private-data or prohibited-input findings. These checks did not launch a game
 or alter real Desktop/Start Menu shortcuts, networking or security settings.
+
+## v0.2.1 folder picker simplification
+
+Rocket League setup now uses one Browse folder picker for Epic Games Store and
+Steam. The separate Epic discovery button and unused manifest code are removed;
+package checks and extraction are unchanged. Existing updater, shortcuts,
+assets, saves and configuration remain supported.
+
+The patch passed 31 headless checks, 22 updater/shortcut checks and 95 UI checks
+on a never-activated desktop, including both store folder layouts and Back
+navigation. The actual packaged EXE passed integrity/probe/restart checks and
+live GitHub HTTPS. Reusing copied v0.2.0 data preserved all 130 data files and
+launcher preferences. The 1,864-entry payload audit had no findings. Epic remains
+user-verified; two-PC/WAN and new physical-controller acceptance remain pending.
