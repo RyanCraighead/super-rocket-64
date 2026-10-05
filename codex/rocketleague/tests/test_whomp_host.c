@@ -23,7 +23,8 @@ const BehaviorScript bhvWhompKingBoss[]={11},bhvSmallWhomp[]={12};
 u32 gTimeStopState;
 static int authority=1,groundPound,onPlatform,loot,stars,deleted;
 static u32 authorityEpoch=1;
-static struct Surface backSurface;
+static struct Surface backSurface,otherSurface;
+static int wrongWheel;
 /* Observe the pose submitted by the actual native loop to its collision loader.
  * World movement stays inert; shake/rise pose changes come from native actions. */
 static int checkLoopOrder,collisionLoads,nativeActions,nativeMoved;
@@ -41,7 +42,7 @@ int rocket_adapter_whomp_path_clear(const float a[3],const float b[3],struct Obj
 f32 find_floor(f32 x,f32 y,f32 z,struct Surface **floor){
     (void)x;(void)y;(void)z;
     if(checkLoopOrder){assert(collisionLoads==1&&!nativeActions&&!nativeMoved);witnessQueries++;}
-    *floor=&backSurface;return 100.f*enemy.header.gfx.scale[2];
+    *floor=wrongWheel&&x>0&&z>300?&otherSurface:&backSurface;return 100.f*enemy.header.gfx.scale[2];
 }
 /* These services let bhv_whomp_loop itself dispatch the real native actions. */
 struct SyncObject *sync_object_init(struct Object *obj,float distance){
@@ -117,7 +118,7 @@ static void start(int king,int net){
     enemy.oNumLootCoins=5;enemy.collisionData=collision;
     for(int k=0;k<3;k++)enemy.header.gfx.scale[k]=1;
     memset(&backSurface,0,sizeof backSurface);backSurface.object=&enemy;backSurface.normal.y=1;
-    gTimeStopState=groundPound=onPlatform=loot=stars=deleted=0;authority=authorityEpoch=1;
+    gTimeStopState=groundPound=onPlatform=loot=stars=deleted=wrongWheel=0;authority=authorityEpoch=1;
     localCar=down(45,100);sWhompCarGroundPound=0;
 }
 static int advance(void){assert(!rocket_whomp_ground_pound(&enemy));localCar=down(1,104);gGlobalTimer++;return rocket_whomp_ground_pound(&enemy);}
@@ -180,6 +181,73 @@ static void send_flip(unsigned index,float gap,unsigned sequence,int end){
     assert(character_net_encode(wire,sizeof wire,&state)&&character_net_decode(&decoded,wire,sizeof wire));
     assert(character_net_accept(index,&decoded));
 }
+static RocketSnapshot resting(uint64_t ticks){
+    RocketSnapshot c={0};c.basis[2]=c.basis[3]=c.basis[7]=1;
+    c.position[1]=134;c.position[2]=250;c.grounded=1;c.ticks=ticks;
+    for(int i=0;i<4;i++){
+        c.wheel_contacts[i]=1;c.wheel_radius[i]=30;
+        c.wheel_position[i][0]=(i&1)?70:-70;c.wheel_position[i][1]=130;
+        c.wheel_position[i][2]=250+((i&2)?70:-70);
+    }
+    return c;
+}
+static void send_rest(unsigned sequence){
+    CharacterNetState s={0},decoded;uint8_t wire[CNET_WIRE_SIZE];
+    s.kind=CNET_OCTANE;s.active=CNET_DRIVING;s.interaction=1;s.epoch=1;s.sequence=sequence;
+    s.car=resting(100+4*sequence);
+    assert(character_net_encode(wire,sizeof wire,&s)&&character_net_decode(&decoded,wire,sizeof wire));
+    assert(character_net_accept(1,&decoded));
+}
+static void resting_native_tests(void){
+    for(int client=0;client<2;client++)for(int remote=0;remote<2;remote++){
+        start(1,1);gNetworkType=client?NT_CLIENT:NT_SERVER;
+        if(client){gNetworkPlayers[0].globalIndex=1;gNetworkPlayers[1].globalIndex=0;}
+        localActive=!remote;localCar=resting(100);if(remote)send_rest(1);
+        observed_native_loop();assert(enemy.oHealth==2&&enemy.oSubAction==1&&sends==1&&witnessQueries==4);
+        assert(!rocket_whomp_ground_pound(&enemy));
+        for(unsigned frame=2;frame<10;frame++){
+            localCar.ticks+=4;if(remote)send_rest(frame);gGlobalTimer++;
+            observed_native_loop();assert(enemy.oHealth==2&&sends==1); // parked through shake
+        }
+        // Leave and return while invulnerable: no second damage in this cycle.
+        localCar.position[2]+=1000;gGlobalTimer++;assert(!rocket_whomp_ground_pound(&enemy));
+        localCar=resting(160);if(remote)send_rest(11);gGlobalTimer++;
+        assert(!rocket_whomp_ground_pound(&enemy)&&enemy.oHealth==2);
+        // A new prone cycle is eligible again; no boost/flip edge is required.
+        enemy.oPosY=0;enemy.oAction=6;enemy.oSubAction=0;enemy.oTimer=0;
+        localCar=resting(168);if(remote)send_rest(12);gGlobalTimer++;
+        observed_native_loop();assert(enemy.oHealth==1&&sends==2&&witnessQueries==4);
+    }
+    start(0,0);localCar=resting(100);observed_native_loop();assert(enemy.oAction==8&&loot==5&&!stars);
+    for(int reject=0;reject<17;reject++){
+        start(1,1);localCar=resting(100);
+        switch(reject){
+            case 0:localCar.wheel_contacts[3]=0;break;
+            case 1:localCar.wheel_position[3][1]+=20;break;
+            case 2:localCar.wheel_position[3][0]=175;break;
+            case 3:localCar.grounded=0;break;
+            case 4:localCar.basis[3]=-1;localCar.basis[7]=-1;break;
+            case 5:localCar.position[1]=90;break;
+            case 6:enemy.oAction=5;break;
+            case 7:enemy.oSubAction=1;break;
+            case 8:enemy.oIntangibleTimer=-1;break;
+            case 9:authority=0;break;
+            case 10:backSurface.object=&players[0];break;
+            case 11:backSurface.normal.y=.5f;break;
+            case 12:visible=0;break;
+            case 13:localCar.wheel_radius[0]=NAN;break;
+            case 14:wrongWheel=1;break;
+            case 15:backSurface.flags=SURFACE_FLAG_INTANGIBLE;break;
+            case 16:enemy.behavior=bhvGoomba;break;
+        }
+        assert(!rocket_whomp_ground_pound(&enemy)&&enemy.oHealth==3&&!sends);
+    }
+    start(1,1);localActive=0;send_rest(1);now+=.21;
+    assert(!rocket_whomp_ground_pound(&enemy)); // stale remote parking is not evidence
+    start(1,1);localCar=resting(100);send_rest(1);observed_native_loop();
+    assert(enemy.oHealth==2&&sends==1); // simultaneous parked cars, one native consequence
+    puts("PASS four-wheel Whomp contact: upright rest/landing, small loot, king cooldown/new cycle, local/remote authority, duplicates/stale poses, side/underneath/partial contact rejection");
+}
 static void flip_native_tests(void){
     for(int client=0;client<2;client++)for(int remote=0;remote<2;remote++){
         start(1,1);gNetworkType=client?NT_CLIENT:NT_SERVER;
@@ -218,6 +286,7 @@ static void flip_native_tests(void){
 
 #ifndef ROCKET_WHOMP_FIXTURE_NO_MAIN
 int main(void){
+    resting_native_tests();
     flip_native_tests();
     collision_order_tests();
     start(1,0);assert(advance());sWhompCarGroundPound=1;king_whomp_on_ground();

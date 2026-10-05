@@ -35,6 +35,25 @@ static inline int rocket_whomp_inside(const RocketWhompBack *b,const float p[3])
     return at[0]>=b->low[0]+ROCKET_WHOMP_EDGE&&at[0]<=b->high[0]-ROCKET_WHOMP_EDGE&&
         at[1]>=b->low[1]+ROCKET_WHOMP_EDGE&&at[1]<=b->high[1]-ROCKET_WHOMP_EDGE;
 }
+/* Whomp-only passive attack: all four real tires must rest on the exposed
+ * back. The host additionally resolves every witness to this object's loaded
+ * upward-facing native collision. Kept separate from flip/dive policy because
+ * switches and other interactions must not gain a passive attack. */
+static inline int rocket_whomp_wheels(const RocketSnapshot *c,const RocketWhompBack *b,float points[4][3]) {
+    if(!rocket_enemy_valid_pose(c)||!b||!b->eligible||!c->grounded||c->flipping||
+       c->basis[7]<.95f||c->position[1]<=b->height||!rocket_whomp_inside(b,c->position))return 0;
+    for(int i=0;i<4;i++){
+        if(!c->wheel_contacts[i]||!isfinite(c->wheel_radius[i])||
+           c->wheel_radius[i]<=0||c->wheel_radius[i]>64.f)return 0;
+        for(int k=0;k<3;k++){
+            if(!isfinite(c->wheel_position[i][k])||fabsf(c->wheel_position[i][k]-c->position[k])>200.f)return 0;
+            points[i][k]=c->wheel_position[i][k];
+        }
+        points[i][1]-=c->wheel_radius[i];
+        if(fabsf(points[i][1]-b->height)>ROCKET_WHOMP_SKIN||!rocket_whomp_inside(b,points[i]))return 0;
+    }
+    return 1;
+}
 /* Returns 1=flip, 2=boosted dive; witness is an actual chassis support point.
  * Target motion, duplicate ticks, reset epochs and overlap cannot create entry.
  * Post-contact velocity may already have been stopped by Bullet; intent and

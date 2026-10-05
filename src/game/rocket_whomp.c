@@ -104,9 +104,25 @@ int rocket_whomp_ground_pound(struct Object *object) {
         if(h->generations[index]!=generation)memset(track,0,sizeof(*track));
         h->generations[index]=generation;
         if(!available){memset(track,0,sizeof(*track));continue;}
-        float previous[3],point[3];rocket_whomp_lowest(&track->previous,previous);
+        float previous[3],point[3],wheels[4][3];rocket_whomp_lowest(&track->previous,previous);
+        int fresh=!track->valid||epoch!=track->epoch||car.ticks!=track->previous.ticks;
         int kind=rocket_whomp_contact(track,&car,epoch,&back,point);
+        if(fresh&&rocket_whomp_wheels(&car,&back,wheels))kind=3;
         if(!kind||accepted)continue;
+        if(kind==3){
+            int supported=1;
+            for(int i=0;i<4&&supported;i++){
+                struct Surface *floor=NULL;struct Object *saved=gCurrentObject;gCurrentObject=m->marioObj;
+                float height=find_floor(wheels[i][0],back.height+24.f,wheels[i][2],&floor);gCurrentObject=saved;
+                supported=floor&&floor->object==object&&floor->normal.y>=.99f&&
+                    !(floor->flags&SURFACE_FLAG_INTANGIBLE)&&fabsf(height-back.height)<=3.f&&
+                    rocket_adapter_whomp_path_clear(car.position,wheels[i],object);
+            }
+            if(!supported)continue;
+            /* Native oSubAction/health progression still consumes one hit per
+             * vulnerable attack cycle, even if the car stays parked or returns. */
+            accepted=1;continue;
+        }
         /* Require the actual native upward-facing triangle at the chassis
          * witness. A roof, missing mesh or a different platform fails closed. */
         struct Surface *floor=NULL;struct Object *saved=gCurrentObject;gCurrentObject=m->marioObj;

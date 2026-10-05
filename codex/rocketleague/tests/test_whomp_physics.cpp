@@ -28,7 +28,25 @@ static void trajectory(int flip,int boost,int expected) {
     }
     CHECK(hits==(expected?1:0));rocket_world_destroy(world);
 }
+static void passive_landing(){
+    RocketWorld *w=rocket_world_create();CHECK(w);
+    RocketTriangle mesh[]={{{{-180,100,50},{180,100,450},{180,100,50}},0},
+        {{{-180,100,50},{-180,100,450},{180,100,450}},0}};
+    CHECK(rocket_world_mesh(w,0,mesh,2));float p[]={0,500,250},v[]={0,0,0};
+    CHECK(rocket_world_reset(w,p,v,0));
+    RocketWhompBack back={{0,0,0},{1,0},{0,1},{-180,50},{180,450},100,1};
+    int restingFrames=0;
+    for(unsigned f=1;f<=90;f++){
+        RocketInput input={};CHECK(rocket_world_frame(w,f,&input,0,0)==4);
+        RocketSnapshot c;CHECK(rocket_world_snapshot(w,&c));float points[4][3];
+        if(rocket_whomp_wheels(&c,&back,points)){
+            CHECK(!c.boosting&&!c.flipping);restingFrames++;
+        }
+    }
+    CHECK(restingFrames>30);rocket_world_destroy(w);
+}
 int main(){
+    passive_landing();
     trajectory(1,0,1);trajectory(0,1,2);trajectory(0,0,0);
     std::puts("Whomp physics: real flip and boosted dive each enter once; unboosted dive never attacks");
 }
