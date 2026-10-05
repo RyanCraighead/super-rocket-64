@@ -1,6 +1,6 @@
 # Super Rocket 64
 
-**Jump, flip, boost and fly through Super Mario 64 in Octane.**
+**Jump, flip, boost and fly through Super Mario 64 in a Octane.**
 
 ![Octane flying around Peach's Castle](docs/media/castle-flight.gif)
 
