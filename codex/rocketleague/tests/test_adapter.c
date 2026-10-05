@@ -38,6 +38,7 @@ struct ObjectNode *gObjectLists;
 static struct ObjectNode objectLists[NUM_OBJ_LISTS];
 static RocketSnapshot pose;
 static RocketInput observed;
+static RocketGamepad fixtureGamepad;
 static float nativeWater=-10000,recoveryWater;
 static int environmentRegions;
 static int chimneyGeometry;
@@ -80,12 +81,14 @@ int rocket_runtime_platforms(const RocketPlatform *platforms,size_t count){
     if(count){observedPlatform=platforms[0];observedTriangle=platforms[0].triangles[0];}
     return 1;
 }
-int rocket_runtime_frame(uint64_t frame,const RocketInput *input,int paused,int blocked){(void)frame;(void)paused;observed=*input;if(blocked)memset(&observed,0,sizeof observed);++steps;pose.ticks+=4;draw=1;return 4;}
+int rocket_runtime_frame(uint64_t frame,const RocketInput *input,int paused,int blocked){(void)frame;(void)paused;observed=rocket_gamepad_merge(input,&fixtureGamepad);if(blocked)memset(&observed,0,sizeof observed);++steps;pose.ticks+=4;draw=1;return 4;}
 int rocket_runtime_snapshot(RocketSnapshot *out){if(!draw)return 0;*out=pose;return 1;}
 int rocket_runtime_recover(const RocketSnapshot *out){++recoveries;memcpy(pose.position,out->position,sizeof pose.position);memcpy(pose.basis,out->basis,sizeof pose.basis);memset(pose.velocity,0,sizeof pose.velocity);return 1;}
-int rocket_runtime_read_input(const RocketInput *keyboard,RocketInput *out){*out=*keyboard;return !uiBlocked&&draw&&enabled;}
+int rocket_runtime_read_input(const RocketInput *keyboard,RocketInput *out){*out=rocket_gamepad_merge(keyboard,&fixtureGamepad);return !uiBlocked&&draw&&enabled;}
 // The host exports a nonstandard atan2f. Heading conversion must not use it.
+#ifndef TEST_NATIVE_MATH
 f32 atan2f(f32 y,f32 x){(void)y;(void)x;return 1234.f;}
+#endif
 s32 set_water_plunge_action(struct MarioState *m){m->action=ACT_WATER_PLUNGE;return 1;}
 u32 set_mario_action(struct MarioState *m,u32 action,u32 arg){m->action=action;m->actionArg=arg;return 1;}
 s32 transition_submerged_to_walking(struct MarioState *m){m->action=ACT_WALKING;return 1;}
@@ -99,6 +102,7 @@ static struct SurfaceNode nodes[6];
 static void fresh(void){
     rocket_adapter_set_selected(1);rocket_adapter_suspend();memset(&mario,0,sizeof mario);memset(&object,0,sizeof object);memset(&controller,0,sizeof controller);memset(&testArea,0,sizeof testArea);
     memset(gStaticSurfacePartition,0,sizeof gStaticSurfacePartition);memset(gDynamicSurfacePartition,0,sizeof gDynamicSurfacePartition);memset(surfaces,0,sizeof surfaces);memset(nodes,0,sizeof nodes);
+    memset(&fixtureGamepad,0,sizeof fixtureGamepad);
     enabled=1;steps=resets=interrupts=uiBlocked=0;memset(meshCalls,0,sizeof meshCalls);sCurrPlayMode=0;gGlobalTimer=0;
     recoveries=0;memset(&gLevelValues,0,sizeof gLevelValues);
     memset(&gWarpTransition,0,sizeof gWarpTransition);memset(&sWarpDest,0,sizeof sWarpDest);
@@ -496,4 +500,5 @@ int main(int argc,char **argv){
     test_vanish();test_vanish_environment_recovery();test_vanish_progression();
     test_metal_water();test_switch_platform();
     puts("PASS real host adapter: collision/dedup, controls, pause, reset/doors, selective Vanish/full-body recovery, blue switch/box detection and native pickups/stars");
+    return 0;
 }

@@ -150,3 +150,33 @@ These tests do not establish live animation playback, physical-controller or
 two-PC acceptance. No game or foreground window was started. The release is
 checked for package integrity, private/prohibited inputs, notices, and reuse
 of copied assets, saves and preferences before publication.
+
+## v0.2.5 contextual car interaction
+
+The v0.2.4 controller route was checked before implementation: Octane's Cross/A
+jump was deliberately isolated from native Mario A/B, so signs and NPCs never
+received the press. There was no dedicated car interact binding. Keyboard L
+still reached native A; that did not make controller interaction work.
+
+A fresh configured car Jump press now reaches only the existing native text
+handler for a collided nearby sign/NPC, while grounded and upright. Native
+facing/front-side, action and dialog checks remain authoritative. A rejected
+target leaves ordinary car jumping intact. The bridge checks only the local
+player, rejects stale poses and unsynchronized areas, and changes no packets,
+NPC progress, object reach or save state. Holding a press through handoffs
+requires release before another interaction. The remapped Jump button can also
+advance native text after the existing controller UI release gate.
+
+Validation passed 150 native-text checks and 51 real-SDL dialog/mapping checks,
+including held/released/repeated input, Cross/R1/R2 remaps, native facing and
+collision membership, ordinary jump fallback, dialog return, and local
+offline/host/client gates. Both new behavior tests reject v0.2.4. The existing
+133 door-controller checks, 624 native door checks, 208 presentation cases,
+network/transport suite and 1,323 entrance assertions remain passing under
+ASan/UBSan. Native push-out/animation services are explicit test mocks.
+
+Other characters retain their existing mappings. In particular, Tony's SDL
+Cross maps to ollie/C-down; this patch does not claim universal controller
+interaction support for all optional characters. Mario retains native Cross
+or Circle text interaction. Live gameplay, physical controllers and two-PC
+acceptance remain pending; no foreground or game session was started.

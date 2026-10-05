@@ -18,6 +18,8 @@ int rocket_adapter_whomp_path_clear(const float from[3],const float to[3],struct
 int rocket_adapter_enemy_visible(const float from[3],struct Object *object,unsigned verifiedCaps);
 int rocket_adapter_update(struct MarioState *m);
 void rocket_adapter_prepare_interactions(struct MarioState *m);
+/* Fresh mapped local jump; only the native text handler may use this edge. */
+int rocket_adapter_text_pressed(struct MarioState *m,struct Object *object);
 int rocket_adapter_vanish_switch_contact(struct Object *object);
 int rocket_adapter_pickup_pose(struct RocketSnapshot *pose);
 int rocket_adapter_cap_pickup_contact(const struct RocketSnapshot *pose,struct Object *object,unsigned verifiedCaps);

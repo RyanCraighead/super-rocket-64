@@ -66,7 +66,7 @@ static bool gamepad_window_active=true;
  * A held car binding must also be released before becoming a Mario/camera key
  * after a character switch or rebind, including analog trigger deadzones. */
 static u32 rocket_reserved_held;
-static u32 controller_rocket_reserved_keys(void) {
+static u32 controller_rocket_reserved_keys(int action) {
     static const int keys[RB_COUNT]={-1,SDL_CONTROLLER_BUTTON_A,SDL_CONTROLLER_BUTTON_B,
         SDL_CONTROLLER_BUTTON_X,SDL_CONTROLLER_BUTTON_Y,SDL_CONTROLLER_BUTTON_LEFTSHOULDER,
         SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,SDL_CONTROLLER_BUTTON_LEFTSTICK,SDL_CONTROLLER_BUTTON_RIGHTSTICK,
@@ -74,7 +74,7 @@ static u32 controller_rocket_reserved_keys(void) {
         SDL_CONTROLLER_BUTTON_DPAD_RIGHT,VK_LTRIGGER-VK_BASE_SDL_GAMEPAD,VK_RTRIGGER-VK_BASE_SDL_GAMEPAD};
     const RocketBindings *b=rocket_bindings_valid(&configRocketBindings)?&configRocketBindings:&rocket_default_bindings;
     u32 mask=0;
-    for(int i=0;i<RA_COUNT;i++)if(keys[b->action[i]]>=0)mask|=1u<<keys[b->action[i]];
+    for(int i=0;i<RA_COUNT;i++)if((action<0||i==action)&&keys[b->action[i]]>=0)mask|=1u<<keys[b->action[i]];
     return mask;
 }
 extern s16 gMenuMode;
@@ -388,7 +388,7 @@ static void controller_sdl_read(OSContPad *pad) {
     if(rocket_pad_trigger(ltrig)>0)heldKeys|=1u<<(VK_LTRIGGER-VK_BASE_SDL_GAMEPAD);
     if(rocket_pad_trigger(rtrig)>0)heldKeys|=1u<<(VK_RTRIGGER-VK_BASE_SDL_GAMEPAD);
     rocket_reserved_held&=heldKeys;
-    if(rocketActive&&sdl_cntrl&&!ui)rocket_reserved_held|=controller_rocket_reserved_keys()&heldKeys;
+    if(rocketActive&&sdl_cntrl&&!ui)rocket_reserved_held|=controller_rocket_reserved_keys(-1)&heldKeys;
     const bool modern = thps_runtime_enabled() || character_switch_enabled() || rocketActive;
     const bool allowed = gamepad_window_active && gWindowApi->has_focus() && !0;
     bool modernBlocked = false;
@@ -483,9 +483,16 @@ static void controller_sdl_read(OSContPad *pad) {
         // controls cannot also trigger a camera action, even during cutscenes.
         if (SDL_GameControllerGetButton(sdl_cntrl,SDL_CONTROLLER_BUTTON_START)) buttons_down |= START_BUTTON;
     }
+    u32 nativeReserved=rocket_reserved_held;
+    if(rocketActive&&gDialogID!=DIALOG_NONE&&rocketPad.jump) {
+        /* Fresh remapped jump can advance native text after the UI release
+         * gate above, without also firing its legacy camera/button binding. */
+        buttons_down|=A_BUTTON;
+        nativeReserved|=controller_rocket_reserved_keys(RA_JUMP);
+    }
     const u32 cameraMask=L_TRIG|R_TRIG|U_CBUTTONS|D_CBUTTONS|L_CBUTTONS|R_CBUTTONS;
     for (u32 i = 0; i < num_joy_binds; ++i)
-        if (joy_buttons[joy_binds[i][0]] && !(rocket_reserved_held&(1u<<joy_binds[i][0])))
+        if (joy_buttons[joy_binds[i][0]] && !(nativeReserved&(1u<<joy_binds[i][0])))
             buttons_down |= rocketIsolated ? (joy_binds[i][1]&cameraMask) : joy_binds[i][1];
 
     pad->button |= buttons_down;

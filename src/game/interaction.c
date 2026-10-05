@@ -1,4 +1,5 @@
 #include "game/rocket_caps.h"
+#include "rocket_adapter.h"
 #include "pc/rocket_runtime.h"
 #include "spiderman_adapter.h"
 #include "pc/boss_net.h"
@@ -2322,6 +2323,8 @@ u32 check_npc_talk(struct MarioState *m, struct Object *o) {
 u32 interact_text(struct MarioState *m, UNUSED u32 interactType, struct Object *o) {
     if (!m || !o) { return FALSE; }
     u32 interact = FALSE;
+    u16 savedInput = m->input;
+    if (rocket_adapter_text_pressed(m, o)) m->input |= INPUT_A_PRESSED;
 
     if (o->oInteractionSubtype & INT_SUBTYPE_SIGN) {
         interact = check_read_sign(m, o);
@@ -2331,6 +2334,7 @@ u32 interact_text(struct MarioState *m, UNUSED u32 interactType, struct Object *
         push_mario_out_of_object(m, o, 2.0f);
     }
 
+    m->input = savedInput;
     return interact;
 }
 
