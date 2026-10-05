@@ -91,7 +91,7 @@ int main(void){
     gNetworkType=NT_CLIENT;gCLIOpts.characterNet=false;CHECK(rocket_boost_mode()==0);
     CHECK(strstr(get_version(),"boost-mode1")==NULL);gCLIOpts.characterNet=true;
     CHECK(strstr(get_version(),"boost-mode1")!=NULL);
-    CHECK(!strcmp(get_version()+strlen(get_version())-strlen("-wheel1"),"-wheel1"));
+    CHECK(!strcmp(get_version()+strlen(get_version())-strlen("-wheel1-bump1"),"-wheel1-bump1"));
     CHECK(strlen(SM64COOPDX_VERSION)+strlen(CNET_VERSION_SUFFIX)<MAX_VERSION_LENGTH);
     /* Both rules share one session/revision; client preferences never win. */
     host();rocket_boost_session_reset();configRocketBoostMode=1;configRocketSurfaceMode=1;

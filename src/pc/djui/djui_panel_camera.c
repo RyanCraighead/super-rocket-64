@@ -60,6 +60,8 @@ void djui_panel_camera_create(struct DjuiBase* caller) {
     struct DjuiThreePanel* panel = djui_panel_menu_create(DLANG(CAMERA, CAMERA), false);
     struct DjuiBase* body = djui_three_panel_get_body(panel);
     {
+        char *octaneModes[] = { "Mario", "Car follow" };
+        djui_selectionbox_create(body, "Octane camera", octaneModes, 2, &configRocketCameraMode, djui_panel_free_camera_value_changed);
         djui_button_create(body, DLANG(CAMERA, FREE_CAMERA), DJUI_BUTTON_STYLE_NORMAL, djui_panel_free_camera_create);
         djui_button_create(body, DLANG(CAMERA, ROMHACK_CAMERA), DJUI_BUTTON_STYLE_NORMAL, djui_panel_romhack_camera_create);
         djui_checkbox_create(body, DLANG(CAMERA, INVERT_X), &configCameraInvertX, djui_panel_free_camera_value_changed);

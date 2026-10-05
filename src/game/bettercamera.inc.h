@@ -6,6 +6,10 @@
 #include "game/segment2.h"
 #include "game/save_file.h"
 #include "bettercamera.h"
+#include "rocket_adapter.h"
+#include "pc/rocket_runtime.h"
+#include "../../codex/rocketleague/physics/body_contact.h"
+static int rocket_camera_selected(void);
 #include "engine/surface_collision.h"
 #include "pc/configfile.h"
 #include "pc/controller/controller_mouse.h"
@@ -184,7 +188,7 @@ void newcam_init_settings(void) {
         gNewCamera.tilt = 5;
     }
 
-    newcam_toggle(camera_config_is_free_cam_enabled() || gDjuiInMainMenu);
+    newcam_toggle(camera_config_is_free_cam_enabled() || rocket_camera_selected() || gDjuiInMainMenu);
 }
 
 static void newcam_rotate_button(void) {
@@ -624,7 +628,9 @@ static void newcam_stick_input(void) {
 }
 
 // Main loop.
+#include "rocket_camera.inc.h"
 static void newcam_loop(struct Camera *c) {
+    if(rocket_camera_loop(c))return;
     if (sCurrPlayMode != PLAY_MODE_PAUSED) {
         newcam_stick_input();
         newcam_rotate_button();
