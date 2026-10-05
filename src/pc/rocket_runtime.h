@@ -38,6 +38,7 @@ int rocket_runtime_platforms(const RocketPlatform *platforms,size_t count);
 int rocket_runtime_reset(const float position[3],const float velocity[3],float yaw);
 int rocket_runtime_recover(const RocketSnapshot *clear_pose);
 int rocket_runtime_frame(uint64_t frame,const RocketInput *input,int paused,int blocked);
+int rocket_runtime_bump(const float delta_velocity[3]);
 int rocket_runtime_snapshot(RocketSnapshot *snapshot);
 int rocket_runtime_draw(const float view[16],const float projection[16],const int viewport[4]);
 const char *rocket_runtime_status(void);

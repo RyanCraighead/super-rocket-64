@@ -53,6 +53,7 @@
 #include "rocket_adapter.h"
 #include "pc/rocket_runtime.h"
 #include "pc/character_net.h"
+#include "pc/player_bump.h"
 #include "spiderman_adapter.h"
 #include "thps_adapter.h"
 
@@ -2193,6 +2194,7 @@ s32 execute_mario_action(UNUSED struct Object *o) {
         update_mario_info_for_cam(gMarioState);
         mario_update_hitbox_and_cap_model(gMarioState);
         character_presentation_finish(gMarioState, sourceOwnsAction);
+        if(gMarioState->playerIndex==0)player_bump_update();
 
         // Both of the wind handling portions play wind audio only in
         // non-Japanese releases.
@@ -2250,6 +2252,7 @@ void init_single_mario(struct MarioState* m) {
     if (!m) { return; }
 
     u16 playerIndex = m->playerIndex;
+    player_bump_clear(playerIndex);
     struct SpawnInfo* spawnInfo = &gPlayerSpawnInfos[playerIndex];
     unused80339F10 = 0;
 

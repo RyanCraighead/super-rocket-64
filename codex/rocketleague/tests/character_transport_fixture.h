@@ -1,6 +1,7 @@
 /* Shared inert host fixture. Includes real packet writer/ingress/apply code.
  * No sockets, SDL calls, windows, controllers or game processes are used. */
 #define DISABLE_MODULE_LOG 1
+#include "player_bump_fixture_stubs.h"
 #define character_net_accept observed_accept
 #include "../../../src/pc/network/packets/packet_player.c"
 #undef character_net_accept

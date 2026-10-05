@@ -1,5 +1,6 @@
 #include "game/rocket_caps.h"
 #include "character_net.h"
+#include "player_bump.h"
 #include "rocket_runtime.h"
 #include "network/network.h"
 #include "utils/misc.h"
@@ -20,7 +21,7 @@ static uint32_t sequence;
 static unsigned draws[MAX_PLAYERS];
 static void record_motion(const char *stage,unsigned index,const CharacterNetState *s);
 #endif
-void character_net_clear(unsigned index){if(index<MAX_PLAYERS){rocket_caps_clear(index);if(gMarioStates[index].marioObj)gMarioStates[index].marioObj->platform=NULL;memset(&tracks[index],0,sizeof tracks[index]);generations[index]++;network_coin_boost_clear(index);}}
+void character_net_clear(unsigned index){if(index<MAX_PLAYERS){player_bump_clear(index);rocket_caps_clear(index);if(gMarioStates[index].marioObj)gMarioStates[index].marioObj->platform=NULL;memset(&tracks[index],0,sizeof tracks[index]);generations[index]++;network_coin_boost_clear(index);}}
 void character_net_clear_all(void){for(unsigned i=0;i<MAX_PLAYERS;i++)character_net_clear(i);}
 unsigned character_net_local_kind(void){
     if(character_switch_enabled())return character_switch_active()==CHARACTER_OCTANE?CNET_OCTANE:CNET_MARIO;
@@ -39,7 +40,9 @@ int character_net_write(struct Packet *p){
 #ifdef ROCKET_CAR_QA
     record_motion("sent",0,&s);
 #endif
-    packet_write(p,wire,sizeof wire);return !p->error&&!p->writeError;
+    packet_write(p,wire,sizeof wire);
+    if(!p->error&&!p->writeError)player_bump_observe(0,&s,gMarioStates[0].pos,gMarioStates[0].vel);
+    return !p->error&&!p->writeError;
 }
 int character_net_read(struct Packet *p,unsigned index,CharacterNetState *state){
     if(!state||index==0||index>=MAX_PLAYERS||p->error||p->cursor+CNET_WIRE_SIZE!=p->dataLength)return 0;

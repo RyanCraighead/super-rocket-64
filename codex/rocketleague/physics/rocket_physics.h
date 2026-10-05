@@ -96,6 +96,8 @@ int rocket_world_frame(RocketWorld *world, uint64_t frame_id,
 /* Only the session-rule adapter calls this. Switching never awards finite boost.
  * Infinite steps borrow a full tank and restore the finite balance afterward. */
 int rocket_world_set_boost_mode(RocketWorld *world, int mode);
+/* Bounded owner-local velocity change; no reset, fuel or ability modification. */
+int rocket_world_bump(RocketWorld *world,const float delta_velocity[3]);
 int rocket_world_snapshot(RocketWorld *world, RocketSnapshot *out);
 const char *rocket_world_error(void);
 void rocket_to_host(const float rl[3], float host[3], float scale);

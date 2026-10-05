@@ -219,6 +219,7 @@ extern "C" int rocket_runtime_frame(uint64_t frame,const RocketInput *input,int 
     rocket_audio_update(drawable?&current:nullptr,configRocketSoundMode,drawable&&!paused&&!blocked&&!gCLIOpts.headless);
     return result;
 }
+extern "C" int rocket_runtime_bump(const float delta[3]){if(!drawable||!rocket_world_bump(world.get(),delta))return 0;return rocket_world_snapshot(world.get(),&current);}
 extern "C" int rocket_runtime_snapshot(RocketSnapshot *snapshot){if(!drawable||!snapshot)return 0;*snapshot=current;return 1;}
 extern "C" const char *rocket_runtime_status(void){return status.c_str();}
 static int drawSnapshot(const RocketSnapshot *snapshot,uint32_t nativeFlags,const float squish[3],const float *view,const float *projection,const int *viewport){
@@ -292,6 +293,7 @@ extern "C" int rocket_runtime_platforms(const RocketPlatform*,size_t){return 0;}
 extern "C" int rocket_runtime_reset(const float*,const float*,float){return 0;}
 extern "C" int rocket_runtime_recover(const RocketSnapshot*){return 0;}
 extern "C" int rocket_runtime_frame(uint64_t,const RocketInput*,int,int){return -1;}
+extern "C" int rocket_runtime_bump(const float*){return 0;}
 extern "C" int rocket_runtime_snapshot(RocketSnapshot*){return 0;}
 extern "C" int rocket_runtime_draw(const float*,const float*,const int*){return 0;}
 extern "C" const char *rocket_runtime_status(void){return "Rocket car is not compiled; build with ROCKET_CAR=1";}

@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include "../network.h"
 #include "pc/character_net.h"
+#include "pc/player_bump.h"
 #include "pc/rocket_runtime.h"
 #include "pc/boss_net.h"
 #include "game/rocket_water.h"
@@ -315,6 +316,7 @@ void network_receive_player(struct Packet* p) {
     }
 
     if (gCLIOpts.characterNet && !character_net_accept(np->localIndex,&characterState)) { p->requestBroadcast=false; return; }
+    if(gCLIOpts.characterNet)player_bump_observe(np->localIndex,&characterState,data.pos,data.vel);
 
     // apply data from packet to mario state
     u32 heldSyncID     = 0;
@@ -485,7 +487,8 @@ void network_update_player(void) {
     u32 characterEpoch = gCLIOpts.characterNet ? rocket_runtime_epoch() : 0;
 
     f32 stickDist = sqrtf(powf(sLastStickX - m->controller->stickX, 2) + powf(sLastStickY - m->controller->stickY, 2));
-    bool shouldSend = (sTicksSinceSend > 2)
+    /* Solid character contacts need fresh owner poses while stationary too. */
+    bool shouldSend = (sTicksSinceSend > (gCLIOpts.characterNet && gServerSettings.playerInteractions != PLAYER_INTERACTIONS_NONE ? 0 : 2))
         || (sLastCharacterKind   != characterKind)
         || (sLastCharacterEpoch  != characterEpoch)
         || (sLastPlayerAction    != m->action)

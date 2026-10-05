@@ -1,6 +1,7 @@
 #include "game/rocket_caps.h"
 #include "rocket_adapter.h"
 #include "pc/rocket_runtime.h"
+#include "pc/player_bump.h"
 #include "spiderman_adapter.h"
 #include "pc/boss_net.h"
 #include <PR/ultratypes.h>
@@ -1467,6 +1468,7 @@ u32 interact_player(struct MarioState* m, UNUSED u32 interactType, struct Object
         }
     }
     if (m2 == NULL) { return FALSE; }
+    if (player_bump_car_pair(m,m2)) { return FALSE; }
     if (m2->action & ACT_FLAG_INTANGIBLE) { return FALSE; }
 
     // vanish cap players can't interact
@@ -1487,6 +1489,7 @@ u32 interact_player(struct MarioState* m, UNUSED u32 interactType, struct Object
 }
 
 u32 interact_player_pvp(struct MarioState* attacker, struct MarioState* victim) {
+    if(player_bump_car_pair(attacker,victim))return FALSE;
     if (!attacker || !victim) { return false; }
     if (!is_player_active(attacker)) { return FALSE; }
     if (!is_player_active(victim)) { return FALSE; }

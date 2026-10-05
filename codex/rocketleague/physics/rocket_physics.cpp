@@ -674,6 +674,16 @@ extern "C" int rocket_world_frame(RocketWorld *w,uint64_t frame,const RocketInpu
     w->ticks+=ROCKET_SUBSTEPS;
     return ROCKET_SUBSTEPS;
 }
+extern "C" int rocket_world_bump(RocketWorld *w,const float delta[3]) {
+    if(!w||!w->ready||!delta||!finite3(delta))return 0;
+    float magnitude=0;for(int k=0;k<3;k++)magnitude+=delta[k]*delta[k];
+    if(magnitude>2400.1f*2400.1f)return 0;
+    auto &body=w->car->_rigidBody;
+    Vec velocity=Vec(body.getLinearVelocity())+fromHost(delta)*UU_TO_BT;
+    if(velocity.Length()>6000.f/ROCKET_HOST_SCALE*UU_TO_BT)return 0;
+    body.setLinearVelocity(velocity);body.activate(true);
+    return 1;
+}
 extern "C" int rocket_world_snapshot(RocketWorld *w,RocketSnapshot *out) {
     if(!w||!w->ready||!out)return 0;
     auto state=w->car->GetState();RocketSnapshot s={};
