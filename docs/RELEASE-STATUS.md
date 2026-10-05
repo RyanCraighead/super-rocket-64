@@ -39,9 +39,12 @@ desktop and five extraction/preflight checks. The rebuilt EXE passed payload
 verification, clean owned-input setup, all 115 shared-file checks, headless
 engine validation and source-free reuse preserving profile/save/cache bytes
 and timestamps. The payload and nested archives passed the private-data scan.
-Extraction was tested with the verified Steam package pair; a separately
-installed Epic copy remains untested locally. Matching Epic package support
-must not be read as acceptance of every current/future Epic game update.
+Automated extraction was tested with the verified Steam package pair.
+On October 5, 2026 at 01:31 UTC, Ryan reported: "I tested the epic installation
+and it worked." Epic installation is now user-verified. This report adds
+manual user evidence; it does not extend the automated test coverage or
+establish compatibility with every future game update. Two-PC/WAN and new
+physical-controller acceptance remain pending.
 
 Public-source research also confirms the shared package layout in the
 [VelocityRL author's source](https://github.com/bitsfdb/VelocityRL/blob/61e96ff0a6e0047f75fe73d72effc793c48aecce/src-tauri/src/integrity.rs).

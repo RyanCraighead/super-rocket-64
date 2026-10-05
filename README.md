@@ -29,7 +29,7 @@ First-time setup:
 3. Choose **No** for optional characters to finish, or **Yes** to select additional characters and provide only their required game files.
 4. Choose **Offline** to enter the game as Octane. Hold **F7** or the controller's **Share/Back** button to open the character wheel on safe ground.
 
-Choose your **Epic Games Store or Steam** Rocket League folder containing `TAGame`, or use **Find Epic installation**. Setup accepts either store when the two required packages match the supported profile; it does not require the Steam client. The profile was verified locally using Steam build 25535926; a full Epic installation has not yet been tested locally. See [supported source games and formats](docs/ASSET-SOURCES.md) for exact package checksums.
+Choose your **Epic Games Store or Steam** Rocket League folder containing `TAGame`, or use **Find Epic installation**. Setup accepts either store when the two required packages match the supported profile; it does not require the Steam client. Ryan confirmed a successful Epic installation test on October 5, 2026. This is user verification; automated extraction tests used Steam build 25535926. See [supported source games and formats](docs/ASSET-SOURCES.md) for exact package checksums.
 
 Your ROMs, extracted assets, saves and controller settings stay on your PC. They are never part of the public download. Setup is designed to validate cached tools and completed profiles, resume after a failed optional installation, and preserve saves across launcher updates.
 
