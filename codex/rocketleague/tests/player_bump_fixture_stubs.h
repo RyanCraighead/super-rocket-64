@@ -1,3 +1,4 @@
+#include "speed_fixture_stubs.h"
 #ifndef PLAYER_BUMP_FIXTURE_STUBS_H
 #define PLAYER_BUMP_FIXTURE_STUBS_H
 #ifndef PLAYER_BUMP_REAL_TEST

@@ -6,6 +6,7 @@
 #include "sm64.h"
 #include "character_net.h"
 #include "rocket_runtime.h"
+#include "rocket_boost.h"
 #include "network/network.h"
 #include "utils/misc.h"
 #include "game/rocket_adapter.h"
@@ -19,12 +20,12 @@
 #include "../../codex/rocketleague/physics/player_bump_contact.h"
 #include <string.h>
 
-enum { BUMP_WIRE=68, BUMP_HISTORY=32 };
+enum { BUMP_WIRE=72, BUMP_HISTORY=32 };
 typedef struct BumpPose { CharacterNetState state; RocketBumpBody body; double time; int valid; } BumpPose;
 typedef struct BumpEvent {
     u8 kind,authority,target,other;
     u16 authorityArea,targetArea,otherArea;
-    u32 event,targetEpoch,otherEpoch,targetSequence,otherSequence;
+    u32 rule,event,targetEpoch,otherEpoch,targetSequence,otherSequence;
     u8 targetKind,otherKind;
     float position[3],otherPosition[3],delta[3];
 } BumpEvent;
@@ -38,7 +39,7 @@ static struct BumpSession {
     BumpPose observed[MAX_PLAYERS],previous[MAX_PLAYERS],sent[BUMP_HISTORY];
     BumpPair pairs[MAX_PLAYERS][MAX_PLAYERS];
     BumpSeen seen[MAX_PLAYERS];
-    u32 event,frame;int haveFrame;
+    u32 rule,event,frame;int haveFrame;
 } bumps;
 
 void player_bump_clear(unsigned index){
@@ -53,6 +54,9 @@ void player_bump_clear(unsigned index){
 }
 void player_bump_observe(unsigned index,const CharacterNetState *state,const float position[3],const float velocity[3]){
     if(index>=MAX_PLAYERS||!state||!position||!velocity)return;
+    if(state->rule_revision!=rocket_rule_revision()||state->speed_percent!=rocket_speed_percent()){
+        bumps.observed[index].valid=bumps.previous[index].valid=0;return;
+    }
     BumpPose pose={0};pose.state=*state;RocketSnapshot car=state->car;
     if(state->kind==CNET_MARIO){
         memset(&car,0,sizeof car);car.basis[0]=car.basis[4]=car.basis[8]=1;
@@ -91,17 +95,19 @@ static int bump_eligible(unsigned i){
 }
 static int bump_pose(unsigned i,BumpPose *pose){
     if(!bump_eligible(i))return 0;
+    if(!i&&!rocket_runtime_rule_ready()&&character_net_local_kind()==CNET_OCTANE)return 0;
     if(!i){
         *pose=bumps.observed[0];RocketSnapshot car={0};
         pose->state.kind=character_net_local_kind();pose->state.epoch=rocket_runtime_epoch();
         pose->state.area_sequence=gNetworkPlayerLocal->currLevelAreaSeqId;
+        pose->state.rule_revision=rocket_rule_revision();pose->state.speed_percent=rocket_speed_percent();
         if(pose->state.kind==CNET_OCTANE){if(!rocket_adapter_body_snapshot(gMarioStates[0].marioObj,&car))return 0;}
         else{car.basis[0]=car.basis[4]=car.basis[8]=1;for(int k=0;k<3;k++){car.position[k]=gMarioStates[0].pos[k];car.velocity[k]=gMarioStates[0].vel[k]*30.f;}}
         pose->time=clock_elapsed_f64();pose->valid=rocket_bump_body(&pose->body,&car,pose->state.kind==CNET_OCTANE);
         return pose->valid;
     }
     const BumpPose *source=&bumps.observed[i];double age=clock_elapsed_f64()-source->time;
-    if(!source->valid||!isfinite(age)||age<0||age>.2||!gNetworkPlayers[i].currPositionValid||
+    if(!source->valid||source->state.rule_revision!=rocket_rule_revision()||source->state.speed_percent!=rocket_speed_percent()||!isfinite(age)||age<0||age>.2||!gNetworkPlayers[i].currPositionValid||
         source->state.area_sequence!=gNetworkPlayers[i].currLevelAreaSeqId)return 0;
     *pose=*source;return 1;
 }
@@ -114,7 +120,7 @@ static void bump_write(struct Packet *p,const BumpEvent *e){
 #define FIELD(f) packet_write(p,(void*)&e->f,sizeof e->f)
     FIELD(kind);FIELD(authority);FIELD(target);FIELD(other);FIELD(authorityArea);FIELD(targetArea);FIELD(otherArea);
     FIELD(event);FIELD(targetEpoch);FIELD(otherEpoch);FIELD(targetSequence);FIELD(otherSequence);FIELD(targetKind);FIELD(otherKind);
-    FIELD(position);FIELD(otherPosition);FIELD(delta);
+    FIELD(position);FIELD(otherPosition);FIELD(delta);FIELD(rule);
 #undef FIELD
 }
 static int bump_read(struct Packet *p,BumpEvent *e){
@@ -122,9 +128,9 @@ static int bump_read(struct Packet *p,BumpEvent *e){
 #define FIELD(f) packet_read(p,&e->f,sizeof e->f)
     FIELD(kind);FIELD(authority);FIELD(target);FIELD(other);FIELD(authorityArea);FIELD(targetArea);FIELD(otherArea);
     FIELD(event);FIELD(targetEpoch);FIELD(otherEpoch);FIELD(targetSequence);FIELD(otherSequence);FIELD(targetKind);FIELD(otherKind);
-    FIELD(position);FIELD(otherPosition);FIELD(delta);
+    FIELD(position);FIELD(otherPosition);FIELD(delta);FIELD(rule);
 #undef FIELD
-    if(p->error||e->kind>1||!e->event||e->target==e->other||
+    if(p->error||e->rule!=rocket_rule_revision()||e->kind>1||!e->event||e->target==e->other||
        (e->targetKind!=CNET_MARIO&&e->targetKind!=CNET_OCTANE)||
        (e->otherKind!=CNET_MARIO&&e->otherKind!=CNET_OCTANE)||(!e->targetKind&&!e->otherKind))return 0;
     float magnitude=0;for(int k=0;k<3;k++){
@@ -132,7 +138,8 @@ static int bump_read(struct Packet *p,BumpEvent *e){
            fabsf(e->position[k])>131072||fabsf(e->otherPosition[k])>131072)return 0;
         magnitude+=e->delta[k]*e->delta[k];
     }
-    return magnitude>=1&&magnitude<=2400.1f*2400.1f;
+    float scale=rocket_speed_scale();
+    return magnitude>=scale*scale&&magnitude<=(2400.f*scale+.1f)*(2400.f*scale+.1f);
 }
 bool player_bump_packet_allowed(struct Packet *p){
     if(!gCLIOpts.characterNet||!p||p->localIndex==0||p->localIndex>=MAX_PLAYERS||!gNetworkPlayers[p->localIndex].connected)return false;
@@ -158,13 +165,13 @@ static void bump_send(const BumpEvent *e,struct NetworkPlayer *to){
     struct Packet p={0};packet_init(&p,PACKET_ROCKET_PLAYER_BUMP,true,PLMT_LEVEL);bump_write(&p,e);network_send_to(to->localIndex,&p);
 }
 static int bump_apply(const BumpEvent *e,int localAuthority){
-    if(!bump_enabled()||!bump_eligible(0)||!gNetworkPlayerLocal||gNetworkPlayerLocal->globalIndex!=e->target||
+    if(e->rule!=rocket_rule_revision()||!bump_enabled()||!bump_eligible(0)||!gNetworkPlayerLocal||gNetworkPlayerLocal->globalIndex!=e->target||
        gNetworkPlayerLocal->currLevelAreaSeqId!=e->targetArea||rocket_runtime_epoch()!=e->targetEpoch||
        character_net_local_kind()!=e->targetKind)return 0;
     BumpPose current;if(!bump_pose(0,&current))return 0;
     if(!localAuthority){
         BumpPose *sent=&bumps.sent[e->targetSequence%BUMP_HISTORY];double age=clock_elapsed_f64()-sent->time;
-        if(!sent->valid||sent->state.sequence!=e->targetSequence||sent->state.epoch!=e->targetEpoch||
+        if(!sent->valid||sent->state.rule_revision!=e->rule||sent->state.speed_percent!=rocket_speed_percent()||sent->state.sequence!=e->targetSequence||sent->state.epoch!=e->targetEpoch||
            sent->state.kind!=e->targetKind||sent->state.area_sequence!=e->targetArea||age<0||age>.4)return 0;
         float distance=0,travel=0;for(int k=0;k<3;k++){
             float d=sent->body.car.position[k]-e->position[k];distance+=d*d;
@@ -215,7 +222,7 @@ static int bump_contact(unsigned i,unsigned j,const BumpPose *a,const BumpPose *
     for(int k=0;k<2;k++){
         double dt=now[k]->time-old[k]->time;
         if(!old[k]->valid||dt<0||dt>.2||old[k]->state.epoch!=now[k]->state.epoch||old[k]->state.kind!=now[k]->state.kind||
-            old[k]->state.area_sequence!=now[k]->state.area_sequence)goto current;
+            old[k]->state.area_sequence!=now[k]->state.area_sequence||old[k]->state.rule_revision!=now[k]->state.rule_revision)goto current;
         for(int axis=0;axis<3;axis++)if(rocket_bump_dot(old[k]->body.axes+3*axis,now[k]->body.axes+3*axis)<.98f)goto current;
         float travel=0;for(int axis=0;axis<3;axis++){float d=now[k]->body.center[axis]-old[k]->body.center[axis];travel+=d*d;}
         if(travel>1000.f*1000.f)goto current;
@@ -226,12 +233,15 @@ static int bump_contact(unsigned i,unsigned j,const BumpPose *a,const BumpPose *
             float d=(old[k]->body.car.position[axis]-now[k]->body.car.position[axis])*(1-t);
             bodies[k].car.position[axis]+=d;bodies[k].center[axis]+=d;
         }
-        if(rocket_bump_impulse(&bodies[0],&bodies[1],delta))return 1;
+        if(rocket_bump_impulse_at_speed(&bodies[0],&bodies[1],delta,rocket_speed_scale()))return 1;
     }
 current:
-    return rocket_bump_impulse(&a->body,&b->body,delta);
+    return rocket_bump_impulse_at_speed(&a->body,&b->body,delta,rocket_speed_scale());
 }
 void player_bump_update(void){
+    u32 rule=rocket_rule_revision();
+    if(bumps.rule!=rule){player_bump_clear(0);bumps.rule=rule;}
+
     if(bumps.haveFrame&&bumps.frame==gGlobalTimer)return;
     bumps.frame=gGlobalTimer;bumps.haveFrame=1;
     if(!bump_enabled()||bump_authority(gNetworkPlayerLocal)!=gNetworkPlayerLocal){memset(bumps.pairs,0,sizeof bumps.pairs);return;}
@@ -260,7 +270,7 @@ void player_bump_update(void){
             pair->sequence[k]=source[k]->state.sequence;pair->area[k]=source[k]->state.area_sequence;pair->kind[k]=source[k]->state.kind;
         }
         for(int k=0;k<2;k++){
-            BumpEvent e={0};e.authority=gNetworkPlayerLocal->globalIndex;e.authorityArea=gNetworkPlayerLocal->currLevelAreaSeqId;
+            BumpEvent e={0};e.rule=rule;e.authority=gNetworkPlayerLocal->globalIndex;e.authorityArea=gNetworkPlayerLocal->currLevelAreaSeqId;
             e.target=pair->global[k];e.other=pair->global[1-k];e.targetArea=pair->area[k];e.otherArea=pair->area[1-k];
             e.event=pair->event;e.targetEpoch=pair->epoch[k];e.otherEpoch=pair->epoch[1-k];
             e.targetSequence=pair->sequence[k];e.otherSequence=pair->sequence[1-k];e.targetKind=pair->kind[k];e.otherKind=pair->kind[1-k];

@@ -1,3 +1,4 @@
+#include "speed_fixture_stubs.h"
 /* Real adapter and native Bob-omb behavior; inert host services. No sockets/input. */
 #include <assert.h>
 #include <stdio.h>

@@ -2,6 +2,7 @@
  * No Psyonix source or decoded assets are present in this translation unit. */
 #include "rocket_runtime.h"
 #include "rocket_boost.h"
+#include "player_bump.h"
 #include "rocket_audio.h"
 extern "C" {
 #include "game/rocket_wing.h"
@@ -162,6 +163,10 @@ extern "C" int rocket_runtime_collect_coin(void){
     if(drawable)rocket_world_snapshot(world.get(),&current);
     return 1;
 }
+static uint32_t appliedRule;
+extern "C" int rocket_runtime_rule_ready(void){
+    return world&&rocket_world_speed(world.get())==rocket_speed_percent()&&appliedRule==rocket_rule_revision();
+}
 extern "C" uint32_t rocket_runtime_epoch(void){return epoch;}
 extern "C" void rocket_runtime_selection_changed(void){
     rocket_audio_stop();
@@ -208,6 +213,12 @@ extern "C" int rocket_runtime_frame(uint64_t frame,const RocketInput *input,int 
     blocked=blocked||!SDL_GetKeyboardFocus()||gamepad.ui_blocked;
     if(!input)return -1;
     lastInput=rocket_gamepad_merge(input,&gamepad);
+    const unsigned percent=rocket_speed_percent();const uint32_t rule=rocket_rule_revision();
+    if(world&&(rocket_world_speed(world.get())!=percent||appliedRule!=rule)){
+        rocket_world_set_speed(world.get(),percent);appliedRule=rule;
+        if(!++epoch)++epoch;
+        player_bump_clear(0); // Retire grants without resetting physical state or fuel.
+    }
     rocket_world_set_boost_mode(world.get(), rocket_boost_mode());
     rocket_world_set_temporary_boost(world.get(), rocket_wing_active(0));
     rocket_world_set_surface_mode(world.get(), rocket_surface_mode());
@@ -272,6 +283,7 @@ extern "C" int rocket_runtime_set_boost_mode(int){return 0;}
 extern "C" int rocket_runtime_boost_mode(void){return ROCKET_BOOST_COIN_ONLY;}
 extern "C" int rocket_runtime_collect_coin(void){return 0;}
 extern "C" uint32_t rocket_runtime_epoch(void){return 0;}
+extern "C" int rocket_runtime_rule_ready(void){return 0;}
 extern "C" void rocket_runtime_selection_changed(void){}
 extern "C" int rocket_runtime_draw_snapshot(const RocketSnapshot*,const float*,const float*,const int*){return 0;}
 extern "C" int rocket_runtime_draw_snapshot_caps(const RocketSnapshot*,uint32_t,const float*,const float*,const int*){return 0;}

@@ -1,6 +1,7 @@
 /* Octane chase mode uses the existing free-camera controls, collision queries
  * and apply path. It owns only the local camera while actual car physics owns
  * the local player. Native doors/cutscenes continue through the normal path. */
+#include "pc/rocket_boost.h"
 static struct RocketChaseCamera {
     int valid;
     struct Area *area;
@@ -22,7 +23,7 @@ static s16 rocket_camera_heading(const RocketSnapshot *car,s16 previous){
     float x=car->basis[0]/length,z=car->basis[2]/length;
     float speed=hypotf(car->velocity[0],car->velocity[2]);
     /* Looking behind a reversing car must not turn through 180 degrees. */
-    if(speed>200.f&&(car->velocity[0]*x+car->velocity[2]*z)>speed*.25f){
+    if(speed>200.f*rocket_speed_scale()&&(car->velocity[0]*x+car->velocity[2]*z)>speed*.25f){
         x=.65f*x+.35f*car->velocity[0]/speed;z=.65f*z+.35f*car->velocity[2]/speed;
     }
     float heading=(float)atan2((double)x,(double)z);
@@ -75,7 +76,7 @@ static int rocket_camera_loop(struct Camera *c){
         gNewCamera.tilt+=(s16)((1800-gNewCamera.tilt)*.08f);
     }
     float speed=hypotf(car.velocity[0],car.velocity[2]);
-    rocketChase.distance+=(750.f+fminf(speed/4600.f,1.f)*140.f-rocketChase.distance)*.15f;
+    rocketChase.distance+=(750.f+fminf(speed/(4600.f*rocket_speed_scale()),1.f)*140.f-rocketChase.distance)*.15f;
     for(int k=0;k<3;k++){
         float desired=car.position[k]+(k==1?65.f:0);
         rocketChase.anchor[k]+=(desired-rocketChase.anchor[k])*(k==1?.4f:.55f);

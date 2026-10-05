@@ -73,7 +73,11 @@ Door animations keep Octane facing through the doorway. Holding throttle through
 
 **Read signs / talk as Octane:** stop upright on the ground, move close, face the NPC or the readable front of the sign, then press **Cross / A** (your configured car Jump button). Release and press again to advance or close text. Away from an eligible target, the same button jumps. Remapped car Jump buttons work for interaction and dialog confirmation.
 
-Car bindings are editable under **Options > Controls > Car Controller**. Mappings, boost, surface and sound preferences are saved locally. Generic joysticks need an appropriate SDL controller mapping. Physical-controller verification for the public edition is pending.
+**Options > Octane speed (%)** starts at **75%**. Choose **50–100%**; **100%** restores the original speed. Acceleration, braking, boost and speed-based attacks adjust together. Vertical jumps and flip timing keep their normal strength and timing; forward flips cover less distance at lower settings, and very long falls have a lower terminal-speed cap. Online, the host chooses the shared speed; joining never overwrites your saved offline choice.
+
+**Options > Camera > Octane camera** offers **Car follow** (default) and **Mario**. Use the normal right stick, mouse or C buttons to look around. The follow camera stays level through flips and shortens against walls.
+
+Car bindings are editable under **Options > Controls > Car Controller**. Mappings, speed, camera, boost, surface and sound preferences are saved locally. Generic joysticks need an appropriate SDL controller mapping. Physical-controller verification for the public edition is pending.
 
 **Options > Octane sounds** switches between **Mario** and locally extracted **Car** jump, flip and standard-boost effects. Car is the default; missing or unsupported sound assets fall back to Mario. Existing players can select their Rocket League folder in Setup again to add the sounds without rebuilding valid geometry or changing saves. Sounds use Master/SFX volume. Boost stops on release; pause and character/area handoffs clear all effects. Car effects currently play for your own Octane, including online; remote-car audio is not reconstructed from network poses.
 

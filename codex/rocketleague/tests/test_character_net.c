@@ -6,7 +6,7 @@
 static unsigned checks;
 #define CHECK(x) do{++checks;if(!(x)){fprintf(stderr,"line %d: %s\n",__LINE__,#x);exit(1);}}while(0)
 static CharacterNetState pose(void){
-    CharacterNetState s={0};s.kind=CNET_OCTANE;s.active=1;s.sequence=100;s.epoch=2;s.area_sequence=0x1234;
+    CharacterNetState s={0};s.speed_percent=100;s.kind=CNET_OCTANE;s.active=1;s.sequence=100;s.epoch=2;s.area_sequence=0x1234;
     s.car.basis[0]=s.car.basis[4]=s.car.basis[8]=1;s.car.boost=100;s.car.grounded=1;
     for(int i=0;i<4;i++){s.car.wheel_radius[i]=32;s.car.wheel_position[i][1]=40;s.car.wheel_position[i][2]=-30;}
     s.car.ticks=UINT64_C(0x100000002);return s;
@@ -15,7 +15,7 @@ int main(void){
     uint8_t wire[CNET_WIRE_SIZE],copy[CNET_WIRE_SIZE];CharacterNetState a=pose(),b;
     CHECK(character_net_encode(wire,sizeof wire,&a));CHECK(character_net_decode(&b,wire,sizeof wire));
     CHECK(b.area_sequence==0x1234);
-    CHECK(wire[4]==3);
+    CHECK(wire[4]==4);
     a.car.boosting=1;CHECK(character_net_encode(copy,sizeof copy,&a));
     CHECK(character_net_decode(&b,copy,sizeof copy)&&b.car.boosting);
     copy[4]=2;CHECK(!character_net_decode(&b,copy,sizeof copy));
@@ -26,7 +26,7 @@ int main(void){
     const int corrupt[]={0,4,5,6,7,16,198,205};
     for(unsigned i=0;i<sizeof corrupt/sizeof *corrupt;i++){memcpy(copy,wire,sizeof wire);copy[corrupt[i]]=255;CHECK(!character_net_decode(&b,copy,sizeof copy));}
     /* Nonfinite / reflected / non-orthonormal / wildly displaced inputs rejected atomically. */
-    CharacterNetState unchanged={0};unchanged.sequence=42;b=unchanged;
+    CharacterNetState unchanged={0};unchanged.speed_percent=100;unchanged.sequence=42;b=unchanged;
     memcpy(copy,wire,sizeof wire);copy[22]=0x80;copy[23]=0x7f;
     CHECK(!character_net_decode(&b,copy,sizeof copy));CHECK(b.sequence==42);
     b=a;b.car.basis[0]=-1;CHECK(!character_net_encode(copy,sizeof copy,&b));
@@ -52,7 +52,7 @@ int main(void){
     CHECK(!character_net_track_contact(&t,1.351,&contact));
     CHECK(!character_net_track_contact(&t,1.0,&contact));
     CHECK(!character_net_track_contact(&t,NAN,&contact));
-    CHECK(character_net_encode(copy,sizeof copy,&b));CHECK(copy[4]==3&&copy[5]==1);
+    CHECK(character_net_encode(copy,sizeof copy,&b));CHECK(copy[4]==4&&copy[5]==1);
     CHECK(character_net_decode(&contact,copy,sizeof copy)&&contact.interaction);
     b.interaction=0;b.sequence++;CHECK(character_net_track_push(&t,&b,1.16));
     CHECK(!character_net_track_contact(&t,1.17,&contact));
@@ -76,7 +76,7 @@ int main(void){
     b=a;b.sequence=200;b.active=CNET_PRESENTATION;b.car.position[0]=250;
     b.interaction=1;CHECK(!character_net_encode(copy,sizeof copy,&b));
     b.interaction=0;
-    CHECK(character_net_encode(copy,sizeof copy,&b));CHECK(copy[4]==3);
+    CHECK(character_net_encode(copy,sizeof copy,&b));CHECK(copy[4]==4);
     CHECK(character_net_decode(&interpolated,copy,sizeof copy)&&interpolated.active==CNET_PRESENTATION);
     copy[4]=1;CHECK(!character_net_decode(&interpolated,copy,sizeof copy));
     CHECK(character_net_track_push(&t,&b,1.5));

@@ -66,11 +66,11 @@ static void configure(int king,int role,int yaw){
     for(int i=0;i<3;i++){float x=localCar.basis[3*i],z=localCar.basis[3*i+2];localCar.basis[3*i]=c*x+s*z;localCar.basis[3*i+2]=-s*x+c*z;}
 }
 static void send_car(unsigned sequence){
-    CharacterNetState s={0},d;uint8_t wire[CNET_WIRE_SIZE];s.kind=CNET_OCTANE;s.active=CNET_DRIVING;s.interaction=1;
+    CharacterNetState s={0},d;s.speed_percent=rocket_speed_percent();s.rule_revision=rocket_rule_revision();uint8_t wire[CNET_WIRE_SIZE];s.kind=CNET_OCTANE;s.active=CNET_DRIVING;s.interaction=1;
     s.epoch=1;s.sequence=sequence;s.car=localCar;CHECK(character_net_encode(wire,sizeof wire,&s));CHECK(character_net_decode(&d,wire,sizeof wire));CHECK(character_net_accept(1,&d));
 }
 int main(int argc,char **argv){
-    CHECK(argc==5);read_collision(argv[1],ownedWhomp);read_collision(argv[2],ownedBlue);
+    CHECK(argc==5||argc==6);if(argc==6){fixtureSpeedPercent=(unsigned)strtoul(argv[5],NULL,10);CHECK(rocket_speed_valid(fixtureSpeedPercent));}read_collision(argv[1],ownedWhomp);read_collision(argv[2],ownedBlue);
     FILE*f=fopen(argv[3],"rb");CHECK(f);sampleCount=fread(blueSamples,sizeof *blueSamples,120,f);CHECK(sampleCount>5&&sampleCount<120&&feof(f));fclose(f);
     f=fopen(argv[4],"rb");CHECK(f&&fread(&kingPose,sizeof kingPose,1,f)==1&&fgetc(f)==EOF);fclose(f);
     for(int king=0;king<2;king++)for(int role=NT_NONE;role<=NT_CLIENT;role++)for(int remote=0;remote<2;remote++)for(int yaw=0;yaw<65536;yaw+=8192){

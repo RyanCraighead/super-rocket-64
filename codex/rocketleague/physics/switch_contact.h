@@ -50,6 +50,10 @@ static inline int rocket_switch_lowest(const RocketSnapshot *car,const RocketWho
 }
 static inline int rocket_switch_contact(RocketWhompContact *track,const RocketSnapshot *car,
         uint32_t epoch,const RocketWhompBack *top,float point[3]) {
-    return rocket_whomp_contact_with_support(track,car,epoch,top,point,rocket_switch_lowest);
+    return rocket_whomp_contact_with_support(track,car,epoch,top,point,rocket_switch_lowest,1.f);
+}
+static inline int rocket_switch_contact_at_speed(RocketWhompContact *track,const RocketSnapshot *car,
+        uint32_t epoch,const RocketWhompBack *top,float point[3],float scale) {
+    return rocket_whomp_contact_with_support(track,car,epoch,top,point,rocket_switch_lowest,scale);
 }
 #endif

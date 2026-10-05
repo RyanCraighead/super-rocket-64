@@ -7,6 +7,7 @@
 #include "../../codex/rocketleague/physics/enemy_impact.h"
 #include "pc/character_net.h"
 #include "pc/rocket_runtime.h"
+#include "pc/rocket_boost.h"
 #include "pc/network/network.h"
 #include "area.h"
 #include "display.h"
@@ -19,6 +20,7 @@
 
 #define ROCKET_BOBOMB_MIN_SPEED (180.f * ROCKET_HOST_SCALE)
 static struct BobombHistory {
+    u32 rule;
     struct Object *object;
     u32 sync_id,frame;
     s16 level,area;
@@ -41,6 +43,8 @@ int rocket_bobomb_bump_yaw(struct Object *bomb,s16 *yaw) {
         if(!histories[i].object||(u32)(gGlobalTimer-histories[i].frame)>(u32)(gGlobalTimer-oldest->frame))oldest=&histories[i];
     }
     if(!h){h=oldest;memset(h,0,sizeof *h);h->object=bomb;}
+    if(h->rule!=rocket_rule_revision())memset(&h->contact,0,sizeof h->contact);
+    h->rule=rocket_rule_revision();
     int online=gNetworkType!=NT_NONE;
     int authority=!online||(gCLIOpts.characterNet&&gNetworkAreaLoaded&&gNetworkPlayerLocal&&
         gNetworkPlayerLocal->currAreaSyncValid&&gNetworkPlayerLocal->currLevelSyncValid&&
@@ -72,11 +76,11 @@ int rocket_bobomb_bump_yaw(struct Object *bomb,s16 *yaw) {
         if(h->global_index[i]!=global||h->area_sequence[i]!=area_seq||h->generation[i]!=generation)memset(&h->contact[i],0,sizeof h->contact[i]);
         h->global_index[i]=global;h->area_sequence[i]=area_seq;h->generation[i]=generation;
         if(!available){memset(&h->contact[i],0,sizeof h->contact[i]);continue;}
-        if(!rocket_bumper_contact(&h->contact[i],&source.car,source.epoch,&target,ROCKET_BOBOMB_MIN_SPEED))continue;
+        if(!rocket_bumper_contact(&h->contact[i],&source.car,source.epoch,&target,ROCKET_BOBOMB_MIN_SPEED*rocket_speed_scale()))continue;
         /* The authored ordinary bumper envelope is wider than the chassis.
          * It must not kick a fast car's target before the supersonic body reaches
          * it. Advance the entry history above even when this source is too fast. */
-        if(rocket_enemy_supersonic(&source.car))continue;
+        if(rocket_enemy_supersonic_at_speed(&source.car,rocket_speed_scale()))continue;
         if(global>=winner||!rocket_adapter_object_visible(source.car.position,bomb))continue;
         double heading=atan2((double)source.car.basis[0],(double)source.car.basis[2]);
         if(heading<0)heading+=6.28318530718;

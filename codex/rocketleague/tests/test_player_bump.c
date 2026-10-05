@@ -1,3 +1,4 @@
+#include "speed_fixture_stubs.h"
 /* Real authority/contact/packet logic; explicit headless transport and native
  * movement services. Three independently saved sessions model host and clients. */
 #include "../../../src/pc/player_bump.c"
@@ -67,7 +68,7 @@ static void publish(void){
     for(unsigned peer=0;peer<3;peer++){
         select_peer(peer);
         for(unsigned source=0;source<3;source++){
-            CharacterNetState state={0};state.kind=kinds[source];state.active=state.kind==CNET_OCTANE?CNET_DRIVING:0;
+            CharacterNetState state={0};state.speed_percent=rocket_speed_percent();state.rule_revision=rocket_rule_revision();state.kind=kinds[source];state.active=state.kind==CNET_OCTANE?CNET_DRIVING:0;
             state.epoch=epochs[source];state.sequence=sequences[source];state.area_sequence=areaIds[source];state.car=cars[source];
             float velocity[3];for(int k=0;k<3;k++)velocity[k]=cars[source].velocity[k]/30.f;
             player_bump_observe(local(source),&state,cars[source].position,velocity);
@@ -76,6 +77,7 @@ static void publish(void){
     select_peer(saved);
 }
 static void fresh(void){
+    fixtureSpeedPercent=100;fixtureRuleRevision=0;
     memset(&bumps,0,sizeof bumps);memset(sessions,0,sizeof sessions);memset(native,0,sizeof native);memset(gMarioStates,0,sizeof gMarioStates);
     memset(cars,0,sizeof cars);memset(caps,0,sizeof caps);memset(applied,0,sizeof applied);memset(sequences,0,sizeof sequences);
     memset(&gWarpTransition,0,sizeof gWarpTransition);memset(&sWarpDest,0,sizeof sWarpDest);sDelayedWarpOp=gTimeStopState=0;
@@ -130,7 +132,7 @@ int main(void){
     p=received(grant);p.dataLength--;CHECK(!player_bump_packet_allowed(&p));
     p=received(grant);p.requestBroadcast=true;CHECK(!player_bump_packet_allowed(&p));
     p=received(grant);p.destGlobalId=2;CHECK(!player_bump_packet_allowed(&p));
-    p=received(grant);float bad=NAN;memcpy(p.buffer+p.dataLength-4,&bad,4);CHECK(!player_bump_packet_allowed(&p));
+    p=received(grant);float bad=NAN;memcpy(p.buffer+p.dataLength-8,&bad,4);CHECK(!player_bump_packet_allowed(&p));
     epochs[1]++;deliver(grant);CHECK(!applied[1]);epochs[1]--;deliver(grant);CHECK(!applied[1]);
     fresh();cars[0].velocity[0]=1200;publish();tick(0);grant=messages[0];now+=.41;deliver(grant);CHECK(!applied[1]);
     fresh();cars[0].velocity[0]=1200;publish();tick(0);grant=messages[0];select_peer(1);player_bump_clear(0);deliver(grant);CHECK(!applied[1]);
@@ -153,5 +155,15 @@ int main(void){
     select_peer(1);player_bump_clear(local(0));deliver(grant);CHECK(applied[1]==1);
     cars[0].velocity[0]=1200;cars[1].velocity[0]=0;now+=.1;gGlobalTimer+=4;
     select_peer(0);player_bump_clear(local(1));publish();tick(0);grant=messages[messageCount-1];deliver(grant);CHECK(applied[1]==2);
+    /* A host rule transition retires pending grants and both old pose directions. */
+    fresh();cars[0].velocity[0]=1200;publish();tick(0);grant=messages[0];
+    fixtureSpeedPercent=75;fixtureRuleRevision=1;deliver(grant);CHECK(!applied[1]);
+    fixtureSpeedPercent=100;fixtureRuleRevision=2;deliver(grant);CHECK(!applied[1]);
+    // New owner poses authorize scaled impulses; no old history is reused.
+    fresh();fixtureSpeedPercent=75;fixtureRuleRevision=1;
+    for(unsigned i=0;i<3;i++){select_peer(i);player_bump_update();}
+    cars[0].velocity[0]=900;publish();gGlobalTimer++;tick(0);
+    CHECK(messageCount==1&&applied[0]==1);grant=messages[0];deliver(grant);CHECK(applied[1]==1);
+    CHECK(cars[1].velocity[0]>450&&cars[1].velocity[0]<600);unchanged();
     printf("PASS %u player-bump authority/contact/packet checks; explicit transport/native services, no live game\n",checks);
 }

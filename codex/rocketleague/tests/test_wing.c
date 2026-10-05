@@ -80,7 +80,7 @@ static void fresh(void){
     cap.header.gfx.activeAreaIndex=1;cap.header.next=cap.header.prev=&lists[OBJ_LIST_LEVEL];
     lists[OBJ_LIST_LEVEL].next=lists[OBJ_LIST_LEVEL].prev=&cap.header;
     gLevelValues.wingCapDuration=gLevelValues.metalCapDuration=gLevelValues.vanishCapDuration=90;
-    CharacterNetState car={0};car.sequence=1;car.kind=CNET_MARIO;car.area_sequence=5;
+    CharacterNetState car={0};car.speed_percent=100;car.sequence=1;car.kind=CNET_MARIO;car.area_sequence=5;
     CHECK(character_net_accept(1,&car));
     boxSync.o=&box;box.behavior=bhvExclamationBox;box.activeFlags=ACTIVE_FLAG_ACTIVE;
     box.header.gfx.activeAreaIndex=1;box.oAction=2;box.hitboxRadius=40;box.hitboxHeight=30;
@@ -96,7 +96,7 @@ static void as_client(void){
     gNetworkPlayers[0].globalIndex=1;gNetworkPlayers[1].globalIndex=0;gNetworkServerAddr=(void*)1;
 }
 static CharacterNetState cap_car(unsigned sequence,float x){
-    CharacterNetState car={0};car.sequence=sequence;car.epoch=1;car.area_sequence=5;
+    CharacterNetState car={0};car.speed_percent=100;car.sequence=sequence;car.epoch=1;car.area_sequence=5;
     car.kind=CNET_OCTANE;car.active=CNET_DRIVING;car.interaction=1;
     car.car.position[0]=x;car.car.basis[2]=car.car.basis[3]=car.car.basis[7]=1;
     for(int i=0;i<4;i++)car.car.wheel_radius[i]=32;
@@ -261,7 +261,7 @@ int main(void){
     gMarioStates[0].capTimer=0;CHECK(!rocket_wing_active(0)&&rocket_wing_boost_mode()==0);
     gMarioStates[0].capTimer=90;gMarioStates[0].health=0xff;CHECK(!rocket_wing_active(0));
     /* Remote car uses the same native topper and accepted rigid pose. */
-    fresh();grant=pickup();CharacterNetState remote={0};remote.kind=CNET_OCTANE;remote.active=1;remote.interaction=1;remote.sequence=2;remote.area_sequence=5;
+    fresh();grant=pickup();CharacterNetState remote={0};remote.speed_percent=100;remote.kind=CNET_OCTANE;remote.active=1;remote.interaction=1;remote.sequence=2;remote.area_sequence=5;
     remote.car.basis[2]=remote.car.basis[3]=remote.car.basis[7]=1;
     for(int k=0;k<4;k++)remote.car.wheel_radius[k]=32;
     CHECK(character_net_accept(1,&remote));rocket_wing_topper_update();CHECK(visual[1].activeFlags&ACTIVE_FLAG_ACTIVE);

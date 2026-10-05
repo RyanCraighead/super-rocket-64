@@ -25,3 +25,6 @@ handoff and local ownership. Raycast and camera-apply boundaries are explicit
 fixture services. The existing 67 SDL direction checks, 80 boost/protocol
 checks, and 105 real configuration persistence checks pass. Live visual feel
 and the combined Windows build remain pending; the active game was untouched.
+
+
+Combined candidate update: the Windows engine including this change and the configurable speed rule builds successfully. Publication and live gameplay acceptance remain pending; no active game was interrupted. See [car speed verification](LOCAL-CAR-SPEED.md).

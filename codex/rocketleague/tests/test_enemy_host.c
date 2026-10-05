@@ -64,7 +64,7 @@ static void fresh(const BehaviorScript *behavior,int net) {
 }
 static int hit(void){assert(!rocket_enemy_attack(&enemy));localCar=pose(-100,108);gGlobalTimer++;return rocket_enemy_attack(&enemy);}
 static void remote(unsigned index,float x,uint32_t sequence,uint32_t epoch,uint64_t ticks){
-    CharacterNetState s={0};s.kind=CNET_OCTANE;s.active=CNET_DRIVING;s.interaction=1;s.sequence=sequence;s.epoch=epoch;s.car=pose(x,ticks);
+    CharacterNetState s={0};s.speed_percent=100;s.kind=CNET_OCTANE;s.active=CNET_DRIVING;s.interaction=1;s.sequence=sequence;s.epoch=epoch;s.car=pose(x,ticks);
     assert(character_net_accept(index,&s));
 }
 static void other_owner(u8 *override,u8 *own){*override=*own=1;}
@@ -73,7 +73,7 @@ static void test_online_switch_sweeps(void){
      * round trip must reset history even if a peer reuses the same epoch. */
     fresh(bhvGoomba,1);localActive=0;remote(1,-400,1,1,100);
     assert(!rocket_enemy_attack(&enemy));
-    CharacterNetState mario={0};mario.kind=CNET_MARIO;mario.sequence=2;mario.epoch=1;
+    CharacterNetState mario={0};mario.speed_percent=100;mario.kind=CNET_MARIO;mario.sequence=2;mario.epoch=1;
     assert(character_net_accept(1,&mario));
     remote(1,-100,3,1,108);gGlobalTimer++;
     assert(!rocket_enemy_attack(&enemy)&&!sends);

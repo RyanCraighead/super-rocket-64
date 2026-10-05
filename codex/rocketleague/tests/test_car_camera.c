@@ -1,3 +1,4 @@
+#include "speed_fixture_stubs.h"
 #define CAMERA_DIRECTION_NO_MAIN
 #define newcam_collision unused_camera_collision
 #define newcam_level_bounds unused_camera_bounds
@@ -76,6 +77,11 @@ int main(void){
  /* Boost changes distance smoothly; no trigger may cycle Mario zoom here. */
  chase_setup(0);float startDistance=distance();chaseCar.velocity[2]=4600;frame();CHASE_CHECK(distance()>startDistance&&distance()<890);
  for(int i=0;i<40;i++){frame();}CHASE_CHECK(distance()>885&&distance()<=890.1f);
+ for(unsigned percent=50;percent<=100;percent+=25){
+  fixtureSpeedPercent=percent;chase_setup(0);chaseCar.velocity[2]=4600.f*rocket_speed_scale();
+  for(int i=0;i<40;i++){frame();}CHASE_CHECK(distance()>885&&distance()<=890.1f);
+ }
+ fixtureSpeedPercent=100;
  unsigned zoom=gNewCamera.distanceTargetIndex;SDL_JoystickSetVirtualAxis(device,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,32767);RocketInput drive=poll();
  CHASE_CHECK(drive.throttle>.9f&&!(host_pad.button&R_TRIG));cameraController.buttonPressed=host_pad.button;frame();CHASE_CHECK((unsigned)gNewCamera.distanceTargetIndex==zoom);
  SDL_JoystickSetVirtualAxis(device,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,-32768);poll();

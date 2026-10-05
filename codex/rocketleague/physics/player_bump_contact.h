@@ -44,15 +44,19 @@ static inline int rocket_bump_overlap(const RocketBumpBody *a,const RocketBumpBo
     if(b->isCar&&!a->isCar&&!rocket_body_overlaps_cylinder(&b->car,a->car.position,37.f,160.f))return 0;
     return *depth<1e9f;
 }
-static inline int rocket_bump_impulse(const RocketBumpBody *a,const RocketBumpBody *b,float delta[3]){
+static inline int rocket_bump_impulse_at_speed(const RocketBumpBody *a,const RocketBumpBody *b,float delta[3],float scale){
+    if(!isfinite(scale)||scale<.5f||scale>1.f)return 0;
     float normal[3],depth;if(!rocket_bump_overlap(a,b,normal,&depth))return 0;
     float relative[3];for(int k=0;k<3;k++)relative[k]=a->velocity[k]-b->velocity[k];
     float closing=rocket_bump_dot(relative,normal);
     /* No restitution at resting contacts. Small penetration uses velocity,
      * never a position teleport, so the normal world solver retains control. */
-    float speed=fminf(2400.f,fmaxf(0,closing)*.575f+fminf(60.f,fmaxf(0,depth-2.f)*3.f));
-    if(closing< -30.f||speed<1.f)return 0;
+    float speed=fminf(2400.f*scale,fmaxf(0,closing)*.575f+fminf(60.f,fmaxf(0,depth-2.f)*3.f));
+    if(closing< -30.f*scale||speed<scale)return 0;
     for(int k=0;k<3;k++)delta[k]=normal[k]*speed;
     return 1;
+}
+static inline int rocket_bump_impulse(const RocketBumpBody *a,const RocketBumpBody *b,float delta[3]) {
+    return rocket_bump_impulse_at_speed(a,b,delta,1.f);
 }
 #endif

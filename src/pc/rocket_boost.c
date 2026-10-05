@@ -9,6 +9,7 @@
 #define JOIN_BYTES (MAX_VERSION_LENGTH + 1 + sizeof(s16) + 11 + 512 + RULE_BYTES)
 static unsigned sessionMode;
 static unsigned sessionSurfaceMode;
+static unsigned sessionSpeed = ROCKET_SPEED_DEFAULT;
 static u32 revision;
 static u64 session, previousSession;
 static double lastSent = -1;
@@ -18,6 +19,15 @@ static unsigned preference(void) {
 }
 static unsigned surface_preference(void) {
     return configRocketSurfaceMode == ROCKET_SURFACES_CAR ? ROCKET_SURFACES_CAR : ROCKET_SURFACES_NATIVE;
+}
+unsigned rocket_speed_percent(void) {
+    if (gNetworkType == NT_CLIENT) return gCLIOpts.characterNet && revision ? sessionSpeed : ROCKET_SPEED_DEFAULT;
+    return rocket_speed_preference(configRocketSpeedPercent);
+}
+float rocket_speed_scale(void) { return rocket_speed_multiplier(rocket_speed_percent()); }
+const char *rocket_speed_scope_label(void) {
+    if (gNetworkType == NT_CLIENT) return revision ? "Car speed is controlled by the host" : "Waiting for host car speed (75%)";
+    return "75% default. 100% original speed. Saves for offline play and hosting; attacks adjust with speed.";
 }
 int rocket_surface_mode(void) {
     if (gNetworkType == NT_CLIENT) return gCLIOpts.characterNet && revision ? sessionSurfaceMode : ROCKET_SURFACES_CAR;
@@ -40,6 +50,7 @@ const char *rocket_boost_scope_label(void) {
     return gNetworkType == NT_SERVER && !gCLIOpts.offline ? "Boost mode applies to everyone in this session" : "Boost mode is saved for offline play and hosting";
 }
 void rocket_boost_session_reset(void) {
+    sessionSpeed = ROCKET_SPEED_DEFAULT;
     sessionMode = ROCKET_BOOST_COIN_ONLY;
     sessionSurfaceMode = ROCKET_SURFACES_CAR;
     revision = 0;
@@ -54,12 +65,17 @@ static void refresh_host_rule(void) {
         if (session <= previousSession) session = previousSession + 1;
         previousSession = session;
     }
-    if (!revision || sessionMode != preference() || sessionSurfaceMode != surface_preference()) {
+    if (!revision || sessionMode != preference() || sessionSurfaceMode != surface_preference() || sessionSpeed != rocket_speed_percent()) {
         sessionMode = preference();
         sessionSurfaceMode = surface_preference();
+        sessionSpeed = rocket_speed_percent();
         if (!++revision) ++revision;
         lastSent = -1;
     }
+}
+uint32_t rocket_rule_revision(void) {
+    if (gNetworkType == NT_SERVER) refresh_host_rule();
+    return gNetworkType == NT_NONE || gCLIOpts.offline ? rocket_speed_percent() : revision;
 }
 uint64_t rocket_boost_session_id(void) {
     if (gNetworkType == NT_SERVER) refresh_host_rule();
@@ -71,6 +87,7 @@ void rocket_boost_write_rule(struct Packet *p) {
     u8 wire[RULE_BYTES] = { sessionMode, revision, revision >> 8, revision >> 16, revision >> 24 };
     for (unsigned i = 0; i < 8; ++i) wire[5 + i] = session >> (8 * i);
     wire[13] = sessionSurfaceMode;
+    wire[14] = sessionSpeed;
     packet_write(p, wire, sizeof wire);
 }
 void rocket_boost_network_update(void) {
@@ -94,6 +111,15 @@ int rocket_boost_set_mode(unsigned mode) {
     rocket_boost_network_update();
     return 1;
 }
+int rocket_speed_set_percent(unsigned percent) {
+    if (!rocket_boost_can_set_mode() || !rocket_speed_valid(percent)) return 0;
+    if (configRocketSpeedPercent != percent) {
+        configRocketSpeedPercent = percent;
+        configfile_save(configfile_name());
+    }
+    rocket_boost_network_update();
+    return 1;
+}
 int rocket_surface_set_mode(unsigned mode) {
     if (!rocket_boost_can_set_mode() || mode > ROCKET_SURFACES_NATIVE) return 0;
     if (configRocketSurfaceMode != mode) {
@@ -112,7 +138,7 @@ static u64 wire_session(const u8 *wire) {
     return value;
 }
 static int valid_wire(const u8 *wire) {
-    return wire[0] <= ROCKET_BOOST_INFINITE && wire[13] <= ROCKET_SURFACES_NATIVE && wire_revision(wire) && wire_session(wire);
+    return wire[0] <= ROCKET_BOOST_INFINITE && wire[13] <= ROCKET_SURFACES_NATIVE && rocket_speed_valid(wire[14]) && wire_revision(wire) && wire_session(wire);
 }
 static int from_server(const struct Packet *p, int joining) {
     if (!p || p->error || p->dataLength >= PACKET_LENGTH || gNetworkType != NT_CLIENT || !gCLIOpts.characterNet ||
@@ -143,6 +169,7 @@ static void read_rule(struct Packet *p) {
     if (revision && (!delta || delta >= 0x80000000u)) return;
     sessionMode = wire[0];
     sessionSurfaceMode = wire[13];
+    sessionSpeed = wire[14];
     revision = incoming;
 }
 void rocket_boost_read_join(struct Packet *p) {

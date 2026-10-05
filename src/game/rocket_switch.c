@@ -3,6 +3,7 @@
 #include "rocket_adapter.h"
 #include "../../codex/rocketleague/physics/switch_contact.h"
 #include "pc/rocket_runtime.h"
+#include "pc/rocket_boost.h"
 #include "pc/network/network.h"
 #include "area.h"
 #include "display.h"
@@ -17,6 +18,7 @@
 #include "surface_terrains.h"
 
 static struct SwitchHistory {
+    u32 rule;
     RocketWhompContact contact;
     u32 sync, frame, areaSequence;
     s16 level, area;
@@ -72,6 +74,8 @@ int rocket_switch_ground_pound(struct Object *object) {
     if(h->sync!=object->oSyncID||h->level!=gCurrLevelNum||h->area!=gCurrentArea->index||
        h->areaSequence!=areaSequence||h->networkType!=(int)gNetworkType||(u32)(gGlobalTimer-h->frame)>1)
         memset(h,0,sizeof(*h));
+    if(h->rule!=rocket_rule_revision())memset(&h->contact,0,sizeof h->contact);
+    h->rule=rocket_rule_revision();
     h->sync=object->oSyncID;h->level=gCurrLevelNum;h->area=gCurrentArea->index;
     h->areaSequence=areaSequence;h->networkType=gNetworkType;h->frame=gGlobalTimer;
     /* Like native Mario, only the local controller initiates this switch's
@@ -81,7 +85,7 @@ int rocket_switch_ground_pound(struct Object *object) {
     if(!rocket_adapter_interaction_snapshot(&car)||!switch_top(object,&top)) {rocket_switch_forget(object);return 0;}
     float previous[3],point[3];rocket_whomp_lowest(&h->contact.previous,previous);
     rocket_switch_lowest(&h->contact.previous,&h->contact.back,previous);
-    int kind=rocket_switch_contact(&h->contact,&car,rocket_runtime_epoch(),&top,point);
+    int kind=rocket_switch_contact_at_speed(&h->contact,&car,rocket_runtime_epoch(),&top,point,rocket_speed_scale());
     if(!kind)return 0;
     struct Surface *floor=NULL;struct Object *saved=gCurrentObject;gCurrentObject=m->marioObj;
     float height=find_floor(point[0],top.height+24.f,point[2],&floor);gCurrentObject=saved;

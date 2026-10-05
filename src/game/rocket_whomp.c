@@ -3,6 +3,7 @@
 #include "rocket_adapter.h"
 #include "../../codex/rocketleague/physics/whomp_impact.h"
 #include "pc/rocket_runtime.h"
+#include "pc/rocket_boost.h"
 #include "pc/character_net.h"
 #include "pc/boss_net.h"
 #include "pc/network/network.h"
@@ -22,6 +23,7 @@
 #endif
 
 static struct WhompHistory {
+    u32 rule;
     struct Object *object;
     u32 sync,frame,authority;
     s16 level,area;
@@ -80,6 +82,8 @@ int rocket_whomp_ground_pound(struct Object *object) {
     u32 authority=boss_net_epoch(object);
     if(h->object!=object||h->sync!=object->oSyncID||h->authority!=authority||h->level!=gCurrLevelNum||
        h->area!=gCurrentArea->index||(u32)(gGlobalTimer-h->frame)>1)memset(h,0,sizeof(*h));
+    if(h->rule!=rocket_rule_revision())memset(&h->contacts,0,sizeof h->contacts);
+    h->rule=rocket_rule_revision();
     h->object=object;h->sync=object->oSyncID;h->authority=authority;
     h->level=gCurrLevelNum;h->area=gCurrentArea->index;h->frame=gGlobalTimer;
     RocketWhompBack back;
@@ -108,7 +112,7 @@ int rocket_whomp_ground_pound(struct Object *object) {
         if(!available){memset(track,0,sizeof(*track));continue;}
         float previous[3],point[3],wheels[4][3];rocket_whomp_lowest(&track->previous,previous);
         int fresh=!track->valid||epoch!=track->epoch||car.ticks!=track->previous.ticks;
-        int kind=rocket_whomp_contact(track,&car,epoch,&back,point);
+        int kind=rocket_whomp_contact_at_speed(track,&car,epoch,&back,point,rocket_speed_scale());
         if(fresh&&rocket_whomp_wheels(&car,&back,wheels))kind=3;
         if(!kind||accepted)continue;
         if(kind==3){

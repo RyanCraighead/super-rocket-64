@@ -22,3 +22,6 @@ history. This is component integration evidence, not live screenshot acceptance.
 
 The active game was not touched. This fix is local only; the combined Windows
 candidate remains to be built.
+
+
+Combined candidate update: the Windows engine including this change and the configurable speed rule builds successfully. Publication and live gameplay acceptance remain pending; no active game was interrupted. See [car speed verification](LOCAL-CAR-SPEED.md).

@@ -2,6 +2,7 @@
 #include "character_net.h"
 #include "player_bump.h"
 #include "rocket_runtime.h"
+#include "rocket_boost.h"
 #include "network/network.h"
 #include "utils/misc.h"
 #include "game/area.h"
@@ -31,10 +32,11 @@ int character_net_write(struct Packet *p){
     CharacterNetState s={0};s.sequence=++sequence;s.epoch=rocket_runtime_epoch();
     s.area_sequence=gNetworkPlayerLocal?gNetworkPlayerLocal->currLevelAreaSeqId:0;
     s.kind=character_net_local_kind();
-    s.active=s.kind==CNET_OCTANE&&rocket_runtime_snapshot(&s.car);
+    s.speed_percent=rocket_speed_percent();s.rule_revision=rocket_rule_revision();
+    s.active=s.kind==CNET_OCTANE&&rocket_runtime_rule_ready()&&rocket_runtime_snapshot(&s.car);
     if(s.kind==CNET_OCTANE&&!s.active&&character_presentation_car_snapshot(&s.car))s.active=CNET_PRESENTATION;
     RocketSnapshot contact;
-    s.interaction=s.active==CNET_DRIVING&&rocket_adapter_interaction_snapshot(&contact);
+    s.interaction=s.active==CNET_DRIVING&&rocket_runtime_rule_ready()&&rocket_adapter_interaction_snapshot(&contact);
     uint8_t wire[CNET_WIRE_SIZE];
     if(!character_net_encode(wire,sizeof wire,&s)||p->cursor+sizeof wire+4>=PACKET_LENGTH)return 0;
 #ifdef ROCKET_CAR_QA
@@ -47,16 +49,19 @@ int character_net_write(struct Packet *p){
 int character_net_read(struct Packet *p,unsigned index,CharacterNetState *state){
     if(!state||index==0||index>=MAX_PLAYERS||p->error||p->cursor+CNET_WIRE_SIZE!=p->dataLength)return 0;
     if(!character_net_decode(state,p->buffer+p->cursor,CNET_WIRE_SIZE))return 0;
-    if(state->area_sequence!=gNetworkPlayers[index].currLevelAreaSeqId)return 0;
+    if(state->area_sequence!=gNetworkPlayers[index].currLevelAreaSeqId||
+       state->speed_percent!=rocket_speed_percent()||state->rule_revision!=rocket_rule_revision())return 0;
     p->cursor+=CNET_WIRE_SIZE;
     if(tracks[index].valid){uint32_t delta=state->sequence-tracks[index].latest.sequence;if(!delta||delta>=0x80000000u)return 0;}
     return 1;
 }
 int character_net_accept(unsigned index,const CharacterNetState *state){
-    if(!state||index==0||index>=MAX_PLAYERS)return 0;
+    if(!state||index==0||index>=MAX_PLAYERS||state->speed_percent!=rocket_speed_percent()||
+       state->rule_revision!=rocket_rule_revision())return 0;
     const CharacterNetTrack *track=&tracks[index];
     int transition=track->valid&&(state->kind!=track->latest.kind||state->epoch!=track->latest.epoch||
-        state->area_sequence!=track->latest.area_sequence);
+        state->area_sequence!=track->latest.area_sequence||state->speed_percent!=track->latest.speed_percent||
+        state->rule_revision!=track->latest.rule_revision);
     int ok=character_net_track_push(&tracks[index],state,clock_elapsed_f64());
     /* A complete round trip may arrive between two native contact boundaries.
      * Invalidate only pose continuity, including accepted same-epoch kind
@@ -86,7 +91,8 @@ static int physical_state(unsigned index,CharacterNetState *out,uint32_t *genera
     const CharacterNetTrack *track=&tracks[index];
     double now=clock_elapsed_f64();
     if(!(interaction?character_net_track_contact(track,now,out):character_net_track_support(track,now,out))||
-       track->latest.area_sequence!=gNetworkPlayers[index].currLevelAreaSeqId)return 0;
+       track->latest.area_sequence!=gNetworkPlayers[index].currLevelAreaSeqId||
+       track->latest.speed_percent!=rocket_speed_percent()||track->latest.rule_revision!=rocket_rule_revision())return 0;
     *out=track->latest;if(generation)*generation=generations[index];return 1;
 }
 int character_net_interaction_state(unsigned index,CharacterNetState *out,uint32_t *generation){

@@ -1,3 +1,4 @@
+#include "player_bump_fixture_stubs.h"
 /* Actual car-load/character ingress and native seesaw/pendulum behavior.
  * Level surface query, audio and object sync transport are explicit fixtures. */
 #include <assert.h>
@@ -66,7 +67,7 @@ static RocketSnapshot car(float z){
     return c;
 }
 static void remote(float z,unsigned sequence){
-    CharacterNetState state={0},decoded;state.sequence=sequence;state.epoch=1;state.kind=CNET_OCTANE;state.active=1;state.interaction=1;state.car=car(z);
+    CharacterNetState state={0},decoded;state.speed_percent=100;state.sequence=sequence;state.epoch=1;state.kind=CNET_OCTANE;state.active=1;state.interaction=1;state.car=car(z);
     uint8_t wire[CNET_WIRE_SIZE];CHECK(character_net_encode(wire,sizeof wire,&state));CHECK(character_net_decode(&decoded,wire,sizeof wire));
     CHECK(character_net_accept(1,&decoded));
 }
@@ -134,7 +135,7 @@ int main(void){
     /* A packet accepted between frames invalidates the old tire locations
      * before the next native terrain update (the normal-frame refresh hook). */
     fresh();remote(150,1);rocket_platform_refresh();CHECK(rocket_platform_load(&platform,center)==4);
-    CharacterNetState incoming={0};incoming.sequence=2;incoming.epoch=1;incoming.kind=CNET_OCTANE;
+    CharacterNetState incoming={0};incoming.speed_percent=100;incoming.sequence=2;incoming.epoch=1;incoming.kind=CNET_OCTANE;
     incoming.active=CNET_DRIVING;incoming.interaction=1;incoming.car=car(150);incoming.car.grounded=0;
     CHECK(character_net_accept(1,&incoming));expectedBeforeTerrain=2;update_objects(0);expectedBeforeTerrain=-1;CHECK(clears==1&&terrainUpdates==1&&rocket_platform_load(&platform,center)==2);
     incoming.sequence++;incoming.car=car(800);CHECK(character_net_accept(1,&incoming));rocket_platform_refresh();CHECK(rocket_platform_load(&platform,center)==2);

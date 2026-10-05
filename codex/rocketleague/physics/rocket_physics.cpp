@@ -256,7 +256,7 @@ struct RocketWorld {
     uint64_t frame=0,ticks=0;
     bool haveFrame=false,ready=false,metalWater=false;
     Vec dryGravity;
-    unsigned surfaceMode=ROCKET_SURFACES_CAR;
+    unsigned surfaceMode=ROCKET_SURFACES_CAR, speedPercent=100;
     RocketEnvironment environment={};
     unsigned inhibited=7;
     int boostMode=ROCKET_BOOST_COIN_ONLY;
@@ -301,7 +301,16 @@ extern "C" int rocket_world_set_environment(RocketWorld *w,const RocketEnvironme
 extern "C" void rocket_world_set_surface_mode(RocketWorld *w,unsigned mode) {
     if(w)w->surfaceMode=mode==ROCKET_SURFACES_NATIVE?mode:ROCKET_SURFACES_CAR;
 }
+extern "C" int rocket_world_set_speed(RocketWorld *w,unsigned percent) {
+    if(!w||!rocket_speed_valid(percent))return 0;
+    w->speedPercent=percent;return 1;
+}
+extern "C" unsigned rocket_world_speed(RocketWorld *w) {return w?w->speedPercent:100;}
 static thread_local RocketWorld *steppingEnvironment=nullptr;
+extern "C" float rocket_host_car_speed(const void *car) {
+    auto *w=steppingEnvironment;
+    return w&&w->car==car?rocket_speed_multiplier(w->speedPercent):1.f;
+}
 struct EnvironmentStep {
     RocketWorld *previous;
     explicit EnvironmentStep(RocketWorld *world):previous(steppingEnvironment){steppingEnvironment=world;}
@@ -650,8 +659,8 @@ extern "C" int rocket_world_frame(RocketWorld *w,uint64_t frame,const RocketInpu
             w->car->_internalState.isFlipping=false;
             const float depth=w->waterLevel-height;
             const float buoyancy=std::clamp((depth-110.f)*1.5f,-75.f,75.f);
-            btVector3 acceleration=w->car->GetForwardDir()*(c.throttle*420.f);
-            acceleration.setZ(acceleration.z()+buoyancy+(c.jump?650.f:0.f));
+            btVector3 acceleration=w->car->GetForwardDir()*(c.throttle*420.f*rocket_speed_multiplier(w->speedPercent));
+            acceleration.setZ(acceleration.z()+buoyancy+(c.jump?650.f*rocket_speed_multiplier(w->speedPercent):0.f));
             // Cancel only this body's gravity. Never rewrite the arena mutator:
             // Metal's separate sinking adapter must keep owning heavy motion.
             body.applyCentralForce((acceleration*UU_TO_BT-body.getGravity())/body.getInvMass());

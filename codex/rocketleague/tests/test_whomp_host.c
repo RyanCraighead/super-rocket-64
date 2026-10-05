@@ -129,7 +129,7 @@ static void start(int king,int net){
 }
 static int advance(void){assert(!rocket_whomp_ground_pound(&enemy));localCar=down(1,104);gGlobalTimer++;return rocket_whomp_ground_pound(&enemy);}
 static void send_down(unsigned index,float gap,unsigned sequence){
-    CharacterNetState state={0},decoded;uint8_t wire[CNET_WIRE_SIZE];
+    CharacterNetState state={0},decoded;state.speed_percent=100;uint8_t wire[CNET_WIRE_SIZE];
     state.kind=CNET_OCTANE;state.active=CNET_DRIVING;state.interaction=1;state.epoch=1;state.sequence=sequence;
     state.car=down(gap,96+4*sequence);
     assert(character_net_encode(wire,sizeof wire,&state)&&character_net_decode(&decoded,wire,sizeof wire));
@@ -181,7 +181,7 @@ static RocketSnapshot flip_down(float gap,uint64_t ticks,int end){
     return c;
 }
 static void send_flip(unsigned index,float gap,unsigned sequence,int end){
-    CharacterNetState state={0},decoded;uint8_t wire[CNET_WIRE_SIZE];
+    CharacterNetState state={0},decoded;state.speed_percent=100;uint8_t wire[CNET_WIRE_SIZE];
     state.kind=CNET_OCTANE;state.active=CNET_DRIVING;state.interaction=1;state.epoch=1;state.sequence=sequence;
     state.car=flip_down(gap,96+4*sequence,end);
     assert(character_net_encode(wire,sizeof wire,&state)&&character_net_decode(&decoded,wire,sizeof wire));
@@ -198,7 +198,7 @@ static RocketSnapshot resting(uint64_t ticks){
     return c;
 }
 static void send_rest(unsigned sequence){
-    CharacterNetState s={0},decoded;uint8_t wire[CNET_WIRE_SIZE];
+    CharacterNetState s={0},decoded;s.speed_percent=100;uint8_t wire[CNET_WIRE_SIZE];
     s.kind=CNET_OCTANE;s.active=CNET_DRIVING;s.interaction=1;s.epoch=1;s.sequence=sequence;
     s.car=resting(100+4*sequence);
     assert(character_net_encode(wire,sizeof wire,&s)&&character_net_decode(&decoded,wire,sizeof wire));
@@ -279,7 +279,7 @@ static void flip_native_tests(void){
         start(1,1);localActive=0;send_flip(1,45,1,0);assert(!rocket_whomp_ground_pound(&enemy));
         if(reset==0)character_net_clear(1);
         if(reset==1)authorityEpoch++;
-        if(reset==2){CharacterNetState mario={0};mario.kind=CNET_MARIO;mario.epoch=1;mario.sequence=2;assert(character_net_accept(1,&mario));}
+        if(reset==2){CharacterNetState mario={0};mario.speed_percent=100;mario.kind=CNET_MARIO;mario.epoch=1;mario.sequence=2;assert(character_net_accept(1,&mario));}
         if(reset==3)rocket_whomp_forget(&enemy);
         if(reset==4)authority=0;
         send_flip(1,1,3,1);gGlobalTimer++;assert(!rocket_whomp_ground_pound(&enemy));

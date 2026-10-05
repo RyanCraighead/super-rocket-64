@@ -4,7 +4,7 @@
 # Keep generated proprietary collision streams outside the public checkout.
 set -euo pipefail
 ulimit -c 0
-if [[ $# != 4 ]];then echo 'Usage: test_attack_native_geometry.sh WHOMP_COLLISION BLUE_COLLISION BLUE_POSES KING_POSE' >&2;exit 2;fi
+if [[ $# != 4 && $# != 5 ]];then echo 'Usage: test_attack_native_geometry.sh WHOMP_COLLISION BLUE_COLLISION BLUE_POSES KING_POSE [SPEED_PERCENT]' >&2;exit 2;fi
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)";cd "$ROOT"
 OUT="$(mktemp -d "${TMPDIR:-/tmp}/rocket-native-attack.XXXXXX")"
 trap 'rm -rf "$OUT"' EXIT

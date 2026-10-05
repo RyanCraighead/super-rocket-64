@@ -13,6 +13,7 @@ int rocket_runtime_boost_mode(void);
 /* Call once after local native pickup/offline or an authority-approved grant. */
 int rocket_runtime_collect_coin(void);
 uint32_t rocket_runtime_epoch(void);
+int rocket_runtime_rule_ready(void);
 /* Retire a real online selection's contacts/grants without refilling its tank. */
 void rocket_runtime_selection_changed(void);
 int rocket_runtime_draw_snapshot(const RocketSnapshot *snapshot,const float view[16],const float projection[16],const int viewport[4]);
