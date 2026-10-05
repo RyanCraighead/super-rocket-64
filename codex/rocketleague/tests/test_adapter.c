@@ -33,6 +33,7 @@ u32 gGlobalTimer;
 static int enabled,steps,resets,interrupts,meshCalls[2],meshCount[2],draw,uiBlocked,metalWater;
 static int recoveries;
 struct LevelValues gLevelValues;
+const BehaviorScript bhvSmallWhomp[]={20},bhvWhompKingBoss[]={21};
 const BehaviorScript bhvCapSwitch[]={0},bhvExclamationBox[]={1},bhvVanishCap[]={2},bhvWingCap[]={3},bhvMetalCap[]={4},bhvWarp[]={5},bhvInSunkenShip[]={6},bhvUnagi[]={7},bhvUnagiSubobject[]={8};
 struct ObjectNode *gObjectLists;
 static struct ObjectNode objectLists[NUM_OBJ_LISTS];
@@ -90,7 +91,7 @@ int rocket_runtime_read_input(const RocketInput *keyboard,RocketInput *out){*out
 f32 atan2f(f32 y,f32 x){(void)y;(void)x;return 1234.f;}
 #endif
 s32 set_water_plunge_action(struct MarioState *m){m->action=ACT_WATER_PLUNGE;return 1;}
-u32 set_mario_action(struct MarioState *m,u32 action,u32 arg){m->action=action;m->actionArg=arg;return 1;}
+u32 set_mario_action(struct MarioState *m,u32 action,u32 arg){m->action=action;m->actionArg=arg;m->actionState=m->actionTimer=0;return 1;}
 s32 transition_submerged_to_walking(struct MarioState *m){m->action=ACT_WALKING;return 1;}
 static struct MarioState mario;
 static struct Object object;

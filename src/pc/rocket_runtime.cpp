@@ -5,6 +5,8 @@
 #include "rocket_audio.h"
 extern "C" {
 #include "game/rocket_wing.h"
+#include "game/rocket_squish_visual.h"
+#include "game/level_update.h"
 }
 #include <string>
 #ifdef ROCKET_CAR
@@ -113,7 +115,7 @@ std::vector<Vertex> loadPart(const std::string &base,const nlohmann::json &part,
     }
     return result;
 }
-void append(const std::vector<Vertex> &vertices,const float position[3],const float basis[9],float scale,const float *view,int which=-1){
+void append(const std::vector<Vertex> &vertices,const float position[3],const float basis[9],float scale,const float *view,const float pivot[3],const float squish[3],int which=-1){
     float roll=which<0?0:spin[which],c=std::cos(roll),s=std::sin(roll);
     for(const Vertex &v:vertices){
         float p[3]={v.p[0],v.p[1],v.p[2]},n[3]={v.n[0],v.n[1],v.n[2]};
@@ -121,7 +123,9 @@ void append(const std::vector<Vertex> &vertices,const float position[3],const fl
             for(float *vec:{p,n}){float x=vec[0],z=vec[2];vec[0]=c*x+s*z;vec[2]=-s*x+c*z;}
         }
         DrawVertex out={};float dot=0,normal[3]={};const float light[3]={.26726124f,.80178373f,.53452248f};
-        for(int k=0;k<3;++k){out.p[k]=position[k];for(int q=0;q<3;++q){out.p[k]+=basis[q*3+k]*p[q]*scale;normal[k]+=basis[q*3+k]*n[q];}dot+=normal[k]*light[k];}
+        for(int k=0;k<3;++k){out.p[k]=position[k];for(int q=0;q<3;++q){out.p[k]+=basis[q*3+k]*p[q]*scale;normal[k]+=basis[q*3+k]*n[q];}}
+        rocket_squish_vertex(out.p,normal,pivot,squish);
+        for(int k=0;k<3;k++)dot+=normal[k]*light[k];
         /* Native G_TEXTURE_GEN uses view-space normal Y for S and X for T. */
         out.uv[0]=.5f+.5f*(view[1]*normal[0]+view[5]*normal[1]+view[9]*normal[2]);
         out.uv[1]=.5f+.5f*(view[0]*normal[0]+view[4]*normal[1]+view[8]*normal[2]);
@@ -217,18 +221,19 @@ extern "C" int rocket_runtime_frame(uint64_t frame,const RocketInput *input,int 
 }
 extern "C" int rocket_runtime_snapshot(RocketSnapshot *snapshot){if(!drawable||!snapshot)return 0;*snapshot=current;return 1;}
 extern "C" const char *rocket_runtime_status(void){return status.c_str();}
-extern "C" int rocket_runtime_draw_snapshot_caps(const RocketSnapshot *snapshot,uint32_t nativeFlags,const float *view,const float *projection,const int *viewport){
+static int drawSnapshot(const RocketSnapshot *snapshot,uint32_t nativeFlags,const float squish[3],const float *view,const float *projection,const int *viewport){
     if(!snapshot)return 0;
     const RocketSnapshot &pose=*snapshot;
     if(body.empty()||wheel.empty()||!finite(view,16)||!finite(projection,16)||!viewport||viewport[2]<=0||viewport[3]<=0)return 0;
     try{
         initGL();GLState saved(gl);stream.clear();stream.reserve(body.size()+wheel.size()*4);
-        append(body,pose.position,pose.basis,ROCKET_HOST_SCALE,view);
+        const float pivot[3]={pose.position[0],pose.position[1]-40.f,pose.position[2]};
+        append(body,pose.position,pose.basis,ROCKET_HOST_SCALE,view,pivot,squish);
         for(int i=0;i<4;++i){
             float basis[9];std::copy(pose.basis,pose.basis+9,basis);
             float c=std::cos(pose.wheel_steer[i]),s=std::sin(pose.wheel_steer[i]);
             for(int k=0;k<3;++k){basis[k]=pose.basis[k]*c+pose.basis[3+k]*s;basis[3+k]=-pose.basis[k]*s+pose.basis[3+k]*c;}
-            append(wheel,pose.wheel_position[i],basis,pose.wheel_radius[i]/16.f,view,snapshot==&current?i:-1);
+            append(wheel,pose.wheel_position[i],basis,pose.wheel_radius[i]/16.f,view,pivot,squish,snapshot==&current?i:-1);
         }
         Matrix v,p;std::copy(view,view+16,v.begin());std::copy(projection,projection+16,p.begin());Matrix mvp=multiply(p,v);
         gl.UseProgram(program);gl.UniformMatrix4fv(uMVP,1,GL_FALSE,mvp.data());if(gl.vaoSupported)gl.BindVertexArray(vao);
@@ -245,10 +250,18 @@ extern "C" int rocket_runtime_draw_snapshot_caps(const RocketSnapshot *snapshot,
         gl.DrawArrays(GL_TRIANGLES,0,(GLsizei)stream.size());return 1;
     }catch(const std::exception &e){status="Rocket draw failed: "+std::string(e.what());std::fprintf(stderr,"%s\n",status.c_str());rocket_runtime_shutdown();status="Rocket draw failed: "+std::string(e.what());return 0;}
 }
-extern "C" int rocket_runtime_draw(const float *view,const float *projection,const int *viewport){
-    return world&&drawable?rocket_runtime_draw_snapshot_caps(&current,capVisuals,view,projection,viewport):0;
+extern "C" int rocket_runtime_draw_snapshot_player(const RocketSnapshot *snapshot,unsigned index,uint32_t flags,const float *view,const float *projection,const int *viewport){
+    if(index>=MAX_PLAYERS)return 0;
+    float scale[3];rocket_squish_visual_scale(&gMarioStates[index],scale);
+    return drawSnapshot(snapshot,flags,scale,view,projection,viewport);
 }
-extern "C" int rocket_runtime_draw_snapshot(const RocketSnapshot *snapshot,const float *view,const float *projection,const int *viewport){return rocket_runtime_draw_snapshot_caps(snapshot,capVisuals,view,projection,viewport);}
+extern "C" int rocket_runtime_draw_snapshot_caps(const RocketSnapshot *snapshot,uint32_t flags,const float *view,const float *projection,const int *viewport){
+    const float scale[3]={1,1,1};return drawSnapshot(snapshot,flags,scale,view,projection,viewport);
+}
+extern "C" int rocket_runtime_draw(const float *view,const float *projection,const int *viewport){
+    return world&&drawable?rocket_runtime_draw_snapshot_player(&current,0,capVisuals,view,projection,viewport):0;
+}
+extern "C" int rocket_runtime_draw_snapshot(const RocketSnapshot *snapshot,const float *view,const float *projection,const int *viewport){return rocket_runtime_draw_snapshot_player(snapshot,0,capVisuals,view,projection,viewport);}
 
 #else
 extern "C" int rocket_runtime_init(void){return 0;}
@@ -261,6 +274,7 @@ extern "C" uint32_t rocket_runtime_epoch(void){return 0;}
 extern "C" void rocket_runtime_selection_changed(void){}
 extern "C" int rocket_runtime_draw_snapshot(const RocketSnapshot*,const float*,const float*,const int*){return 0;}
 extern "C" int rocket_runtime_draw_snapshot_caps(const RocketSnapshot*,uint32_t,const float*,const float*,const int*){return 0;}
+extern "C" int rocket_runtime_draw_snapshot_player(const RocketSnapshot*,unsigned,uint32_t,const float*,const float*,const int*){return 0;}
 extern "C" void rocket_runtime_set_cap_visuals(uint32_t){}
 extern "C" int rocket_runtime_owns_controls(void){return 0;}
 extern "C" void rocket_runtime_gamepad(const RocketGamepad*){}
