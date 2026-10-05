@@ -37,7 +37,7 @@ world-path rejection, momentum and preservation of fuel/jump/flip state.
 Existing codec (1,009), transport (191) and online wheel-switch regressions pass.
 Native movement/transport boundaries in the authority fixture are explicit
 services. Live gameplay, visual feel, real network jitter and two-PC acceptance
-remain unverified. The combined local Windows build is still pending.
+remain unverified. The combined Windows build passed before publication.
 
 
-Combined candidate update: the Windows engine including this change and the configurable speed rule builds successfully. Publication and live gameplay acceptance remain pending; no active game was interrupted. See [car speed verification](LOCAL-CAR-SPEED.md).
+v0.2.9 verification: the combined Windows engine and standalone EXE build successfully. Live gameplay acceptance remains pending; no active game was interrupted. See [car speed verification](LOCAL-CAR-SPEED.md).

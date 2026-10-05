@@ -43,4 +43,4 @@ All changes remain local. The active game, controller, saves and foreground
 were untouched. The combined Windows candidate is still pending.
 
 
-Combined candidate update: the Windows engine including this change and the configurable speed rule builds successfully. Publication and live gameplay acceptance remain pending; no active game was interrupted. See [car speed verification](LOCAL-CAR-SPEED.md).
+v0.2.9 verification: the combined Windows engine and standalone EXE build successfully. Live gameplay acceptance remains pending; no active game was interrupted. See [car speed verification](LOCAL-CAR-SPEED.md).

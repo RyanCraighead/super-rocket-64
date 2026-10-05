@@ -1,4 +1,4 @@
-# Configurable car speed — local candidate
+# Configurable car speed (v0.2.9)
 
 The pinned backend uses Rocket League units and a proper axis rotation to host
 units at scale2. Its maximum linear speed is2300RL/4600host units per second;
@@ -58,6 +58,6 @@ Verification completed locally:
 
 The standalone physics API and pre-existing component fixtures explicitly use 100% unless configured. The game supplies its saved/host value before stepping. This distinction is intentional; it does not bypass the game's 75% default.
 
-The current game session was never used for testing. Headless native-function tests and process-local SDL input do not establish physical-controller feel or two-PC/WAN acceptance. This candidate remains local until publication approval.
+The current game session was never used for testing. Headless native-function tests and process-local SDL input do not establish physical-controller feel or two-PC/WAN acceptance. This implementation is included in v0.2.9.
 
-The combined Windows engine and standalone EXE build successfully. The exact payload/nested-archive audit checks 1,867 files and retains 777 notice paths with no flagged proprietary inputs, credentials or private paths. Running the actual EXE in verification mode preserves all 132 copied data files (including saves and explicit speed/camera preferences), their timestamps and launcher preferences. Cached Mario/Octane assets and all 115 shared engine-data files verify without original source paths. This is a local candidate, not an uploaded release.
+The combined Windows engine and standalone EXE build successfully. The exact payload/nested-archive audit checks 1,867 files and retains 777 notice paths with no flagged proprietary inputs, credentials or private paths. Running the actual EXE in verification mode preserves all 132 copied data files (including saves and explicit speed/camera preferences), their timestamps and launcher preferences. Cached Mario/Octane assets and all 115 shared engine-data files verify without original source paths. These checks cover the v0.2.9 release artifact.

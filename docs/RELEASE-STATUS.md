@@ -1,8 +1,8 @@
 # Verification and limitations
 
-## Local v0.2.9 candidate (not published)
+## v0.2.9 camera, contacts and configurable speed
 
-The candidate adds non-damaging car/player bumps, a saved car-follow camera,
+This release adds non-damaging car/player bumps, a saved car-follow camera,
 prevents Octane from entering Mario's native tree-climbing state, repairs the
 Whomp King surface eligibility and real-size blue-switch impact witness, and
 adds a host-controlled 50-100% speed setting (75% default, 100% original).

@@ -20,8 +20,7 @@ confirmed suspension and trunk pinning in five assertions. Optional baseline
 comparison accepts a caller-supplied revision; the normal test needs no Git
 history. This is component integration evidence, not live screenshot acceptance.
 
-The active game was not touched. This fix is local only; the combined Windows
-candidate remains to be built.
+The active game was not touched. The combined Windows build passed; this fix is included in v0.2.9.
 
 
-Combined candidate update: the Windows engine including this change and the configurable speed rule builds successfully. Publication and live gameplay acceptance remain pending; no active game was interrupted. See [car speed verification](LOCAL-CAR-SPEED.md).
+v0.2.9 verification: the combined Windows engine and standalone EXE build successfully. Live gameplay acceptance remains pending; no active game was interrupted. See [car speed verification](LOCAL-CAR-SPEED.md).
