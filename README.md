@@ -20,7 +20,6 @@ RocketSim is an approximate reconstruction. This is a fan project, not Rocket Le
 
 ![Octane jumping through Bob-omb Battlefield](docs/media/battlefield-jumps.gif)
 
-Octane can reach Princess's Secret Slide through the stained-glass alcove (v0.2.3), enter the sunken ship after the eel leaves in Jolly Roger Bay (v0.2.2), and use the Cool Cool Mountain chimney. These entrance fixes have headless regression coverage; live gameplay acceptance of the two latest fixes remains pending.
 
 ## Install and play
 
