@@ -70,6 +70,12 @@ namespace SuperRocket64 {
             return !initial && uri.Host == "release-assets.githubusercontent.com";
         }
         private static void Fetch(Uri initial, long limit, Stream output, CancellationToken token) {
+            // The standalone launcher targets .NET Framework; opt out of legacy
+            // TLS defaults inside this process before creating the first request.
+            // Certificate validation and Windows security settings are unchanged.
+            AppContext.SetSwitch("Switch.System.Net.DontEnableSchUseStrongCrypto", false);
+            AppContext.SetSwitch("Switch.System.Net.DontEnableSystemDefaultTlsVersions", false);
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
             Guard.Need(Allowed(initial, true), "Update URL is not an official project release"); Uri uri = initial;
             for (int redirect = 0; redirect <= 4; redirect++) {
                 token.ThrowIfCancellationRequested(); Guard.Need(Allowed(uri, redirect == 0), "Unexpected update download redirect");
@@ -78,7 +84,6 @@ namespace SuperRocket64 {
                 request.UserAgent = "SuperRocket64-Launcher/" + UpdateBuild.Version; request.Accept = uri.Host == "api.github.com" ? "application/vnd.github+json" : "application/octet-stream";
                 request.UseDefaultCredentials = false; request.Credentials = null; request.AutomaticDecompression = DecompressionMethods.None;
                 if (uri.Host == "api.github.com") request.Headers["X-GitHub-Api-Version"] = "2026-03-10";
-                ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
                 using (token.Register(request.Abort)) {
                     try {
                         using (HttpWebResponse response = (HttpWebResponse)request.GetResponse()) {

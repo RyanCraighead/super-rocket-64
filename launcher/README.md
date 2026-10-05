@@ -12,7 +12,7 @@ Framework C# compiler. No private repository or game inputs are required.
 .\launcher\test-desktop.ps1
 ```
 
-- 29 baseline checks cover extraction/hash validation, path handling, saved data,
+- 36 baseline checks cover extraction/hash validation, path handling, saved data,
   commands, optional source formats and LAN/Tailscale address classification.
 - 22 updater checks cover release selection, offline/no-release responses,
   metadata/version mismatch, corrupted/partial downloads, cancellation, caching,

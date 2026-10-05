@@ -171,7 +171,9 @@ def setup(args, root=ROOT):
     require(source, 'Choose your original Super Mario 64 US ROM (.z64/.v64/.n64 or single-ROM ZIP).')
     rom = sm64_bytes(source)
     if character == 'octane' and not args.assets:
-        require(args.game and args.game.is_dir(), 'Choose your Rocket League installation folder containing TAGame. Supported profile: Steam build 25535926.')
+        require(args.game and args.game.is_dir(), 'Choose your Rocket League installation folder containing TAGame. See the supported-source list for accepted package versions.')
+        from codex.rocketleague.tools.export_octane import check_game
+        check_game(args.game)  # reject missing/unsupported packages before provisioning tools
     if character not in ('mario', 'octane') and not args.assets:
         require(args.rom and args.rom.is_file(), 'Choose the supported original ' + character + ' ROM; see the source-game list.')
     runtime = old.private_path(DATA_ROOT or root, '.runtime')

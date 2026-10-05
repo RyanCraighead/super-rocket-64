@@ -10,7 +10,7 @@ Before installing, the launcher validates the repository/tag-bound HTTPS URLs, G
 
 Downloads use a separate temporary file. Cancellation or an incomplete download removes that file and retains the working version. Completed verified downloads can be reused. A per-install operation lock prevents concurrent setup/game/update actions. An active game blocks activation and rollback; close it normally. Updates never terminate a running game or replace the running launcher EXE.
 
-Each launcher lives in its own `launcher-versions` directory. A small atomic state file selects the active and previous versions. The new launcher must complete a startup handshake before it can offer gameplay. A failed restart restores the previous selection. **Roll back launcher** is available after an updater-capable version has been replaced; v0.1.0 predates this mechanism and remains downloadable separately.
+Each launcher lives in its own `launcher-versions` directory. A small atomic state file selects the active and previous versions. The new launcher must complete a startup handshake before it can offer gameplay. A failed restart restores the previous selection. **Roll back launcher** is available after an updater-capable version has been replaced; v0.1.0 and v0.1.1 predate this mechanism and remains downloadable separately.
 
 Shortcuts target `<installation folder>\Super-Rocket-64.exe` with the explicit installation-folder argument. That persistent launcher routes to the selected version, so shortcuts do not depend on Downloads or a particular version directory. Setup does not overwrite a shortcut belonging to another installation. Keep using the same installation folder to retain your existing data.
 

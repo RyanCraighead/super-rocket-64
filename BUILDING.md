@@ -20,7 +20,8 @@ The script validates the included RocketSim source snapshot, obtains and
 SHA-256 checks the pinned public upstream Lua library, then builds with two
 workers. It does not need a ROM, private repository, old object files or game
 assets. Output: `.build/windows/us_pc/sm64coopdx.exe`. Discord SDK, CoopNet and
-the updater are disabled; direct-IP networking remains available.
+the engine's built-in updater are disabled; direct-IP networking remains available.
+The separate Windows launcher provides the verified update flow described below.
 
 To reproduce the source-derived audio inputs, use GNU binutils and the host
 compiler with the checked-in maintainer script:

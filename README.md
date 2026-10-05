@@ -29,7 +29,7 @@ First-time setup:
 3. Choose **No** for optional characters to finish, or **Yes** to select additional characters and provide only their required game files.
 4. Choose **Offline** to enter the game as Octane. Hold **F7** or the controller's **Share/Back** button to open the character wheel on safe ground.
 
-Exact supported releases matter. Rocket League extraction currently accepts the audited **Steam build 25535926** package profile; support for an arbitrary current Steam or Epic installation is not claimed. See [supported source games and formats](docs/ASSET-SOURCES.md) before preparing files.
+Choose your **Epic Games Store or Steam** Rocket League folder containing `TAGame`, or use **Find Epic installation**. Setup accepts either store when the two required packages match the supported profile; it does not require the Steam client. The profile was verified locally using Steam build 25535926; a full Epic installation has not yet been tested locally. See [supported source games and formats](docs/ASSET-SOURCES.md) for exact package checksums.
 
 Your ROMs, extracted assets, saves and controller settings stay on your PC. They are never part of the public download. Setup is designed to validate cached tools and completed profiles, resume after a failed optional installation, and preserve saves across launcher updates.
 
@@ -50,7 +50,7 @@ Tailscale is configured by you outside the launcher. Address detection does not 
 
 - **Reusing a valid setup:** leave source fields blank and run setup; it verifies existing assets first and asks for inputs only if needed.
 - **A ROM is rejected:** check the exact region/revision and accepted format in the source-game list. Renaming a file does not convert or validate it.
-- **Rocket League is rejected:** this version supports the audited Steam build 25535926 packages. An arbitrary Steam/Epic build is not interchangeable; the error identifies the missing or mismatched package.
+- **Rocket League is rejected:** finish the installation/update and select the root folder containing `TAGame`. Missing-file errors name the required package; unsupported-version errors include its SHA-256. A newer or modified package may need a new extraction profile regardless of store. Existing verified assets can still be reused.
 - **An optional character fails:** the completed SM64/Octane setup remains available. Go Back to play, or correct that game's input and retry only its setup.
 - **Setup is canceled:** wait for cleanup to finish, then retry. Completed profiles are reused; an incomplete new stage is discarded. A repaired profile retains its previous copy for recovery.
 - **A stale lock is reported after a crash:** first close every setup/game instance using that data folder. Remove only the empty lock directory named by the error (`.seven-setup-lock` or `.launch-lock`), then retry. Keep the profiles, save files and controller configuration.
