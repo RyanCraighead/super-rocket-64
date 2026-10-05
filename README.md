@@ -4,7 +4,7 @@
 
 ![Octane flying around Peach's Castle](docs/media/castle-flight.gif)
 
-Take a rocket-powered car into a familiar world: launch over the castle moat, climb the hills of Bob-omb Battlefield, and find a different line through every course. Octane is the default character. The character wheel stays, so you can switch to Mario or your installed optional characters.
+Take a rocket-powered car into a familiar world: launch over the castle moat, climb the hills of Bob-omb Battlefield, and find a different line through every course. Octane is the default character. 
 
 
 ## What to expect
