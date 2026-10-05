@@ -1,0 +1,11 @@
+# Saved controls
+
+Keyboard, controller, car bindings and camera preferences are shared across Offline, Host and Join. They live in `data/.runtime/controls/controls.cfg` under your chosen installation folder, outside the versioned game files. Progression and other mode settings stay in their existing save folders. Updates retain both.
+
+On your first launch after upgrading, the launcher reads existing mode profiles and imports custom controls. It prefers a custom mapping over an untouched default, and the most recently saved custom mapping when profiles disagree. Each keyboard/controller slot and car action is considered separately. Original profiles remain untouched during import; copies and the import record are kept under `data/.runtime/controls`. After import, the shared file is authoritative, including choices you intentionally reset to defaults. Controls are saved immediately when bindings change and on normal game exit.
+
+Close the game before starting another play mode. An invalid shared file stops launch with an error and is kept for recovery. With the game closed, copy `controls.cfg.backup` over `controls.cfg` to restore the previous saved controls. `imported-controls.cfg` holds the first migration result; `legacy-backups` holds the original profiles. Keep a copy of the damaged file if you want to inspect it. A lock left after a crash can be removed only after every game using that installation is closed.
+
+Portable installations use their own data folder. Copy the complete data folder when moving an installation to retain saves, assets and controls. Separate installations do not sync automatically.
+
+Developer verification: `--controls-defaults`, `--validate-controls FILE` and `--verify-controls SAVE_DIR FILE [EDITS]` run the production config registry/parser and car input mapper without graphics, ROMs or network access. The last command may write config/backup files in SAVE_DIR and, with EDITS, save shared controls; use isolated test directories only. Run `python codex/windows/tests/test_shared_controls.py --engine PATH` on Windows for migration, mode selection, save/reload and validation checks. Existing native SDL/keyboard binding regressions remain applicable. These checks do not replace physical-controller or two-PC gameplay testing.

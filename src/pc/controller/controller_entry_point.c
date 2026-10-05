@@ -1,3 +1,4 @@
+#include "pc/configfile.h"
 #include "lib/src/libultra_internal.h"
 #include "lib/src/osContInternal.h"
 #include "macros.h"
@@ -84,6 +85,7 @@ void controller_reconfigure(void) {
         if (controller_implementations[i]->reconfig)
             controller_implementations[i]->reconfig();
     }
+    configfile_save(configfile_name());
 }
 
 void controller_rumble_play(float str, float time) {

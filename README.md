@@ -52,6 +52,8 @@ Change bindings under **Options > Controls > Car Controller**. Generic joysticks
 
 ## Make it yours
 
+Custom keyboard, controller and camera settings follow you between Offline, Host and Join and survive updates. Existing custom mappings are recovered automatically on first launch. [Controls and recovery](docs/SHARED-CONTROLS.md).
+
 | Setting | Default | Choices |
 | --- | --- | --- |
 | **Options > Octane speed (%)** | 75% | 50–100%; 100% restores original speed. Handling and speed-based attacks adjust together. |
