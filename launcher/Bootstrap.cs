@@ -513,52 +513,6 @@ namespace SuperRocket64 {
         }
     }
 
-    // Installation discovery reads Epic's local metadata only. Source package
-    // hashes are still validated by setup before any extraction tool is run.
-    internal static class RocketInstallations {
-        internal static List<string> FindEpic(string manifestDirectory) {
-            List<string> result = new List<string>();
-            if (!Directory.Exists(manifestDirectory)) return result;
-            HashSet<string> seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            try {
-                int count = 0;
-                foreach (string item in Directory.EnumerateFiles(manifestDirectory, "*.item", SearchOption.TopDirectoryOnly)) {
-                    if (++count > 1024) break;
-                    try {
-                        FileInfo info = new FileInfo(item);
-                        if (info.Length < 2 || info.Length > 256 * 1024) continue;
-                        JavaScriptSerializer json = new JavaScriptSerializer { MaxJsonLength = 256 * 1024, RecursionLimit = 16 };
-                        Dictionary<string, object> record = json.DeserializeObject(File.ReadAllText(item, Encoding.UTF8)) as Dictionary<string, object>;
-                        object name, location, incomplete;
-                        if (record == null || !record.TryGetValue("DisplayName", out name) ||
-                            !String.Equals(name as string, "Rocket League", StringComparison.OrdinalIgnoreCase) ||
-                            !record.TryGetValue("InstallLocation", out location)) continue;
-                        if (record.TryGetValue("bIsIncompleteInstall", out incomplete) && incomplete is bool && (bool)incomplete) continue;
-                        string path = location as string;
-                        // Ignore remote/device/relative paths without contacting them.
-                        if (String.IsNullOrWhiteSpace(path) || path.Length < 3 || !Char.IsLetter(path[0]) ||
-                            path[1] != ':' || (path[2] != '\\' && path[2] != '/')) continue;
-                        path = Path.GetFullPath(path);
-                        if (new DriveInfo(Path.GetPathRoot(path)).DriveType != DriveType.Fixed) continue;
-                        string cooked = Path.Combine(path, "TAGame", "CookedPCConsole");
-                        if (!File.Exists(Path.Combine(cooked, "Body_Octane_SF.upk")) ||
-                            !File.Exists(Path.Combine(cooked, "wheel_sport80_SF.upk"))) continue;
-                        if (seen.Add(path)) result.Add(path);
-                    } catch (Exception error) {
-                        if (!(error is IOException || error is UnauthorizedAccessException || error is ArgumentException ||
-                              error is InvalidOperationException || error is NotSupportedException || error is System.Security.SecurityException)) throw;
-                    }
-                }
-            } catch (IOException) { } catch (UnauthorizedAccessException) { } catch (System.Security.SecurityException) { }
-            result.Sort(StringComparer.OrdinalIgnoreCase);
-            return result;
-        }
-        internal static List<string> FindEpic() {
-            return FindEpic(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                "Epic", "EpicGamesLauncher", "Data", "Manifests"));
-        }
-    }
-
     internal sealed partial class LauncherForm : Form {
         private readonly TextBox install = new TextBox(), rom = new TextBox(), game = new TextBox(), optionalRom = new TextBox();
         private readonly TextBox host = new TextBox(), player = new TextBox();
@@ -592,7 +546,6 @@ namespace SuperRocket64 {
             AddPageText(setupPage, "Set up Octane", "Choose your original SM64 US ROM and Rocket League installation folder (Epic Games Store or Steam). Package versions are validated during setup. Setup downloads the pinned UE Viewer extractor automatically; it does not download Rocket League assets. Leave fields blank to validate and reuse an existing setup.");
             AddPath(setupPage, "SM64 US ROM or single-ROM ZIP", rom, true);
             AddPath(setupPage, "Rocket League folder (contains TAGame)", game, false);
-            AddButton(setupPage, "Find Epic installation", FindEpicInstallation);
             AddButton(setupPage, "Set up SM64 + Octane", delegate { BeginOperation(Commands.Setup("octane", rom.Text, "", "", game.Text, true), true, delegate { ShowPage(optionalPromptPage); }); });
             AddButton(setupPage, "Back", delegate { ShowPage(homePage); });
 
@@ -688,17 +641,6 @@ namespace SuperRocket64 {
         private void UpdateOptionalFormats() { optionalFormat.Text = "Accepted format: " + Commands.OptionalRomFormats(SelectedOptional()); }
         private string SelectedOnlineCharacter() { return onlineCharacter.SelectedIndex == 1 ? "mario" : "octane"; }
         private void ShowSetupPage() { ShowPage(setupPage); }
-        private void FindEpicInstallation() {
-            List<string> paths = RocketInstallations.FindEpic();
-            if (paths.Count == 1) {
-                game.Text = paths[0];
-                Log("Epic Rocket League folder found. Setup will verify its package contents before extraction.");
-            } else if (paths.Count == 0) {
-                Log("No completed Epic Rocket League installation found. Finish installing it through Epic, then retry, or Browse to its folder containing TAGame.");
-            } else {
-                Log("Multiple Epic Rocket League folders found. Use Browse to select one: " + String.Join("; ", paths.ToArray()));
-            }
-        }
         private void SetOnlineMode(string mode) {
             onlineMode = mode; onlineHeading.Text = mode == "host" ? "Host a game" : "Join a game";
             startHost.Visible = mode == "host"; joinGame.Visible = mode == "join";

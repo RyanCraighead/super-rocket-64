@@ -92,6 +92,21 @@ namespace SuperRocket64 {
                     Click(Field<Control>(form,"setupPage"),"Back");Page(form,"homePage");
                     Click(Field<Control>(form,"homePage"),"Setup SM64 + Rocket League");
                     Need(Field<TextBox>(form,"rom").Text.EndsWith("sm64.us.z64"),"Back lost input");Snapshot(form,output,"setup-900");
+                    Control setup = Field<Control>(form,"setupPage");
+                    int setupActions = 0; foreach(Control control in setup.Controls) if(control is Button) setupActions++;
+                    Need(setupActions == 2,"Setup should offer only the shared setup action and Back");
+                    TextBox gameFolder = Field<TextBox>(form,"game");
+                    Need(Button(gameFolder.Parent,"Browse...") != null,"Shared Rocket League folder Browse is missing");
+                    foreach(string layout in new string[]{"Epic Games/rocketleague","SteamLibrary/steamapps/common/rocketleague"}) {
+                        string selected = Path.Combine(output,layout.Replace('/',Path.DirectorySeparatorChar));
+                        Directory.CreateDirectory(Path.Combine(selected,"TAGame","CookedPCConsole"));
+                        gameFolder.Text = selected;
+                        Click(setup,"Back");Click(Field<Control>(form,"homePage"),"Setup SM64 + Rocket League");
+                        Need(gameFolder.Text == selected,"Back lost the selected game folder");
+                        var command = Commands.Setup("octane","","","",gameFolder.Text,true);
+                        Need(command[command.IndexOf("--game")+1] == selected,"Shared field changed the selected store folder");
+                    }
+                    gameFolder.Clear();
                     Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"optionalPromptPage"));
                     Click(Field<Control>(form,"optionalPromptPage"),"No, continue");Page(form,"homePage");
                     Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"optionalPromptPage"));
