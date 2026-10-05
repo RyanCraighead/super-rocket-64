@@ -4,8 +4,9 @@
 
 ![Octane flying around Peach's Castle](docs/media/castle-flight.gif)
 
-Take a rocket-powered car into a familiar world: launch over the castle moat, climb the hills of Bob-omb Battlefield, and find a different line through every course. Octane is the default character. 
+Take a rocket-powered car into a familiar world: launch over the castle moat, climb the hills of Bob-omb Battlefield, and find a different line through every course. Octane is the default character.
 
+**Windows x64 preview available.** Download the standalone EXE from [Releases](https://github.com/RyanCraighead/super-rocket-64/releases). You supply the supported games locally; setup handles Python and the pinned extraction tool. See [verification and limitations](docs/RELEASE-STATUS.md).
 
 ## What to expect
 
@@ -21,7 +22,9 @@ RocketSim is an approximate reconstruction. This is a fan project, not Rocket Le
 
 ## Install and play
 
-1. Download the future **Super Rocket 64 Windows x64 EXE** from this repository's Releases page.
+First-time setup:
+
+1. Download the **Super Rocket 64 Windows x64 EXE** from this repository's Releases page.
 2. Open it and choose your own supported **Super Mario 64 US ROM** and **Rocket League installation**. Setup checks their contents, obtains the pinned extraction tools, and builds your assets locally. You do not install Python or manage UE Viewer yourself.
 3. Choose **No** for optional characters to finish, or **Yes** to select additional characters and provide only their required game files.
 4. Choose **Offline** to enter the game as Octane. Hold **F7** or the controller's **Share/Back** button to open the character wheel on safe ground.
@@ -39,6 +42,15 @@ Your ROMs, extracted assets, saves and controller settings stay on your PC. They
 
 Tailscale is configured by you outside the launcher. Address detection does not prove another PC can connect. The launcher does not change your firewall, VPN, router or security settings. Two-PC/WAN acceptance is still pending; direct-IP support is not a guarantee that every network route works.
 
+## Setup and recovery
+
+- **Reusing a valid setup:** leave source fields blank and run setup; it verifies existing assets first and asks for inputs only if needed.
+- **A ROM is rejected:** check the exact region/revision and accepted format in the source-game list. Renaming a file does not convert or validate it.
+- **Rocket League is rejected:** this version supports the audited Steam build 25535926 packages. An arbitrary Steam/Epic build is not interchangeable; the error identifies the missing or mismatched package.
+- **An optional character fails:** the completed SM64/Octane setup remains available. Go Back to play, or correct that game's input and retry only its setup.
+- **Setup is canceled:** wait for cleanup to finish, then retry. Completed profiles are reused; an incomplete new stage is discarded. A repaired profile retains its previous copy for recovery.
+- **A stale lock is reported after a crash:** first close every setup/game instance using that data folder. Remove only the empty lock directory named by the error (`.seven-setup-lock` or `.launch-lock`), then retry. Keep the profiles, save files and controller configuration.
+
 ## Controls
 
 | Action | Xbox / PlayStation | Keyboard |
@@ -52,7 +64,7 @@ Tailscale is configured by you outside the launcher. Address detection does not 
 | Pause | Start / Options | Space |
 | Character wheel | Back / Share | Hold F7 |
 
-Car bindings are editable under **Options → Controls → Car Controller**. Mappings and boost preferences are saved locally. Generic joysticks need an appropriate SDL controller mapping. Physical-controller certification for the public edition is pending.
+Car bindings are editable under **Options > Controls > Car Controller**. Mappings and boost preferences are saved locally. Generic joysticks need an appropriate SDL controller mapping. Physical-controller verification for the public edition is pending.
 
 ## Credits
 

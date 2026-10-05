@@ -1,6 +1,6 @@
 # Supported source games
 
-These are the exact profiles accepted by the existing conversion code. The public setup application is still under validation. Ownership alone does not make a different region, revision, patch or packaging format compatible.
+These are the exact profiles accepted by the existing conversion code. The first Windows release verifies these identities during setup. Ownership alone does not make a different region, revision, patch or packaging format compatible.
 
 | Character | Required source | Accepted input | Identity after byte-order normalization |
 | --- | --- | --- | --- |

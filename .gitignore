@@ -1,0 +1,17 @@
+/.build/
+/build*/
+/.deps/
+/lib/lua/win64/*.a
+/codex/rocketleague/.local/
+*.z64
+*.v64
+*.n64
+*.upk
+*.sav
+*.srm
+*.eep
+*.o
+*.a
+*.exe
+*.dll
+__pycache__/
