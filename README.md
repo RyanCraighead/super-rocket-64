@@ -20,6 +20,8 @@ RocketSim is an approximate reconstruction. This is a fan project, not Rocket Le
 
 ![Octane jumping through Bob-omb Battlefield](docs/media/battlefield-jumps.gif)
 
+Octane can enter the sunken ship after the eel leaves in Jolly Roger Bay (v0.2.2), and the earlier Cool Cool Mountain chimney fix is included. The ship patch has headless regression coverage; live gameplay acceptance remains pending.
+
 ## Install and play
 
 First-time setup:

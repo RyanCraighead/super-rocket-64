@@ -83,3 +83,24 @@ navigation. The actual packaged EXE passed integrity/probe/restart checks and
 live GitHub HTTPS. Reusing copied v0.2.0 data preserved all 130 data files and
 launcher preferences. The 1,864-entry payload audit had no findings. Epic remains
 user-verified; two-PC/WAN and new physical-controller acceptance remain pending.
+
+## v0.2.2 ship entrance patch
+
+The inherited CCM chimney bridge is present in all public releases. JRB uses a
+different floor-warp entrance: an upright Octane chassis can catch on the tilted
+porthole before its center reaches the trigger. The new bridge recognizes the
+loaded, authored opening after the eel leaves and calls the native floor-warp
+operation. It does not change collision, save flags, eel behavior, chest puzzles,
+star requirements, or the multiplayer protocol.
+
+The focused adapter suite passed 341 JRB and 546 CCM assertions with ASan/UBSan,
+including a chassis sweep into the tilted wall and offline/host/client guards.
+The new ship test fails against the published v0.2.1 adapter. The public host,
+geometry, gamepad and export checks passed, along with 31 headless launcher and
+22 updater checks. Stale assistant-panel mocks and a private-only CLI test
+reference were corrected in the public suite.
+
+These checks use explicit runtime/native mocks; they are not live game or
+two-PC acceptance. No foreground or gameplay session was started. The Windows
+release also undergoes package integrity, privacy/notice and copied-profile
+reuse checks before publication.

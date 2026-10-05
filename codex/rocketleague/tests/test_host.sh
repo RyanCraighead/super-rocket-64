@@ -13,4 +13,4 @@ trap 'rm -rf "$OUT"' EXIT
 "${CC:-cc}" -std=c11 -Wall -Wextra -Werror codex/rocketleague/tests/test_gamepad.c -lm -o "$OUT/gamepad"
 "$OUT/gamepad"
 python3 -m unittest discover -s codex/rocketleague/tests -p test_export.py
-bash codex/tests/cli_native_test.sh
+# Private assistant CLI tests are not part of the public edition.
