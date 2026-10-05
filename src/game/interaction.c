@@ -2,6 +2,7 @@
 #include "rocket_adapter.h"
 #include "pc/rocket_runtime.h"
 #include "pc/player_bump.h"
+#include "pc/character_net.h"
 #include "spiderman_adapter.h"
 #include "pc/boss_net.h"
 #include <PR/ultratypes.h>
@@ -2070,6 +2071,11 @@ u32 check_object_grab_mario(struct MarioState *m, UNUSED u32 interactType, struc
 
 u32 interact_pole(struct MarioState *m, UNUSED u32 interactType, struct Object *o) {
     if (!m || !o) { return FALSE; }
+    /* Cars keep their physical body and jump/boost controls at tree/pole
+     * contacts. Native grabbing would suspend the adapter and pin the host
+     * to the pole's center. Remote cars use their owner's selected kind. */
+    if (m->playerIndex == 0 ? rocket_adapter_car_selected() :
+        character_net_is_car(m->playerIndex)) { return FALSE; }
     s32 actionId = m->action & ACT_ID_MASK;
     if (actionId >= 0x080 && actionId < 0x0A0) {
         if (!(m->prevAction & ACT_FLAG_ON_POLE) || m->usedObj != o) {
