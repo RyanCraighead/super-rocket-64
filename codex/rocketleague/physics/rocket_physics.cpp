@@ -256,7 +256,7 @@ struct RocketWorld {
     uint64_t frame=0,ticks=0;
     bool haveFrame=false,ready=false,metalWater=false;
     Vec dryGravity;
-    unsigned surfaceMode=ROCKET_SURFACES_CAR, speedPercent=100;
+    unsigned surfaceMode=ROCKET_SURFACES_CAR, speedPercent=100, jumpPercent=100;
     RocketEnvironment environment={};
     unsigned inhibited=7;
     int boostMode=ROCKET_BOOST_COIN_ONLY;
@@ -306,7 +306,20 @@ extern "C" int rocket_world_set_speed(RocketWorld *w,unsigned percent) {
     w->speedPercent=percent;return 1;
 }
 extern "C" unsigned rocket_world_speed(RocketWorld *w) {return w?w->speedPercent:100;}
+extern "C" int rocket_world_set_jump_height(RocketWorld *w,unsigned percent) {
+    if(!w||!rocket_jump_valid(percent))return 0;
+    w->jumpPercent=percent;return 1;
+}
+extern "C" unsigned rocket_world_jump_height(RocketWorld *w) {return w?w->jumpPercent:100;}
 static thread_local RocketWorld *steppingEnvironment=nullptr;
+extern "C" float rocket_host_car_jump_impulse(const void *car) {
+    auto *w=steppingEnvironment;
+    return w&&w->car==car?rocket_jump_impulse_scale(w->jumpPercent):1.f;
+}
+extern "C" float rocket_host_car_jump_hold(const void *car) {
+    auto *w=steppingEnvironment;
+    return w&&w->car==car?rocket_jump_hold_scale(w->jumpPercent):1.f;
+}
 extern "C" float rocket_host_car_speed(const void *car) {
     auto *w=steppingEnvironment;
     return w&&w->car==car?rocket_speed_multiplier(w->speedPercent):1.f;

@@ -165,7 +165,8 @@ extern "C" int rocket_runtime_collect_coin(void){
 }
 static uint32_t appliedRule;
 extern "C" int rocket_runtime_rule_ready(void){
-    return world&&rocket_world_speed(world.get())==rocket_speed_percent()&&appliedRule==rocket_rule_revision();
+    return world&&rocket_world_speed(world.get())==rocket_speed_percent()&&
+        rocket_world_jump_height(world.get())==rocket_jump_percent()&&appliedRule==rocket_rule_revision();
 }
 extern "C" uint32_t rocket_runtime_epoch(void){return epoch;}
 extern "C" void rocket_runtime_selection_changed(void){
@@ -213,9 +214,9 @@ extern "C" int rocket_runtime_frame(uint64_t frame,const RocketInput *input,int 
     blocked=blocked||!SDL_GetKeyboardFocus()||gamepad.ui_blocked;
     if(!input)return -1;
     lastInput=rocket_gamepad_merge(input,&gamepad);
-    const unsigned percent=rocket_speed_percent();const uint32_t rule=rocket_rule_revision();
-    if(world&&(rocket_world_speed(world.get())!=percent||appliedRule!=rule)){
-        rocket_world_set_speed(world.get(),percent);appliedRule=rule;
+    const unsigned percent=rocket_speed_percent(),jump=rocket_jump_percent();const uint32_t rule=rocket_rule_revision();
+    if(world&&(rocket_world_speed(world.get())!=percent||rocket_world_jump_height(world.get())!=jump||appliedRule!=rule)){
+        rocket_world_set_speed(world.get(),percent);rocket_world_set_jump_height(world.get(),jump);appliedRule=rule;
         if(!++epoch)++epoch;
         player_bump_clear(0); // Retire grants without resetting physical state or fuel.
     }

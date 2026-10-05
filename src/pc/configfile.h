@@ -155,6 +155,7 @@ extern unsigned int configPlayerKnockbackStrength;
 extern unsigned int configStayInLevelAfterStar;
 extern bool         configNametags;
 extern bool         configModDevMode;
+extern unsigned int configRocketJumpPercent; /* 50-100 height; default 50 */
 extern unsigned int configRocketSpeedPercent; /* 50-100; default 75 */
 extern unsigned int configRocketCameraMode; /* 0 Mario, 1 car follow (default) */
 extern unsigned int configRocketSoundMode; /* 0 Mario, 1 local car sounds (default) */

@@ -3,7 +3,7 @@
 #include "character_transport_fixture.h"
 #include "../../../src/pc/rocket_boost.h"
 #include "../../../src/pc/network/version.h"
-unsigned configRocketBoostMode,configRocketSurfaceMode,configRocketSpeedPercent=75;
+unsigned configRocketBoostMode,configRocketSurfaceMode,configRocketSpeedPercent=75,configRocketJumpPercent=50;
 static int saves;
 void configfile_save(const char *name){CHECK(!strcmp(name,"fixture.cfg"));saves++;}
 const char *configfile_name(void){return "fixture.cfg";}
@@ -91,7 +91,7 @@ int main(void){
     gNetworkType=NT_CLIENT;gCLIOpts.characterNet=false;CHECK(rocket_boost_mode()==0);
     CHECK(strstr(get_version(),"boost-mode1")==NULL);gCLIOpts.characterNet=true;
     CHECK(strstr(get_version(),"boost-mode1")!=NULL);
-    CHECK(!strcmp(get_version()+strlen(get_version())-strlen("-wheel1-bump1-speed1"),"-wheel1-bump1-speed1"));
+    CHECK(!strcmp(get_version()+strlen(get_version())-strlen("-wheel1-bump1-tune1"),"-wheel1-bump1-tune1"));
     CHECK(strlen(SM64COOPDX_VERSION)+strlen(CNET_VERSION_SUFFIX)<MAX_VERSION_LENGTH);
     /* Both rules share one session/revision; client preferences never win. */
     host();rocket_boost_session_reset();configRocketBoostMode=1;configRocketSurfaceMode=1;
@@ -103,8 +103,8 @@ int main(void){
     CHECK(!rocket_surface_set_mode(0)&&configRocketSurfaceMode==0);
     receive(compat);CHECK(rocket_surface_mode()==0&&rocket_boost_mode()==1);
     receive(native);CHECK(rocket_surface_mode()==0);
-    bad=native;bad.buffer[6]=200;bad.buffer[bad.dataLength-2]=2;receive(bad);CHECK(rocket_surface_mode()==0);
-    bad=initial;bad.buffer[bad.dataLength-2]=255;
+    bad=native;bad.buffer[6]=200;bad.buffer[bad.dataLength-3]=2;receive(bad);CHECK(rocket_surface_mode()==0);
+    bad=initial;bad.buffer[bad.dataLength-3]=255;
     client();gNetworkPlayerLocal=gNetworkPlayerServer=NULL;CHECK(!rocket_boost_join_valid(&bad));
     host();int relayBefore=forwarded;bad=native;bad.localIndex=1;bad.cursor=3;bad.buffer[3]|=2;
     packet_receive(&bad);CHECK(forwarded==relayBefore);
@@ -131,7 +131,7 @@ int main(void){
     receive(slowSpeed);CHECK(rocket_speed_percent()==50);
     receive(fullSpeed);CHECK(rocket_speed_percent()==50); /* older rule */
     for(unsigned invalidSpeed=0;invalidSpeed<3;invalidSpeed++){
-        bad=fullSpeed;bad.buffer[6]=200;bad.buffer[bad.dataLength-1]=invalidSpeed==0?0:invalidSpeed==1?49:101;
+        bad=fullSpeed;bad.buffer[6]=200;bad.buffer[bad.dataLength-2]=invalidSpeed==0?0:invalidSpeed==1?49:101;
         receive(bad);CHECK(rocket_speed_percent()==50);
     }
     bad=fullSpeed;bad.buffer[6]=200;bad.localIndex=2;bad.cursor=3;bad.addr=(void*)2;
@@ -141,5 +141,54 @@ int main(void){
     configRocketSpeedPercent=100;accept_join(next);receive(slowSpeed);CHECK(rocket_speed_percent()==75);
     rocket_boost_session_reset();CHECK(rocket_speed_percent()==75); /* waiting for authenticated join */
     gNetworkType=NT_NONE;CHECK(rocket_speed_percent()==100); /* saved offline choice survived */
+    /* Independent jump-height preference, authenticated host rule and late joins. */
+    configRocketJumpPercent=0;CHECK(rocket_jump_percent()==50);
+    CHECK(!rocket_jump_set_percent(0)&&!rocket_jump_set_percent(49)&&!rocket_jump_set_percent(101));
+    CHECK(rocket_jump_set_percent(50));oldSaves=saves;CHECK(rocket_jump_set_percent(50));CHECK(saves==oldSaves);
+    u32 offlineRule=rocket_rule_revision();CHECK(rocket_jump_set_percent(100));
+    CHECK(rocket_rule_revision()!=offlineRule&&rocket_speed_percent()==100);
+    CHECK(rocket_jump_set_percent(50)&&rocket_rule_revision()==offlineRule);
+    host();rocket_boost_session_reset();configRocketSpeedPercent=75;initial=join();firstRule=rocket_rule_revision();
+    struct Packet fullJump={0},halfJump={0};
+    capturedPacket=&fullJump;CHECK(rocket_jump_set_percent(100));capturedPacket=NULL;
+    CHECK(fullJump.dataLength&&rocket_rule_revision()>firstRule&&rocket_speed_percent()==75);
+    u32 fullJumpRule=rocket_rule_revision();
+    capturedPacket=&halfJump;CHECK(rocket_jump_set_percent(50));capturedPacket=NULL;
+    CHECK(rocket_rule_revision()>fullJumpRule); /* A-B-A must retire old owner poses/grants. */
+    late=join();configRocketJumpPercent=100;accept_join(initial);
+    CHECK(rocket_jump_percent()==50&&configRocketJumpPercent==100&&rocket_speed_percent()==75);
+    oldSaves=saves;CHECK(!rocket_jump_set_percent(50)&&saves==oldSaves);
+    CharacterNetState oldPose={0};oldPose.kind=CNET_MARIO;oldPose.sequence=1;
+    oldPose.speed_percent=rocket_speed_percent();oldPose.rule_revision=rocket_rule_revision();
+    CHECK(character_net_accept(1,&oldPose));
+    receive(fullJump);CHECK(rocket_jump_percent()==100);currentRule=rocket_rule_revision();
+    oldPose.sequence++;CHECK(!character_net_accept(1,&oldPose));
+    CharacterNetState fullPose=oldPose;fullPose.rule_revision=currentRule;CHECK(character_net_accept(1,&fullPose));
+    receive(fullJump);CHECK(rocket_rule_revision()==currentRule);
+    receive(halfJump);CHECK(rocket_jump_percent()==50&&rocket_rule_revision()>currentRule);
+    fullPose.sequence++;CHECK(!character_net_accept(1,&fullPose));
+    oldPose.sequence=fullPose.sequence;CHECK(!character_net_accept(1,&oldPose));
+    oldPose.rule_revision=rocket_rule_revision();CHECK(character_net_accept(1,&oldPose));
+    receive(fullJump);CHECK(rocket_jump_percent()==50);
+    for(unsigned invalidJump=0;invalidJump<3;invalidJump++){
+        bad=fullJump;bad.buffer[6]=200;bad.buffer[bad.dataLength-1]=invalidJump==0?0:invalidJump==1?49:101;
+        receive(bad);CHECK(rocket_jump_percent()==50);
+        bad=initial;bad.buffer[bad.dataLength-1]=invalidJump==0?0:invalidJump==1?49:101;
+        client();gNetworkPlayerLocal=gNetworkPlayerServer=NULL;CHECK(!rocket_boost_join_valid(&bad));client();
+    }
+    bad=fullJump;bad.buffer[6]=200;bad.localIndex=2;bad.cursor=3;bad.addr=(void*)2;
+    packet_receive(&bad);CHECK(rocket_jump_percent()==50);
+    bad=fullJump;bad.buffer[6]=200;bad.localIndex=1;bad.cursor=3;bad.addr=(void*)2;
+    packet_receive(&bad);CHECK(rocket_jump_percent()==50);
+    bad=fullJump;bad.buffer[6]=200;bad.dataLength--;receive(bad);CHECK(rocket_jump_percent()==50);
+    bad=fullJump;bad.buffer[6]=200;bad.dataLength++;receive(bad);CHECK(rocket_jump_percent()==50);
+    accept_join(late);CHECK(rocket_jump_percent()==50&&configRocketJumpPercent==100);
+    host();int oldForwarded=forwarded;bad=fullJump;bad.localIndex=1;bad.cursor=3;bad.buffer[3]|=2;
+    packet_receive(&bad);CHECK(forwarded==oldForwarded);
+    rocket_boost_session_reset();configRocketJumpPercent=75;next=join();
+    configRocketJumpPercent=100;accept_join(next);receive(halfJump);CHECK(rocket_jump_percent()==75);
+    CHECK(strstr(rocket_jump_scope_label(),"host"));
+    rocket_boost_session_reset();CHECK(rocket_jump_percent()==50&&strstr(rocket_jump_scope_label(),"Waiting"));
+    gNetworkType=NT_NONE;CHECK(rocket_jump_percent()==100&&configRocketJumpPercent==100);
     printf("boost and surface rules: %d checks passed\n",checks);return 0;
 }
