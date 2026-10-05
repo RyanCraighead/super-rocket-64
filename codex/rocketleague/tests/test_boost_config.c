@@ -28,7 +28,7 @@ const char *dynos_pack_get_name(int i){(void)i;return "";}
 static void load(void){bool error=false;configfile_load_internal("fixture.cfg",&error);CHECK(!error);}
 static void content(const char *text){FILE *f=fopen(fs_get_write_path("fixture.cfg"),"w");CHECK(f);fputs(text,f);fclose(f);}
 int main(int argc,char **argv){
-    CHECK(argc==2);directory=argv[1];CHECK(configRocketBoostMode==0);
+    CHECK(argc==2);directory=argv[1];CHECK(configRocketBoostMode==0);CHECK(configRocketSurfaceMode==1);
     rocket_bindings_reset();
     configRocketBindings.action[RA_BOOST]=RB_NORTH;
     configRocketBoostMode=1;configfile_save("fixture.cfg");configRocketBoostMode=0;load();CHECK(configRocketBoostMode==1);
@@ -45,13 +45,13 @@ int main(int argc,char **argv){
     content("show_fps true\n");configRocketBoostMode=1;load();CHECK(configRocketBoostMode==0);
     content("background_gamepad 1\n");load();CHECK(configBackgroundGamepad);
     content("background_gamepad 0\n");load();CHECK(!configBackgroundGamepad);
-    CHECK(configRocketSurfaceMode==0);
+    CHECK(configRocketSurfaceMode==1);
     configRocketSurfaceMode=1;configRocketBoostMode=0;configfile_save("fixture.cfg");
     configRocketSurfaceMode=0;configRocketBoostMode=1;load();CHECK(configRocketSurfaceMode==1&&configRocketBoostMode==0);
     configRocketSurfaceMode=0;configRocketBoostMode=1;configfile_save("fixture.cfg");
     configRocketSurfaceMode=1;configRocketBoostMode=0;load();CHECK(configRocketSurfaceMode==0&&configRocketBoostMode==1);
     const char *invalid[]={"255","-1","broken","1oops","1 extra"};
-    for(unsigned i=0;i<5;i++){char text[80];snprintf(text,sizeof text,"rocket_surface_mode %s\n",invalid[i]);content(text);configRocketSurfaceMode=1;load();CHECK(configRocketSurfaceMode==0);}
-    content("show_fps true\n");configRocketSurfaceMode=1;load();CHECK(configRocketSurfaceMode==0);
+    for(unsigned i=0;i<5;i++){char text[80];snprintf(text,sizeof text,"rocket_surface_mode %s\n",invalid[i]);content(text);configRocketSurfaceMode=0;load();CHECK(configRocketSurfaceMode==1);}
+    content("show_fps true\n");configRocketSurfaceMode=0;load();CHECK(configRocketSurfaceMode==1);
     printf("boost and surface persistence: %d checks passed\n",checks);return 0;
 }

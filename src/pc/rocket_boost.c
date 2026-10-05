@@ -17,7 +17,7 @@ static unsigned preference(void) {
     return configRocketBoostMode == ROCKET_BOOST_INFINITE ? ROCKET_BOOST_INFINITE : ROCKET_BOOST_COIN_ONLY;
 }
 static unsigned surface_preference(void) {
-    return configRocketSurfaceMode == ROCKET_SURFACES_NATIVE ? ROCKET_SURFACES_NATIVE : ROCKET_SURFACES_CAR;
+    return configRocketSurfaceMode == ROCKET_SURFACES_CAR ? ROCKET_SURFACES_CAR : ROCKET_SURFACES_NATIVE;
 }
 int rocket_surface_mode(void) {
     if (gNetworkType == NT_CLIENT) return gCLIOpts.characterNet && revision ? sessionSurfaceMode : ROCKET_SURFACES_CAR;
@@ -25,7 +25,7 @@ int rocket_surface_mode(void) {
 }
 const char *rocket_surface_scope_label(void) {
     if (gNetworkType == NT_CLIENT) return revision ? "Surface behavior is controlled by the host" : "Waiting for host surface rule (Car grip)";
-    return "Car grip keeps existing routes. Native surfaces add material sliding and change climbing. Saved for offline play and hosting.";
+    return "Native surfaces are the default. Car grip remains optional. Your saved choice applies offline and when hosting.";
 }
 int rocket_boost_mode(void) {
     if (gNetworkType == NT_CLIENT) return gCLIOpts.characterNet && revision ? sessionMode : ROCKET_BOOST_COIN_ONLY;

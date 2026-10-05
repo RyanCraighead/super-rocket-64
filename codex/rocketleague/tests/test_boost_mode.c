@@ -112,7 +112,7 @@ int main(void){
     CHECK(rocket_surface_mode()==1);bad=compat;bad.buffer[6]=200;receive(bad);CHECK(rocket_surface_mode()==1);
     configRocketSurfaceMode=0;rocket_boost_session_reset();CHECK(rocket_surface_mode()==0);
     gNetworkType=NT_NONE;CHECK(rocket_surface_set_mode(1));CHECK(rocket_surface_mode()==1);
-    configRocketSurfaceMode=255;CHECK(rocket_surface_mode()==0);
+    configRocketSurfaceMode=255;CHECK(rocket_surface_mode()==1);
     CHECK(strstr(get_version(),"env1")!=NULL);
     printf("boost and surface rules: %d checks passed\n",checks);return 0;
 }

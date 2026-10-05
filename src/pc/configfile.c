@@ -211,7 +211,7 @@ unsigned int configStayInLevelAfterStar           = 0;
 bool         configNametags                       = true;
 bool         configModDevMode                     = false;
 unsigned int configRocketBoostMode = 0;
-unsigned int configRocketSurfaceMode = 0;
+unsigned int configRocketSurfaceMode = ROCKET_SURFACES_NATIVE;
 unsigned int configBouncyLevelBounds              = 0;
 bool         configSkipIntro                      = 0;
 bool         configPauseAnywhere                  = false;
@@ -695,7 +695,7 @@ const char *configfile_backup_name(void) {
 // Loads the config file specified by 'filename'
 static void configfile_load_internal(const char *filename, bool* error) {
     configRocketBoostMode = 0; /* Missing/malformed preferences fail to coin only. */
-    configRocketSurfaceMode = 0; /* Preserve compatibility for old profiles. */
+    configRocketSurfaceMode = ROCKET_SURFACES_NATIVE; /* Missing preference uses Native; explicit 0/1 stays saved. */
     fs_file_t *file;
     char *line;
     unsigned int temp;
@@ -775,8 +775,10 @@ static void configfile_load_internal(const char *filename, bool* error) {
                                 *option->boolValue = false;
                             break;
                         case CONFIG_TYPE_UINT:
-                            if (option->uintValue == &configRocketBoostMode || option->uintValue == &configRocketSurfaceMode)
+                            if (option->uintValue == &configRocketBoostMode)
                                 *option->uintValue = numTokens == 2 && strcmp(tokens[1], "1") == 0 ? 1 : 0;
+                            else if (option->uintValue == &configRocketSurfaceMode)
+                                *option->uintValue = numTokens == 2 && strcmp(tokens[1], "0") == 0 ? ROCKET_SURFACES_CAR : ROCKET_SURFACES_NATIVE;
                             else
                                 sscanf(tokens[1], "%u", option->uintValue);
                             break;
@@ -828,7 +830,7 @@ NEXT_OPTION:
     fs_close(file);
 
     if (configRocketBoostMode > 1) { configRocketBoostMode = 0; }
-    if (configRocketSurfaceMode > 1) { configRocketSurfaceMode = 0; }
+    if (configRocketSurfaceMode > 1) { configRocketSurfaceMode = ROCKET_SURFACES_NATIVE; }
 
     if (configGraphicsBackend < GAPI_GL || configGraphicsBackend > GAPI_MAX) { configGraphicsBackend = GAPI_GL; }
 
