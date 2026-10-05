@@ -63,7 +63,7 @@ for name in ('RETAINED-RESOURCES.json','RETAINED-RESOURCE-SCOPE.md'):
 files['INSTALL-AND-PLAY.txt']=b'''Super Rocket 64 - Windows x64
 Run this launcher again to play; it preserves versioned program files and data.
 Setup: select your supported original US SM64 ROM and audited Rocket League
-Windows Steam installation. The pinned extraction tool is provisioned as needed.
+Windows installation (Epic Games Store or Steam; supported package versions). The pinned extraction tool is provisioned as needed.
 Choose Yes or No for optional games; only selected characters need extra ROMs.
 Offline starts the game as Octane. Hold F7 or Share/Back to open the wheel.
 Online supports Mario and Octane on matching builds: choose LAN/Tailscale,

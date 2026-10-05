@@ -236,9 +236,53 @@ namespace SuperRocket64 {
                 Reject(delegate { Options.Parse(new string[] { "--list-addresses", "--list-addresses" }); });
             });
         }
+        private static void EpicTests() {
+            string manifests = Path.Combine(testRoot, "epic-manifests");
+            string game = Path.Combine(testRoot, "Epic Games", "rocketleague");
+            string cooked = Path.Combine(game, "TAGame", "CookedPCConsole");
+            Test("absent Epic manifest directory is a normal empty result", delegate {
+                Check(RocketInstallations.FindEpic(manifests).Count == 0, "Missing metadata should not fail");
+            });
+            Directory.CreateDirectory(manifests); Directory.CreateDirectory(cooked);
+            JavaScriptSerializer json = new JavaScriptSerializer();
+            string item = Path.Combine(manifests, "game.item");
+            File.WriteAllText(item, json.Serialize(new { DisplayName = "Rocket League", InstallLocation = game }));
+            Test("incomplete package files are not suggested", delegate {
+                File.WriteAllText(Path.Combine(cooked, "Body_Octane_SF.upk"), "SYNTHETIC - NOT A PACKAGE");
+                Check(RocketInstallations.FindEpic(manifests).Count == 0, "Missing wheel should not be selected");
+            });
+            File.WriteAllText(Path.Combine(cooked, "wheel_sport80_SF.upk"), "SYNTHETIC - NOT A PACKAGE");
+            Test("completed Epic folder with spaces is found without running anything", delegate {
+                List<string> paths = RocketInstallations.FindEpic(manifests);
+                Check(paths.Count == 1 && paths[0] == game, "Expected Epic folder missing");
+            });
+            Test("duplicate Epic records are deduplicated", delegate {
+                File.Copy(item, Path.Combine(manifests, "duplicate.item"));
+                Check(RocketInstallations.FindEpic(manifests).Count == 1, "Duplicate path returned");
+                File.Delete(Path.Combine(manifests, "duplicate.item"));
+            });
+            Test("incomplete manifest is ignored even when packages exist", delegate {
+                File.WriteAllText(item, json.Serialize(new { DisplayName = "Rocket League", InstallLocation = game, bIsIncompleteInstall = true }));
+                Check(RocketInstallations.FindEpic(manifests).Count == 0, "Incomplete download suggested");
+            });
+            Test("other games and network or relative locations are ignored", delegate {
+                File.WriteAllText(item, json.Serialize(new { DisplayName = "Other game", InstallLocation = game }));
+                Check(RocketInstallations.FindEpic(manifests).Count == 0, "Unrelated game matched");
+                foreach (string path in new string[] { @"\\not-contacted\share", "relative", "C:relative" }) {
+                    File.WriteAllText(item, json.Serialize(new { DisplayName = "Rocket League", InstallLocation = path }));
+                    Check(RocketInstallations.FindEpic(manifests).Count == 0, "Unsafe location matched");
+                }
+            });
+            Test("malformed oversized records do not hide a valid installation", delegate {
+                File.WriteAllText(item, json.Serialize(new { DisplayName = "Rocket League", InstallLocation = game }));
+                File.WriteAllText(Path.Combine(manifests, "bad.item"), "{ broken json");
+                File.WriteAllText(Path.Combine(manifests, "large.item"), new string('x', 256 * 1024 + 1));
+                Check(RocketInstallations.FindEpic(manifests).Count == 1, "Invalid neighbor blocked discovery");
+            });
+        }
         internal static int Main() {
             testRoot = Path.Combine(Path.GetTempPath(), "n64t-" + Guid.NewGuid().ToString("N").Substring(0, 8)); Directory.CreateDirectory(testRoot);
-            try { Extraction(); CommandTests(); AddressTests(); Console.WriteLine("PASS " + passed + " headless checks; no UI/game/helper/network started"); return 0; }
+            try { Extraction(); CommandTests(); AddressTests(); EpicTests(); Console.WriteLine("PASS " + passed + " headless checks; no UI/game/helper/network started"); return 0; }
             catch (Exception error) { Console.Error.WriteLine(error); return 1; }
             finally { Guard.NoRedirect(testRoot); Directory.Delete(testRoot, true); }
         }
