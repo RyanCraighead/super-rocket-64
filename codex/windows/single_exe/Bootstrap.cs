@@ -240,6 +240,36 @@ namespace SuperRocket64 {
             }
             Directory.Delete(directory);
         }
+        internal static void RepairEmbedded(string installBase, Action<string> log) { RepairEmbedded(installBase, log, UpdateStore.GameActive); }
+        internal static void RepairEmbedded(string installBase, Action<string> log, Func<bool> gameActive) {
+            Guard.Need(!gameActive(), "Close the game normally before repairing program files.");
+            string root = Destination(installBase, PayloadInfo.ZipSha256);
+            string stagingBase = Path.Combine(Path.GetFullPath(installBase), ".repair-" + Guid.NewGuid().ToString("N").Substring(0, 8));
+            string replacement = null, backup = root + ".backup-" + Guid.NewGuid().ToString("N").Substring(0, 8);
+            bool movedOld = false, movedRuntime = false;
+            try {
+                replacement = Embedded(stagingBase, log);
+                Guard.Need(!gameActive(), "Close the game normally before repairing program files.");
+                Guard.NoRedirect(root); Guard.NoRedirect(backup);
+                if (Directory.Exists(root)) { Directory.Move(root, backup); movedOld = true; }
+                try {
+                    if (movedOld && Directory.Exists(Path.Combine(backup, ".runtime"))) {
+                        Guard.NoRedirect(Path.Combine(backup, ".runtime"));
+                        Directory.Move(Path.Combine(backup, ".runtime"), Path.Combine(replacement, ".runtime")); movedRuntime = true;
+                    }
+                    Directory.Move(replacement, root);
+                } catch {
+                    if (movedRuntime) Directory.Move(Path.Combine(replacement, ".runtime"), Path.Combine(backup, ".runtime"));
+                    if (movedOld && !Directory.Exists(root)) Directory.Move(backup, root);
+                    throw;
+                }
+                log("Program files verified and repaired. Previous files retained for recovery.");
+            } finally {
+                // Delete only our empty staging parent. Keep any interrupted
+                // replacement for recovery; never recursively erase user data.
+                if (Directory.Exists(stagingBase) && Directory.GetFileSystemEntries(stagingBase).Length == 0) Directory.Delete(stagingBase);
+            }
+        }
         internal static string Embedded(string installBase, Action<string> log) {
             using (Stream payload = Assembly.GetExecutingAssembly().GetManifestResourceStream("Payload"))
                 return Install(payload, PayloadInfo.ZipSha256, PayloadInfo.ZipSize, installBase, log);
@@ -391,7 +421,7 @@ namespace SuperRocket64 {
             info.UseShellExecute = false; info.CreateNoWindow = true; info.WindowStyle = ProcessWindowStyle.Hidden;
             info.RedirectStandardOutput = true; info.RedirectStandardError = true; info.RedirectStandardInput = true;
             info.StandardOutputEncoding = Encoding.UTF8; info.StandardErrorEncoding = Encoding.UTF8;
-            string[] allowed = { "PATH", "SYSTEMROOT", "WINDIR", "PATHEXT", "TEMP", "TMP", "USERPROFILE", "HOMEDRIVE", "HOMEPATH", "APPDATA", "LOCALAPPDATA", "LANG", "LC_ALL" };
+            string[] allowed = { "PATH", "SYSTEMROOT", "WINDIR", "PATHEXT", "TEMP", "TMP", "USERPROFILE", "HOMEDRIVE", "HOMEPATH", "APPDATA", "LOCALAPPDATA", "PROGRAMDATA", "PROGRAMFILES(X86)", "LANG", "LC_ALL" };
             Dictionary<string, string> keep = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (string key in allowed) if (Environment.GetEnvironmentVariable(key) != null) keep[key] = Environment.GetEnvironmentVariable(key);
             lock (environmentLock) {
@@ -514,19 +544,17 @@ namespace SuperRocket64 {
     }
 
     internal sealed partial class LauncherForm : Form {
-        private readonly TextBox install = new TextBox(), rom = new TextBox(), game = new TextBox(), optionalRom = new TextBox();
+        private readonly TextBox install = new TextBox(), rom = new TextBox(), game = new TextBox();
         private readonly TextBox host = new TextBox(), player = new TextBox();
         private readonly NumericUpDown port = new NumericUpDown();
-        private readonly ComboBox optionalCharacter = new ComboBox(), onlineCharacter = new ComboBox(), shareAddresses = new ComboBox();
+        private readonly ComboBox onlineCharacter = new ComboBox(), shareAddresses = new ComboBox();
         private readonly Button copyAddress = new Button(), refreshAddresses = new Button(), cancelOperation = new Button();
         private readonly Button startHost, joinGame;
-        private readonly Label addressStatus = new Label(), onlineHeading = new Label();
-        private readonly Label optionalFormat = new Label();
-        private readonly FlowLayoutPanel homePage = NewPage(), setupPage = NewPage(), optionalPromptPage = NewPage(), optionalSetupPage = NewPage(), optionalDonePage = NewPage(), onlineChoicePage = NewPage(), onlinePage = NewPage();
+        private readonly Label addressStatus = new Label(), onlineHeading = new Label(), notice = new Label();
+        private readonly FlowLayoutPanel homePage = NewPage(), setupPage = NewPage(), onlineChoicePage = NewPage(), onlinePage = NewPage();
         private readonly Panel pageHost = new Panel();
         private readonly FlowLayoutPanel hostAddressRow = Row(), joinAddressRow = Row();
         private readonly CheckBox mute = new CheckBox();
-        private readonly RichTextBox output = new RichTextBox();
         private bool running, cancellationAvailable;
         private volatile bool cancelRequested;
         private volatile string activeCancelFile;
@@ -534,38 +562,13 @@ namespace SuperRocket64 {
         internal LauncherForm(string installBase) {
             Text = "Super Rocket 64"; ClientSize = new Size(900, 700); MinimumSize = new Size(750, 580);
             StartPosition = FormStartPosition.CenterScreen; AutoScaleMode = AutoScaleMode.Font;
+            Font = new Font("Segoe UI", 10); BackColor = Color.White;
             install.Text = installBase;
-            AddPageText(homePage, "Super Rocket 64", "Set up Octane, go straight to Offline play, or choose an Online host/join route.");
-            AddPath(homePage, "Installation folder", install, false);
-            AddButton(homePage, "Setup SM64 + Rocket League", ShowSetupPage);
-            AddButton(homePage, "Offline", delegate { BeginOperation(Commands.Play("wheel", "octane", "", 7777, "", mute.Checked), false, null); });
+            AddPageText(homePage, "Super Rocket 64", "Jump, boost and fly through the Mushroom Kingdom.");
+            AddButton(homePage, "Play Offline", PlayOffline);
             AddButton(homePage, "Online", delegate { ShowPage(onlineChoicePage); });
-            AddButton(homePage, "Refresh setup status", delegate { BeginOperation(Commands.Status(), false, null); });
+            AddButton(homePage, "Setup / repair / add characters", ShowSetupPage);
             mute.Text = "Mute this game session"; mute.AutoSize = true; homePage.Controls.Add(mute);
-
-            AddPageText(setupPage, "Set up Octane", "Choose your original SM64 US ROM and Rocket League installation folder (Epic Games Store or Steam). Package versions are validated during setup. Setup provisions verified mesh and audio extractors automatically; game assets come from your installation. For an existing setup, select Rocket League to add or repair car sounds. Leave fields blank to validate and reuse assets.");
-            AddPath(setupPage, "SM64 US ROM or single-ROM ZIP", rom, true);
-            AddPath(setupPage, "Rocket League folder (contains TAGame)", game, false);
-            AddButton(setupPage, "Set up SM64 + Octane", delegate { BeginOperation(Commands.Setup("octane", rom.Text, "", "", game.Text, true), true, delegate { ShowPage(optionalPromptPage); }); });
-            AddButton(setupPage, "Back", delegate { ShowPage(homePage); });
-
-            AddPageText(optionalPromptPage, "Optional characters", "SM64 + Octane are ready. Would you like to set up one optional character from an original ROM?");
-            AddButton(optionalPromptPage, "Yes, choose a game", delegate { ShowPage(optionalSetupPage); });
-            AddButton(optionalPromptPage, "No, continue", delegate { ShowPage(homePage); });
-            AddPageText(optionalSetupPage, "Choose one optional game", "Supported: Ocarina of Time, Bomberman 64, Banjo-Kazooie, Spider-Man, or Tony Hawk's Pro Skater. Select that game's supported original ROM, or leave it blank to validate and reuse its existing setup.");
-            optionalCharacter.DropDownStyle = ComboBoxStyle.DropDownList;
-            optionalCharacter.Items.AddRange(new object[] { "The Legend of Zelda: Ocarina of Time", "Bomberman 64", "Banjo-Kazooie", "Spider-Man", "Tony Hawk's Pro Skater" });
-            optionalCharacter.SelectedIndex = 0; optionalCharacter.Width = 350;
-            FlowLayoutPanel optionalChoice = Row(); optionalChoice.Controls.Add(new Label { Text = "Game", AutoSize = true, Padding = new Padding(0, 6, 0, 0) }); optionalChoice.Controls.Add(optionalCharacter); optionalSetupPage.Controls.Add(optionalChoice);
-            optionalFormat.AutoSize = true; optionalFormat.MaximumSize = new Size(820, 0); optionalSetupPage.Controls.Add(optionalFormat);
-            optionalCharacter.SelectedIndexChanged += delegate { optionalRom.Clear(); UpdateOptionalFormats(); };
-            UpdateOptionalFormats();
-            AddPath(optionalSetupPage, "Selected game's original ROM", optionalRom, true, delegate { return Commands.OptionalRomFilter(SelectedOptional()); });
-            AddButton(optionalSetupPage, "Set up selected game", delegate { BeginOperation(Commands.OptionalSetup(SelectedOptional(), optionalRom.Text), true, delegate { ShowPage(optionalDonePage); }); });
-            AddButton(optionalSetupPage, "Back", delegate { ShowPage(optionalPromptPage); });
-            AddPageText(optionalDonePage, "Optional setup complete", "The original input was validated and copied into a private profile. You can add another character or return to the launcher.");
-            AddButton(optionalDonePage, "Add another character", delegate { ShowPage(optionalSetupPage); });
-            AddButton(optionalDonePage, "Done", delegate { ShowPage(homePage); });
 
             AddPageText(onlineChoicePage, "Online", "Play over a reachable LAN or an existing Tailscale connection. Configure Tailscale yourself before playing; this launcher does not change network or firewall settings. Choose Host or Join.");
             AddButton(onlineChoicePage, "Host", delegate { SetOnlineMode("host"); });
@@ -581,32 +584,31 @@ namespace SuperRocket64 {
             shareAddresses.DropDownStyle = ComboBoxStyle.DropDownList; shareAddresses.Width = 360;
             hostAddressRow.Controls.Add(new Label { Text = "This PC's LAN / Tailscale addresses", AutoSize = true, Padding = new Padding(0, 6, 0, 0) }); hostAddressRow.Controls.Add(shareAddresses);
             copyAddress.Text = "Copy selected"; copyAddress.AutoSize = true; copyAddress.Enabled = false;
-            copyAddress.Click += delegate { try { ShareAddress selected = shareAddresses.SelectedItem as ShareAddress; if (selected != null) { Clipboard.SetText(selected.Address); Log("Copied " + selected.Kind + " host address " + selected.Address + ". Share it with the same port shown above."); } } catch (System.Runtime.InteropServices.ExternalException) { Log("Clipboard busy. Select and copy the address manually, or try again."); } };
+            copyAddress.Click += delegate { try { ShareAddress selected = shareAddresses.SelectedItem as ShareAddress; if (selected != null) { Clipboard.SetText(selected.Address + ":" + port.Value.ToString(CultureInfo.InvariantCulture)); Log("Copied " + selected.Kind + " host address " + selected.Address + ". Share it with the same port shown above."); } } catch (System.Runtime.InteropServices.ExternalException) { Log("Clipboard busy. Select and copy the address manually, or try again."); } };
             refreshAddresses.Text = "Refresh addresses"; refreshAddresses.AutoSize = true; refreshAddresses.Click += delegate { RefreshAddresses(); };
             hostAddressRow.Controls.Add(copyAddress); hostAddressRow.Controls.Add(refreshAddresses); onlinePage.Controls.Add(hostAddressRow);
             addressStatus.Text = "Reading this PC's existing addresses..."; addressStatus.AutoSize = true; addressStatus.MaximumSize = new Size(820, 0); onlinePage.Controls.Add(addressStatus);
             onlinePage.Controls.Add(TextBlock("Tailscale hosts share a 100.x address; LAN hosts share a reachable private address. Hosting listens on the selected port for other PCs. Share a reachable address listed above, never 0.0.0.0 or a loopback address. Every peer needs a matching Super Rocket 64 build and its own Octane setup; only Mario and Octane are available online."));
             host.Text = ""; host.Width = 260; host.MaxLength = 253; host.AccessibleName = "Friend's host address";
             joinAddressRow.Controls.Add(new Label { Text = "Friend's host address", AutoSize = true, Padding = new Padding(0, 6, 0, 0) }); joinAddressRow.Controls.Add(host);
-            Button paste = new Button { Text = "Paste", AutoSize = true }; paste.Click += delegate { try { if (Clipboard.ContainsText()) host.Text = Clipboard.GetText().Trim(); } catch (System.Runtime.InteropServices.ExternalException) { Log("Clipboard busy. Enter the host address manually."); } };
+            Button paste = new Button { Text = "Paste", AutoSize = true }; paste.Click += delegate { try { if (Clipboard.ContainsText()) { string address = Clipboard.GetText().Trim(); int selectedPort = (int)port.Value; ParseEndpoint(ref address, ref selectedPort); host.Text = address; port.Value = selectedPort; } } catch (Exception error) { notice.Text = PlainFailure(error.Message); } };
             joinAddressRow.Controls.Add(paste); onlinePage.Controls.Add(joinAddressRow);
             startHost = AddButton(onlinePage, "Start host", delegate { PlayOnline("host"); });
             joinGame = AddButton(onlinePage, "Join game", delegate { PlayOnline("join"); });
             AddButton(onlinePage, "Back", delegate { ShowPage(onlineChoicePage); });
 
-            output.ReadOnly = true; output.Dock = DockStyle.Fill; output.Font = new Font(FontFamily.GenericMonospace, 9); output.BackColor = Color.White;
             pageHost.Dock = DockStyle.Fill; pageHost.AutoScroll = true;
-            foreach (Control page in new Control[] { homePage, setupPage, optionalPromptPage, optionalSetupPage, optionalDonePage, onlineChoicePage, onlinePage }) pageHost.Controls.Add(page);
+            foreach (Control page in new Control[] { homePage, setupPage, onlineChoicePage, onlinePage }) pageHost.Controls.Add(page);
             pageHost.SizeChanged += delegate { foreach (Control page in pageHost.Controls) page.Width = Math.Max(300, pageHost.ClientSize.Width - 24); };
-            TableLayoutPanel layout = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 4, ColumnCount = 1, Padding = new Padding(12) };
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 62)); layout.RowStyles.Add(new RowStyle(SizeType.Percent, 30)); layout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            FlowLayoutPanel operations = Row(); cancelOperation.Text = "Cancel setup"; cancelOperation.AutoSize = true; cancelOperation.Enabled = false; cancelOperation.Visible = false; cancelOperation.Click += delegate { CancelOperation(); }; operations.Controls.Add(cancelOperation);
-            layout.Controls.Add(pageHost, 0, 0); layout.Controls.Add(output, 0, 1); layout.Controls.Add(operations, 0, 2);
-            layout.Controls.Add(TextBlock("ROMs and game assets are not included. Setup keeps versioned program files separate from private profiles and saves."), 0, 3);
+            TableLayoutPanel layout = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 3, ColumnCount = 1, Padding = new Padding(20) };
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); layout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            FlowLayoutPanel operations = Row(); cancelOperation.Text = "Cancel setup"; cancelOperation.AutoSize = true; cancelOperation.Visible = false; cancelOperation.Click += delegate { CancelOperation(); }; operations.Controls.Add(cancelOperation);
+            notice.AutoSize = true; notice.MaximumSize = new Size(810, 110);
+            layout.Controls.Add(pageHost, 0, 0); layout.Controls.Add(operations, 0, 1); layout.Controls.Add(notice, 0, 2);
             Controls.Add(layout);
-            InitializeUpdates();
-            ShowPage(homePage);
-            Shown += delegate { RefreshAddresses(); StartupUpdates(); };
+            InitializeUpdates(); InitializeWizard();
+            ShowPage(locationPage);
+            Shown += delegate { StartupUpdates(); };
             FormClosing += delegate(object sender, FormClosingEventArgs e) { if (running) { e.Cancel = true; MessageBox.Show(this, updateCancellation != null ? "Use Cancel update if available, then wait for update verification or restart to finish." : cancellationAvailable ? "Use Cancel setup, then wait for the helper to finish cleaning its private stage." : "Wait for the current operation to finish. The launcher does not cancel gameplay.", Text); } };
         }
         private static FlowLayoutPanel NewPage() { return new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoSize = true, Dock = DockStyle.Top, Padding = new Padding(4) }; }
@@ -633,23 +635,23 @@ namespace SuperRocket64 {
         }
         private Button AddButton(FlowLayoutPanel page, string label, Action action) {
             Button button = new Button { Text = label, AutoSize = true, MinimumSize = new Size(210, 32) };
-            button.Click += delegate { try { action(); } catch (Exception error) { Log("Stopped: " + error.Message); } };
+            button.Click += delegate { try { action(); } catch (Exception error) { notice.Text = PlainFailure(error.Message); } };
             page.Controls.Add(button);
             return button;
         }
-        private string SelectedOptional() { return Commands.OptionalCharacters[optionalCharacter.SelectedIndex]; }
-        private void UpdateOptionalFormats() { optionalFormat.Text = "Accepted format: " + Commands.OptionalRomFormats(SelectedOptional()); }
         private string SelectedOnlineCharacter() { return onlineCharacter.SelectedIndex == 1 ? "mario" : "octane"; }
-        private void ShowSetupPage() { ShowPage(setupPage); }
+        private void ShowSetupPage() { ShowPage(locationPage); }
         private void SetOnlineMode(string mode) {
             onlineMode = mode; onlineHeading.Text = mode == "host" ? "Host a game" : "Join a game";
             startHost.Visible = mode == "host"; joinGame.Visible = mode == "join";
             hostAddressRow.Visible = mode == "host"; addressStatus.Visible = mode == "host"; joinAddressRow.Visible = mode == "join";
-            ShowPage(onlinePage);
+            ShowPage(onlinePage); if (mode == "host") RefreshAddresses();
         }
         private void PlayOnline(string mode) {
             Guard.Need(onlineMode == mode, "Go back and choose Host or Join first");
-            BeginOperation(Commands.Play(mode, SelectedOnlineCharacter(), host.Text.Trim(), (int)port.Value, player.Text, mute.Checked), false, null);
+            string address = host.Text.Trim(); int chosenPort = (int)port.Value;
+            if (mode == "join") { ParseEndpoint(ref address, ref chosenPort); host.Text = address; port.Value = chosenPort; }
+            BeginOperation(Commands.Play(mode, SelectedOnlineCharacter(), address, chosenPort, player.Text, mute.Checked), false, null);
         }
         private void RefreshAddresses() {
             if (!refreshAddresses.Enabled) return;
@@ -664,47 +666,60 @@ namespace SuperRocket64 {
         }
         private void Log(string value) {
             if (IsDisposed || Disposing) return;
-            if (InvokeRequired) { BeginInvoke(new Action<string>(Log), value); return; }
-            output.AppendText(value + Environment.NewLine); output.SelectionStart = output.TextLength; output.ScrollToCaret();
+            if (InvokeRequired) { try { BeginInvoke(new Action<string>(Log), value); } catch (InvalidOperationException) { } return; }
+            // Worker output is not a UI log. Only known stages reach the screen.
+            string stage = FriendlyStage(value);
+            if (stage != null) progressText.Text = stage;
         }
         private void BeginOperation(List<string> args, bool allowCancellation, Action completed) {
-            Guard.Need(!running, "An operation is already running"); string basePath = install.Text.Trim();
+            Guard.Need(!running, "Finish the current operation first."); string basePath = install.Text.Trim();
             Installer.Destination(basePath, PayloadInfo.ZipSha256); running = true; cancelRequested = false; activeCancelFile = null;
             cancellationAvailable = allowCancellation && args.Count > 0 && args[0] == "setup";
-            cancelOperation.Text = "Cancel setup";
-            pageHost.Enabled = false; cancelOperation.Visible = cancellationAvailable; cancelOperation.Enabled = cancellationAvailable;
+            cancelOperation.Text = "Cancel setup"; pageHost.Enabled = false;
+            cancelOperation.Visible = cancellationAvailable; cancelOperation.Enabled = cancellationAvailable;
+            progressText.Text = args[0] == "play" ? "Opening your game..." : "Checking your installation...";
+            progress.Style = ProgressBarStyle.Marquee; ShowPage(progressPage); notice.Text = "";
             Task.Factory.StartNew(delegate {
-                bool succeeded = false; string cancelFile = null;
-                OperationLease lease = null;
+                bool succeeded = false; string cancelFile = null, errorText = null;
+                Dictionary<string, object> report = null;
                 try {
-                    lease = OperationLease.Acquire(basePath);
-                    string root = Installer.Embedded(basePath, Log);
-                    if (cancelRequested) { Log("Setup canceled after package verification; the verified versioned install is ready for retry."); return; }
-                    string dataDirectory = Commands.DataDirectory(basePath);
-                    if (cancellationAvailable) {
-                        Guard.NoRedirect(dataDirectory); Directory.CreateDirectory(dataDirectory); Guard.NoRedirect(dataDirectory);
-                        string runtime = Path.Combine(dataDirectory, ".runtime"); Guard.NoRedirect(runtime); Directory.CreateDirectory(runtime); Guard.NoRedirect(runtime);
-                        cancelFile = Commands.CancelPath(dataDirectory, Guid.NewGuid()); activeCancelFile = cancelFile;
-                        if (cancelRequested) WriteCancelMarker(cancelFile);
-                        if (cancelRequested) { Log("Setup canceled before the helper started; retry is available."); return; }
+                    using (OperationLease lease = OperationLease.Acquire(basePath)) {
+                        string root = Installer.Embedded(basePath, Log);
+                        if (cancelRequested) throw new OperationCanceledException();
+                        string dataDirectory = Commands.DataDirectory(basePath);
+                        if (cancellationAvailable) {
+                            Guard.NoRedirect(dataDirectory); Directory.CreateDirectory(dataDirectory); Guard.NoRedirect(dataDirectory);
+                            string runtime = Path.Combine(dataDirectory, ".runtime"); Guard.NoRedirect(runtime); Directory.CreateDirectory(runtime); Guard.NoRedirect(runtime);
+                            cancelFile = Commands.CancelPath(dataDirectory, Guid.NewGuid()); activeCancelFile = cancelFile;
+                            if (cancelRequested) WriteCancelMarker(cancelFile);
+                        }
+                        StringBuilder stdout = new StringBuilder(), stderr = new StringBuilder();
+                        using (Process process = new Process { StartInfo = Commands.StartInfo(root, dataDirectory, cancelFile, args) }) {
+                            process.OutputDataReceived += delegate(object sender, DataReceivedEventArgs e) { if (e.Data != null) { if (stdout.Length < 1048576) stdout.AppendLine(e.Data); Log(e.Data); } };
+                            process.ErrorDataReceived += delegate(object sender, DataReceivedEventArgs e) { if (e.Data != null && stderr.Length < 65536) stderr.AppendLine(e.Data); };
+                            Guard.Need(process.Start(), "Could not start setup. Repair the program files and retry."); process.StandardInput.Close();
+                            if (cancelRequested && cancelFile != null) WriteCancelMarker(cancelFile);
+                            process.BeginOutputReadLine(); process.BeginErrorReadLine(); process.WaitForExit();
+                            if (process.ExitCode == 130) throw new OperationCanceledException();
+                            Guard.Need(process.ExitCode == 0, PlainFailure(stderr.ToString()));
+                            if (args[0] == "wizard-status" || args[0] == "preflight") {
+                                report = new JavaScriptSerializer().DeserializeObject(stdout.ToString()) as Dictionary<string, object>;
+                                Guard.Need(report != null, "Could not read setup status. Repair the program files and retry.");
+                                object valid; if (report.TryGetValue("valid", out valid)) Guard.Need((bool)valid, (string)report["message"]);
+                            }
+                            succeeded = true;
+                        }
                     }
-                    ProcessStartInfo info = Commands.StartInfo(root, dataDirectory, cancelFile, args);
-                    Log("Starting " + args[0] + " using the bundled Python runtime.");
-                    using (Process process = new Process { StartInfo = info }) {
-                        process.OutputDataReceived += delegate(object sender, DataReceivedEventArgs e) { if (e.Data != null) Log(e.Data); };
-                        process.ErrorDataReceived += delegate(object sender, DataReceivedEventArgs e) { if (e.Data != null) Log(e.Data); };
-                        Guard.Need(process.Start(), "Could not start the bundled helper"); process.StandardInput.Close();
-                        if (cancelRequested && cancelFile != null) WriteCancelMarker(cancelFile);
-                        process.BeginOutputReadLine(); process.BeginErrorReadLine(); process.WaitForExit();
-                        succeeded = process.ExitCode == 0;
-                        Log(succeeded ? "Operation completed." : "Operation stopped with exit code " + process.ExitCode.ToString(CultureInfo.InvariantCulture));
-                    }
-                } catch (Exception error) { Log("Stopped: " + error.Message); }
+                } catch (OperationCanceledException) { errorText = "Setup paused. Completed characters, saves and controls are safe. Resume to reuse verified work."; }
+                catch (Exception error) { errorText = PlainFailure(error.Message); }
                 finally {
-                    if (lease != null) lease.Dispose();
                     activeCancelFile = null;
                     if (cancelFile != null) try { Guard.NoRedirect(cancelFile); if (File.Exists(cancelFile)) File.Delete(cancelFile); } catch (IOException) { } catch (UnauthorizedAccessException) { }
-                    if (!IsDisposed && !Disposing) try { BeginInvoke(new Action(delegate { running = false; cancellationAvailable = false; pageHost.Enabled = true; cancelOperation.Enabled = false; cancelOperation.Visible = false; if (succeeded && completed != null) completed(); })); } catch (InvalidOperationException) { }
+                    if (!IsDisposed && !Disposing) try { BeginInvoke(new Action(delegate {
+                        running = false; cancellationAvailable = false; pageHost.Enabled = true; cancelOperation.Enabled = false; cancelOperation.Visible = false;
+                        if (succeeded) { if (report != null) lastReport = report; try { if (completed != null) completed(); else ShowPage(homePage); } catch (Exception problem) { ShowFailure(PlainFailure(problem.Message), delegate { BeginOperation(args, allowCancellation, completed); }, null); } }
+                        else ShowFailure(errorText, delegate { BeginOperation(args, allowCancellation, completed); }, args[0] == "setup" && args.Contains("--character") && args[args.IndexOf("--character") + 1] != "octane" ? completed : null, args[0] == "play" && args.Contains("--mode") && (args[args.IndexOf("--mode") + 1] == "host" || args[args.IndexOf("--mode") + 1] == "join") ? onlinePage : setupPage);
+                    })); } catch (InvalidOperationException) { }
                 }
             });
         }
@@ -720,7 +735,7 @@ namespace SuperRocket64 {
             string marker = activeCancelFile;
             try {
                 if (marker != null) { WriteCancelMarker(marker); Log("Cancel requested. Waiting for setup to stop its own converter and clean its private stage."); }
-                else Log("Cancel requested. Waiting for verified package extraction to finish; setup will not start.");
+                else progressText.Text = "Cancel requested. Finishing the current verification safely...";
             } catch (Exception error) { cancelOperation.Enabled = true; Log("Could not create setup cancel marker: " + error.Message); }
         }
     }

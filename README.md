@@ -21,9 +21,9 @@ Launch over the castle moat, powerslide through familiar courses and find new wa
 ## Install and play
 
 1. Download **Super-Rocket-64-Windows-x64.exe** from [Releases](https://github.com/RyanCraighead/super-rocket-64/releases) and open it.
-2. Choose **Setup SM64 + Rocket League**. Select your supported SM64 ROM and Rocket League installation using the file and folder pickers.
-3. Choose **No** to optional characters, or **Yes** to select the ones you want. Setup asks only for their required files.
-4. Choose **Offline** to enter the game as Octane. On safe ground, hold **F7** or **Back / Share** to open the character wheel.
+2. Choose an installation folder, then select your supported SM64 ROM and Rocket League installation. Existing verified assets can be reused without selecting the sources again.
+3. Choose **No** to optional characters, or **Yes** to select the ones you want. Extras are **Very WIP**: some progression sections may not work. Switch back to Mario or Octane with the character wheel if stuck. Extras are Offline only.
+4. After setup, choose your shortcuts and **Keep updated automatically** or **Manual updates**, then **Play Offline** to enter the game as Octane. On safe ground, hold **F7** or **Back / Share** to open the character wheel.
 
 You need your own game data:
 
@@ -31,7 +31,11 @@ You need your own game data:
 - **Rocket League for Windows:** an **Epic Games Store or Steam** installation containing `TAGame/CookedPCConsole`. Both stores use the same folder picker. The required packages must match a supported extraction profile; not every update is compatible.
 - **Optional characters:** the supported releases of Ocarina of Time, Bomberman 64, Banjo-Kazooie, Spider-Man or Tony Hawk's Pro Skater. See [exact versions, formats and checksums](docs/ASSET-SOURCES.md) before selecting files.
 
-Setup manages Python and extraction tools automatically, validates the files and reuses completed assets. ROMs, extracted assets, saves and settings stay on your PC; they are not included in the download.
+Setup manages Python and extraction tools automatically, validates the files and reuses completed assets. Cancel and resume setup without losing completed characters. Retry missing or unsupported inputs from the setup screen; **Repair program files** restores a damaged launcher payload while retaining the old files and your data.
+
+**Settings** lets you change update mode or roll back. Automatic updates check, verify and install a new release before play; manual mode checks only when you ask. Failed updates keep the installed version and offer retry. A failed or rolled-back version will not be applied repeatedly. Earlier permission to check for updates is never converted into permission to install them automatically.
+
+ROMs, extracted assets, saves and settings stay on your PC; they are not included in the download.
 
 ## Controls
 
@@ -45,6 +49,8 @@ Setup manages Python and extraction tools automatically, validates the files and
 | Powerslide / air roll | X / Square | K with A / D |
 | Pause | Start / Options | Space |
 | Character wheel | Hold Back / Share | Hold F7 |
+
+Underwater, hold jump to swim upward and push away from walls or ceilings; release it to keep normal wall driving. Metal Cap keeps its separate heavy movement.
 
 Hold jump for more height. Press jump again in the air for a second jump, or add a direction for a flip. To read a sign or talk as Octane, stop upright nearby, face the target and press your jump button; release and press again to advance or close the text.
 

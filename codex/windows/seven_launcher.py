@@ -186,8 +186,12 @@ def setup(args, root=ROOT):
         for choice in ('octane', 'mario', 'link', 'bomberman', 'banjo', 'spiderman', 'tony'):
             fallback = profile(choice, root) / 'save/baserom.us.z64'
             if fallback.is_file():
-                source = fallback
-                break
+                try:
+                    old.validate_sm64(fallback)
+                    source = fallback
+                    break
+                except (ValueError, OSError):
+                    continue
     require(source, 'Choose your original Super Mario 64 US ROM (.z64/.v64/.n64 or single-ROM ZIP).')
     rom = sm64_bytes(source)
     if character == 'octane' and not args.assets:
@@ -404,7 +408,7 @@ def launch(args, root=ROOT):
 
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('action', choices=('setup', 'check', 'play', 'status'))
+    p.add_argument('action', choices=('setup', 'check', 'play', 'status', 'wizard-status', 'preflight'))
     p.add_argument('--character', choices=CHARACTERS)
     for name in ('sm64', 'rom', 'assets', 'game', 'ueviewer'):
         p.add_argument('--' + name, type=Path)
@@ -431,6 +435,9 @@ def main(argv=None):
             old.check_location(DATA_ROOT)
             old.private_path(DATA_ROOT, '.runtime')
         require(sys.version_info >= (3, 10), 'Python 3.10 or newer is required')
+        if a.action in ('wizard-status', 'preflight'):
+            import wizard_setup
+            return wizard_setup.run(a, sys.modules[__name__])
         if a.action == 'status':
             errors = {}
             for character in CHARACTERS:

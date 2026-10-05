@@ -88,7 +88,7 @@ def check_location(root=ROOT):
     # the new child-process transport supports UTF-16 Windows paths.
     root = Path(root).resolve()
     require(str(root).isascii() and len(str(root)) <= 100,
-            r"Use a short ASCII-only package folder, at most 100 characters, such as C:\Games\SM64 Link Codex (spaces are supported)")
+            r"Use a short ASCII-only package folder, at most 100 characters, such as C:\Games\SuperRocket64 (spaces are supported)")
 
 
 def read_bounded(path, maximum):

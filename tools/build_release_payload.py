@@ -25,7 +25,7 @@ for name in ('codex/windows/seven_launcher.py','codex/windows/download_ueviewer.
              'codex/thps/mechanics/air_spin_export_rotations.py','codex/thps/assets/UPSTREAM-MIT.txt',
              'codex/rocketleague/tools/local_aes.py','codex/rocketleague/tools/export_octane.py','codex/rocketleague/tools/convert_octane.py'):
     add(root/name,name)
-for name in ('rocket_audio_setup.py','rocket-audio-profile.json','vgmstream-r2117.json','engine_setup.py','owned_audio_setup.py','engine_recipe.json','owned-audio-recipe.json','owned_ctl_setup.py','custom_visual_setup.py','source_audio_setup.py'):
+for name in ('wizard_setup.py','rocket_audio_setup.py','rocket-audio-profile.json','vgmstream-r2117.json','engine_setup.py','owned_audio_setup.py','engine_recipe.json','owned-audio-recipe.json','owned_ctl_setup.py','custom_visual_setup.py','source_audio_setup.py'):
     add(root/'codex/windows'/name,'codex/windows/'+name)
 recipe=json.loads((root/'codex/windows/engine_recipe.json').read_text())
 assert all(entry['method'] not in ('seed','audio') for entry in recipe['files'].values()), 'A private full-buffer seed dependency remains'

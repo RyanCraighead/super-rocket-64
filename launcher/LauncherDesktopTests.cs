@@ -62,75 +62,56 @@ namespace SuperRocket64 {
                     string desktopFolder = Path.Combine(output,"shortcut-Desktop"), programsFolder = Path.Combine(output,"shortcut-Programs");
                     Directory.CreateDirectory(desktopFolder); Directory.CreateDirectory(programsFolder);
                     form.UpdateShortcuts = delegate(string root, bool desktopChoice, bool menuChoice) { LauncherShortcuts.Apply(root,desktopChoice,menuChoice,desktopFolder,programsFolder); };
-                    form.Show();Application.DoEvents();AssertSeparate(expected);Page(form,"settingsPage");
-                    Need(!Field<CheckBox>(form,"automaticUpdates").Checked && !Field<CheckBox>(form,"desktopShortcut").Checked && Field<CheckBox>(form,"menuShortcut").Checked,"First-run defaults are not opt-in");
-                    Snapshot(form,output,"first-run-updates");
-                    Click(Field<Control>(form,"settingsPage"),"Save preferences");Page(form,"homePage");
+                    form.Show();Application.DoEvents();AssertSeparate(expected);Page(form,"locationPage");
+                    Need(Button(form,"Play Offline")!=null,"Missing offline path");
+                    foreach(Control c in form.Controls) Need(!(c is RichTextBox),"Technical output UI present");
+                    Snapshot(form,output,"01-location");
+                    // The fixture deliberately has no embedded payload: exercise
+                    // the real failed operation and recovery UI without a game.
+                    Click(Field<Control>(form,"locationPage"),"Next");WaitUpdate(form);Page(form,"failurePage");
+                    Need(Field<Label>(form,"failureText").Text.Length>15,"Missing actionable failure");
+                    Need(Button(Field<Control>(form,"failurePage"),"Repair program files")!=null,"No repair action");
+                    Click(Field<Control>(form,"failurePage"),"Back / change source");Page(form,"setupPage");
+                    Snapshot(form,output,"02-sources");
+                    Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"extrasPage"));
+                    Need(Field<RadioButton>(form,"extrasNo").Checked&&!Field<Control>(form,"extraInputs").Visible,"Extras not optional by default");
+                    Field<RadioButton>(form,"extrasYes").Checked=true;Application.DoEvents();
+                    Need(Field<Control>(form,"extraInputs").Visible,"Yes did not reveal extras");
+                    CheckBox[] choices=Field<CheckBox[]>(form,"extraChoices");TextBox[] sources=Field<TextBox[]>(form,"extraSources");
+                    Need(choices.Length==5&&sources.Length==5,"Optional source count");
+                    choices[0].Checked=choices[3].Checked=true;sources[0].Text="separate source A";sources[3].Text="separate source B";
+                    Need(sources[0].Text!=sources[3].Text,"Optional choices share input");Snapshot(form,output,"03-extras");
+                    Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"readyPage"));
+                    Need(!Field<RadioButton>(form,"readyAuto").Checked&&!Field<RadioButton>(form,"readyManual").Checked,"Update install consent inferred");
+                    Click(Field<Control>(form,"readyPage"),"Open launcher");Page(form,"readyPage");
+                    Need(Field<Label>(form,"notice").Text.Contains("Choose"),"No update choice validation");
+                    Snapshot(form,output,"05-ready");
+                    Call(form,"ShowUpdateSettings");
+                    Field<RadioButton>(form,"manualUpdates").Checked=true;Click(Field<Control>(form,"settingsPage"),"Save preferences");
                     string installRoot=Field<TextBox>(form,"install").Text;
-                    Need(UpdatePreferences.Load(installRoot).Configured&&!UpdatePreferences.Load(installRoot).AutomaticChecks,"First-run preferences not saved");
-                    string menuLink=Path.Combine(programsFolder,"Super Rocket 64","Super Rocket 64.lnk");
-                    Need(File.Exists(menuLink)&&LauncherShortcuts.Read(menuLink)[0]==LauncherShortcuts.StablePath(installRoot),"First-run shortcut target is not persistent");
-                    Click(Field<Control>(form,"homePage"),"Updates & settings");Page(form,"settingsPage");
-                    Click(Field<Control>(form,"settingsPage"),"Check for updates now");WaitUpdate(form);Page(form,"updatePage");
-                    Need(Field<Label>(form,"updateMessage").Text.Contains("0.3.0 preview"),"Preview/version not identified");Snapshot(form,output,"update-prompt");
-                    Click(Field<Control>(form,"updatePage"),"Don't tell me again");Page(form,"homePage");Need(!UpdatePreferences.Load(installRoot).AutomaticChecks,"Startup checks not disabled");
-                    Click(Field<Control>(form,"homePage"),"Updates & settings");Field<CheckBox>(form,"automaticUpdates").Checked=true;
-                    Click(Field<Control>(form,"settingsPage"),"Save preferences");WaitUpdate(form);Page(form,"updatePage");Need(UpdatePreferences.Load(installRoot).AutomaticChecks,"Opt-in not persisted");
-                    Click(Field<Control>(form,"updatePage"),"Later");Page(form,"homePage");
-                    Click(Field<Control>(form,"homePage"),"Updates & settings");transport.WaitForCancel=true;
-                    Click(Field<Control>(form,"settingsPage"),"Check for updates now");Need(Field<Button>(form,"cancelOperation").Visible,"No update cancel");Field<Button>(form,"cancelOperation").PerformClick();WaitUpdate(form);transport.WaitForCancel=false;
-                    Need(Field<RichTextBox>(form,"output").Text.Contains("Update canceled"),"Cancel not reported");
-                    transport.Offline=true;Click(Field<Control>(form,"settingsPage"),"Check for updates now");WaitUpdate(form);transport.Offline=false;
-                    Need(Field<RichTextBox>(form,"output").Text.Contains("Offline fixture"),"Offline failure not actionable");
-                    transport.Api=Encoding.UTF8.GetBytes("[]");Click(Field<Control>(form,"settingsPage"),"Check for updates now");WaitUpdate(form);Page(form,"settingsPage");
-                    Need(Field<RichTextBox>(form,"output").Text.Contains("No compatible public release"),"No-release message missing");
-                    Click(Field<Control>(form,"settingsPage"),"Remove launcher shortcuts");Need(!File.Exists(menuLink),"Shortcut removal failed");
-                    Field<CheckBox>(form,"automaticUpdates").Checked=false;Click(Field<Control>(form,"settingsPage"),"Save preferences");Page(form,"homePage");
-                    Snapshot(form,output,"home-900");
-                    Click(Field<Control>(form,"homePage"),"Setup SM64 + Rocket League");Page(form,"setupPage");
-                    Field<TextBox>(form,"rom").Text="C:\\Owned Games\\sm64.us.z64";
-                    Click(Field<Control>(form,"setupPage"),"Back");Page(form,"homePage");
-                    Click(Field<Control>(form,"homePage"),"Setup SM64 + Rocket League");
-                    Need(Field<TextBox>(form,"rom").Text.EndsWith("sm64.us.z64"),"Back lost input");Snapshot(form,output,"setup-900");
-                    Control setup = Field<Control>(form,"setupPage");
-                    int setupActions = 0; foreach(Control control in setup.Controls) if(control is Button) setupActions++;
-                    Need(setupActions == 2,"Setup should offer only the shared setup action and Back");
-                    TextBox gameFolder = Field<TextBox>(form,"game");
-                    Need(Button(gameFolder.Parent,"Browse...") != null,"Shared Rocket League folder Browse is missing");
-                    foreach(string layout in new string[]{"Epic Games/rocketleague","SteamLibrary/steamapps/common/rocketleague"}) {
-                        string selected = Path.Combine(output,layout.Replace('/',Path.DirectorySeparatorChar));
-                        Directory.CreateDirectory(Path.Combine(selected,"TAGame","CookedPCConsole"));
-                        gameFolder.Text = selected;
-                        Click(setup,"Back");Click(Field<Control>(form,"homePage"),"Setup SM64 + Rocket League");
-                        Need(gameFolder.Text == selected,"Back lost the selected game folder");
-                        var command = Commands.Setup("octane","","","",gameFolder.Text,true);
-                        Need(command[command.IndexOf("--game")+1] == selected,"Shared field changed the selected store folder");
-                    }
-                    gameFolder.Clear();
-                    Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"optionalPromptPage"));
-                    Click(Field<Control>(form,"optionalPromptPage"),"No, continue");Page(form,"homePage");
-                    Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"optionalPromptPage"));
-                    Click(Field<Control>(form,"optionalPromptPage"),"Yes, choose a game");Page(form,"optionalSetupPage");
-                    ComboBox optional=Field<ComboBox>(form,"optionalCharacter");Need(optional.Items.Count==5,"Optional game count");
-                    for(int i=0;i<5;i++){Field<TextBox>(form,"optionalRom").Text="previous-game";optional.SelectedIndex=(i+1)%5;Need(Field<TextBox>(form,"optionalRom").Text=="","Game choice reused wrong ROM");Need(Field<Label>(form,"optionalFormat").Text.Length>35,"Missing accepted format");}
-                    Snapshot(form,output,"optional-900");Click(Field<Control>(form,"optionalSetupPage"),"Back");Page(form,"optionalPromptPage");
-                    Click(Field<Control>(form,"optionalPromptPage"),"No, continue");Click(Field<Control>(form,"homePage"),"Online");Page(form,"onlineChoicePage");
+                    var prefs=UpdatePreferences.Load(installRoot);Need(prefs.ModeChosen&&!prefs.AutomaticChecks&&!prefs.AutomaticApply,"Manual mode persistence");
+                    Call(form,"ShowUpdateSettings");Click(Field<Control>(form,"settingsPage"),"Check for updates");WaitUpdate(form);Page(form,"updatePage");
+                    Need(Field<Label>(form,"updateMessage").Text.Contains("0.3.0"),"Available release missing");
+                    Need(!Field<Button>(form,"useInstalled").Visible,"Incomplete install offered Play");
+                    transport.Offline=true;Click(Field<Control>(form,"updatePage"),"Retry update check");WaitUpdate(form);Page(form,"updatePage");
+                    Need(Field<Label>(form,"updateMessage").Text.Contains("retained"),"Offline fallback missing");transport.Offline=false;
+                    Call(form,"ShowUpdateSettings");Field<RadioButton>(form,"automaticUpdates").Checked=true;Click(Field<Control>(form,"settingsPage"),"Save preferences");
+                    prefs=UpdatePreferences.Load(installRoot);Need(prefs.ModeChosen&&prefs.AutomaticApply&&prefs.AutomaticChecks,"Automatic mode not persisted");
+                    transport.Corrupt=true;form.UpdateGameActive=delegate{return false;};
+                    Call(form,"CheckUpdates",true);WaitUpdate(form);Page(form,"updatePage");
+                    Need(transport.Downloads==1&&UpdatePreferences.Load(installRoot).PausedVersion=="0.3.0","Automatic mode did not download/verify/pause corrupt release");transport.Corrupt=false;
+                    prefs.PausedVersion="0.3.0";prefs.Save(installRoot);Call(form,"CheckUpdates",true);WaitUpdate(form);Page(form,"updatePage");
+                    Need(Field<Label>(form,"updateMessage").Text.Contains("paused"),"Failed version retry loop");
+                    Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"homePage"));Click(Field<Control>(form,"homePage"),"Online");
                     Click(Field<Control>(form,"onlineChoicePage"),"Host");Page(form,"onlinePage");
-                    Need(Field<NumericUpDown>(form,"port").Value==7777,"Default port");Need(Field<ComboBox>(form,"onlineCharacter").Items.Count==2,"Unsupported online character advertised");
-                    Need(Field<Control>(form,"hostAddressRow").Visible&&!Field<Control>(form,"joinAddressRow").Visible,"Host layout");
-                    Field<NumericUpDown>(form,"port").Value=8123;Snapshot(form,output,"host-900");
+                    Need(Field<NumericUpDown>(form,"port").Value==7777&&Field<ComboBox>(form,"onlineCharacter").Items.Count==2,"Online defaults/support");Snapshot(form,output,"host");
                     Click(Field<Control>(form,"onlinePage"),"Back");Click(Field<Control>(form,"onlineChoicePage"),"Join");
-                    Need(Field<Control>(form,"joinAddressRow").Visible&&!Field<Control>(form,"hostAddressRow").Visible,"Join layout");Need(Field<NumericUpDown>(form,"port").Value==8123,"Port edit lost");
-                    Field<TextBox>(form,"host").Text="192.0.2.10";Snapshot(form,output,"join-900");
-                    // Recover from a real launcher operation failure with no embedded payload.
-                    Click(Field<Control>(form,"onlinePage"),"Back");Click(Field<Control>(form,"onlineChoicePage"),"Back");
-                    Click(Field<Control>(form,"homePage"),"Refresh setup status");
-                    Stopwatch wait=Stopwatch.StartNew();while(Field<bool>(form,"running")&&wait.ElapsedMilliseconds<5000){Application.DoEvents();Thread.Sleep(10);}
-                    Need(!Field<bool>(form,"running")&&Field<Control>(form,"pageHost").Enabled,"Failed operation did not allow retry");
-                    Need(Field<RichTextBox>(form,"output").Text.Contains("Stopped:"),"Missing actionable operation failure");
-                    Need(!Field<Button>(form,"cancelOperation").Visible,"Cancel remained enabled after operation");
+                    Need(Field<Control>(form,"joinAddressRow").Visible&&!Field<Control>(form,"hostAddressRow").Visible,"Join layout");Snapshot(form,output,"join");
+                    string endpoint="[fd7a:115c:a1e0::1]:8123";int selectedPort=7777;LauncherForm.ParseEndpoint(ref endpoint,ref selectedPort);Need(endpoint=="fd7a:115c:a1e0::1"&&selectedPort==8123,"IPv6 endpoint parse");
+                    endpoint="192.0.2.1:9123";LauncherForm.ParseEndpoint(ref endpoint,ref selectedPort);Need(endpoint=="192.0.2.1"&&selectedPort==9123,"IPv4 endpoint parse");
+                    Need(LauncherForm.FriendlyStage("private raw converter diagnostics")==null,"Raw output reached UI");
                     form.Size=form.MinimumSize;
-                    foreach(string page in new string[]{"homePage","setupPage","optionalSetupPage","onlinePage"}){Call(form,"ShowPage",Field<FlowLayoutPanel>(form,page));Snapshot(form,output,page+"-minimum");}
+                    foreach(string page in new string[]{"locationPage","setupPage","extrasPage","readyPage","onlinePage"}){Call(form,"ShowPage",Field<FlowLayoutPanel>(form,page));Snapshot(form,output,page+"-minimum");}
                     AssertSeparate(expected);form.Close();
                 }
                 File.WriteAllText(Path.Combine(output,"ui-result.json"),new JavaScriptSerializer().Serialize(new{passed=true,checks=checks,separate_desktop=expected,input_desktop=InputDesktop(),game_started=false,helper_started=
