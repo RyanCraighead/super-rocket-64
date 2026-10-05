@@ -1,5 +1,14 @@
 # Verification and limitations
 
+## v0.2.11: keep custom controls across play modes and updates
+
+Native keyboard/controller, car bindings and camera preferences use one persistent
+controls file per installation. Existing custom mappings are imported from legacy
+profiles without altering their source files. Invalid shared controls stop launch
+with recovery guidance. Binding edits save immediately. Progression remains in its
+existing profiles. See [controls and recovery](SHARED-CONTROLS.md).
+
+
 ## v0.2.10: independent Octane jump height
 
 Options > Octane jump height (%) defaults to 50%, with 50–100% available and

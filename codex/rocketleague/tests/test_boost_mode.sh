@@ -19,3 +19,8 @@ if [[ "${SANITIZE:-1}" == 1 ]]; then FLAGS+=(-fsanitize=address,undefined -fno-s
 "${WINDOWS_CC:-x86_64-w64-mingw32-gcc}" -I"${SDL_ROOT:?Set SDL_ROOT to the Windows SDL2 SDK}/include" -std=gnu11 -fsyntax-only -DWINSOCK -D_LANGUAGE_C -DNON_MATCHING -DAVOID_UB -DTARGET_PC -DVERSION_US \
     -I. -Iinclude -Isrc -Ilib/lua/include src/pc/djui/djui_rocket_boost.c \
     src/pc/djui/djui_panel_options.c src/pc/network/packets/packet_join.c src/pc/network/network.c
+
+"${CC:-gcc}" "${FLAGS[@]}" -D_LANGUAGE_C -DNON_MATCHING -DAVOID_UB -DTARGET_PC -DVERSION_US -DDISABLE_MODULE_LOG \
+    -I. -Iinclude -Isrc -Ilib/lua/include codex/rocketleague/tests/test_shared_controls_config.c src/pc/rocket_bindings.c \
+    -Wl,--gc-sections -lm -o "$OUT/shared-controls"
+"$OUT/shared-controls" "$OUT"

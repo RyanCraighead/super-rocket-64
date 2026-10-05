@@ -525,6 +525,8 @@ void* main_game_init(UNUSED void* dummy) {
 }
 
 int main(int argc, char *argv[]) {
+    int controlsProbe = configfile_controls_probe(argc, argv);
+    if (controlsProbe >= 0) return controlsProbe;
     // Internal headless setup probe: no window, save path or network initialization.
     if (argc == 2 && strcmp(argv[1], "--verify-local-engine-data") == 0) {
         char error[512];

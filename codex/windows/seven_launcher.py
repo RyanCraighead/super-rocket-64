@@ -18,6 +18,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(Path(__file__).parent))
 import launcher as old
 import engine_setup
+import controls_setup
 from codex.spiderman.inspect_n64_input import read_input
 
 CHARACTERS = ('mario', 'link', 'bomberman', 'banjo', 'spiderman', 'tony', 'octane')
@@ -346,6 +347,15 @@ def build_command(args, root=ROOT):
     return command, save, source_save, enabled
 
 
+def control_save_directories(root=ROOT):
+    data = DATA_ROOT or root
+    saves = [old.private_path(data, '.runtime/combined/save')]
+    saves += [old.private_path(data, '.runtime/online-' + mode + '-' + character + '/save')
+              for mode in ('host', 'join') for character in ('mario', 'octane')]
+    saves += [old.private_path(profile(character, root), 'save') for character in CHARACTERS]
+    return saves
+
+
 def launch(args, root=ROOT):
     require(os.name == 'nt', 'Play in native Windows')
     old.check_location(root)
@@ -381,7 +391,11 @@ def launch(args, root=ROOT):
         if not config.exists():
             config.write_text('\n'.join(lines) + '\n')
         print('Starting ' + ('muted game' if muted else 'game with your saved audio settings') + '. Close the game normally to release this save.')
-        return subprocess.call(command, cwd=root, env=environment, shell=False)
+        saves = control_save_directories(root)
+        with controls_setup.locked(DATA_ROOT or root, saves, save):
+            controls = controls_setup.prepare(DATA_ROOT or root, root / 'sm64coopdx.exe', saves, save)
+            environment['SUPER_ROCKET64_CONTROLS'] = str(controls)
+            return subprocess.call(command, cwd=root, env=environment, shell=False)
     finally:
         lock.rmdir()
 

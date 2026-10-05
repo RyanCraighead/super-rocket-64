@@ -937,7 +937,12 @@ void configfile_reset_keybinds(bool extra) {
     }
 }
 
+static void shared_controls_load(void);
+static void shared_controls_save(void);
+static bool sharedControlsReady;
+
 void configfile_load(void) {
+    sharedControlsReady = false;
     bool configReadError = false;
 #ifdef DEVELOPMENT
     configfile_load_internal(configfile_name(), &configReadError);
@@ -949,6 +954,7 @@ void configfile_load(void) {
         configfile_save(configfile_backup_name());
     }
 #endif
+    shared_controls_load();
 }
 
 static void configfile_save_option(FILE *file, const struct ConfigOption *option, bool isSecret) {
@@ -987,6 +993,8 @@ static void configfile_save_option(FILE *file, const struct ConfigOption *option
     }
 }
 
+#include "shared_controls.inc.h"
+
 // Writes the config file to 'filename'
 void configfile_save(const char *filename) {
     FILE *file;
@@ -1015,4 +1023,5 @@ void configfile_save(const char *filename) {
     }
 
     fclose(file);
+    if (!strcmp(filename, configfile_name())) shared_controls_save();
 }
