@@ -15,41 +15,42 @@ namespace SuperRocket64 {
             Button browseRom=FindButton(rom.Parent,"Browse..."),browseGame=FindButton(game.Parent,"Browse..."),next=FindButton(setupPage,"Next"),back=FindButton(setupPage,"Back"),cancel=FindButton(setupPage,"Cancel");
             var romBox=new ConceptField(rom);var gameBox=new ConceptField(game);var canvas=Canvas(setupPage);Header(canvas,"Choose your games","2 of 5  ·  Original game sources",null,Rectangle.Empty,1198,73);
             var romLabel=CopyLabel("SM64 US ROM",true);var gameLabel=CopyLabel("Rocket League folder",true);
-            var romHelp=CopyLabel("Original US ROM: .z64, .v64, .n64, or a ZIP containing one ROM.",false);
-            var gameHelp=CopyLabel("Windows Epic or Steam installation containing TAGame. Supported Steam profile: 25535926; identical Epic files work.",false);
-            var help=CopyLabel("Leave a source blank to reuse verified assets. Car sounds are optional: unsupported sounds use the game audio fallback. Extraction tools and Python are handled automatically and verified before use. Your sources stay local.",false);
-            sourceStatus.ForeColor=ConceptTheme.Muted;sourceStatus.BackColor=ConceptTheme.Surface;Primary(next);
-            canvas.PaintDesign=delegate(Graphics g){Stepper(g,2);ConceptTheme.Card(g,new RectangleF(0,220,1198,193),ConceptTheme.Border);ConceptTheme.Card(g,new RectangleF(0,434,1198,205),ConceptTheme.Border);ConceptTheme.Card(g,new RectangleF(0,659,1198,184),ConceptTheme.Border);};
-            AddLayout(canvas,delegate{PageHeight(canvas,1085);Place(romLabel,canvas,33,239,1110,43,31);Place(romHelp,canvas,33,286,1110,38,22);Place(romBox,canvas,33,335,900,58,25);Place(browseRom,canvas,952,335,212,58,25);Place(gameLabel,canvas,33,453,1110,43,31);Place(gameHelp,canvas,33,500,1110,57,22);Place(gameBox,canvas,33,568,900,58,25);Place(browseGame,canvas,952,568,212,58,25);Place(sourceStatus,canvas,33,674,1130,160,22);Place(help,canvas,5,861,1180,107,22);Place(back,canvas,0,994,226,67,27);Place(cancel,canvas,246,994,226,67,27);Place(next,canvas,909,994,289,67,27);});
+            romFeedback.ForeColor=gameFeedback.ForeColor=ConceptTheme.Muted;romFeedback.BackColor=gameFeedback.BackColor=ConceptTheme.Surface;Primary(next);
+            canvas.PaintDesign=delegate(Graphics g){Stepper(g,2);ConceptTheme.Card(g,new RectangleF(0,220,1198,203),ConceptTheme.Border);ConceptTheme.Card(g,new RectangleF(0,443,1198,203),ConceptTheme.Border);};
+            AddLayout(canvas,delegate{PageHeight(canvas,790);Place(romLabel,canvas,33,239,1110,43,31);Place(romBox,canvas,33,291,900,58,25);Place(browseRom,canvas,952,291,212,58,25);Place(romFeedback,canvas,33,363,1130,52,23);Place(gameLabel,canvas,33,462,1110,43,31);Place(gameBox,canvas,33,514,900,58,25);Place(browseGame,canvas,952,514,212,58,25);Place(gameFeedback,canvas,33,586,1130,52,23);Place(back,canvas,0,684,226,67,27);Place(cancel,canvas,246,684,226,67,27);Place(next,canvas,909,684,289,67,27);});
         }
         private void BuildExtrasConcept() {
             Button installExtras=FindButton(extrasPage,"Install / resume"),back=FindButton(extrasPage,"Back"),cancel=FindButton(extrasPage,"Cancel");
             string[] shortNames={"Link · Ocarina of Time","Bomberman 64","Banjo-Kazooie","Spider-Man","Tony Hawk's Pro Skater"};
-            var fields=new ConceptField[5];var browse=new Button[5];var formats=new Label[5];var revision=new Label[5];var badges=new Label[5];
-            for(int i=0;i<5;i++){browse[i]=FindButton(extraSources[i].Parent,"Browse...");fields[i]=new ConceptField(extraSources[i]);formats[i]=CopyLabel(Commands.OptionalRomFormats(Commands.OptionalCharacters[i]),false);revision[i]=CopyLabel(extraChoices[i].Text+" · Leave source blank to reuse ready assets.",false);badges[i]=CopyLabel("NOT CHECKED",false);badges[i].TextAlign=ContentAlignment.MiddleCenter;var choice=extraChoices[i] as ConceptCheckBox;if(choice!=null)choice.DisplayText=shortNames[i];int index=i;extraChoices[i].CheckedChanged+=delegate{if(chrome!=null){ArrangeConcept();if(extraChoices[index].Checked)extraSources[index].Focus();}};}
+            var fields=new ConceptField[5];var browse=new Button[5];var formats=new Label[5];
+            for(int i=0;i<5;i++){
+                browse[i]=FindButton(extraSources[i].Parent,"Browse...");fields[i]=new ConceptField(extraSources[i]);formats[i]=CopyLabel(Commands.OptionalRomFormats(Commands.OptionalCharacters[i]),false);
+                var choice=extraChoices[i] as ConceptCheckBox;if(choice!=null)choice.DisplayText=shortNames[i];int index=i;
+                extraChoices[i].CheckedChanged+=delegate{if(chrome!=null){ArrangeConcept();if(extraChoices[index].Checked)extraSources[index].Focus();}};
+            }
             var canvas=Canvas(extrasPage);Header(canvas,"Optional characters","3 of 5  ·  Offline extras","05-optional-characters",new Rectangle(299,84,660,69),660,69);
             var warning=CopyLabel("VERY WIP · Some progression may not work. Switch back to Mario or Octane if stuck.",true);warning.ForeColor=Color.FromArgb(255,217,52);warning.BackColor=Color.FromArgb(32,32,14);
             extraInputs.Controls.Clear();extraInputs.AutoSize=false;extraInputs.Padding=Padding.Empty;extraInputs.Margin=Padding.Empty;extraInputs.BackColor=ConceptTheme.Background;var list=new ConceptCanvas();extraInputs.Controls.Add(list);
-            var instruction=CopyLabel("Selecting a character reveals its original game source field.",false);var onlineNotice=CopyLabel("Online supports Mario and Octane only.",false);var reused=CopyLabel("Completed assets are verified and reused.",false);
+            var onlineNotice=CopyLabel("Optional characters are for offline play.",false);
             var noExtras=CopyLabel("Mario and Octane are included. You can add optional characters later from Setup.",false);
             Primary(installExtras);canvas.PaintDesign=delegate(Graphics g){Stepper(g,3);ConceptTheme.Card(g,new RectangleF(0,203,1198,49),Color.FromArgb(221,190,20));};
-            list.PaintDesign=delegate(Graphics g){ConceptTheme.Card(g,new RectangleF(0,0,1198,list.Height/conceptScale-1),ConceptTheme.Border);ConceptTheme.Text(g,"Choose offline extras",28,16,34,ConceptTheme.White,true);};
+            list.PaintDesign=delegate(Graphics g){ConceptTheme.Card(g,new RectangleF(0,0,1198,459),ConceptTheme.Border);};
             extrasYes.CheckedChanged+=delegate{if(chrome!=null)ArrangeConcept();};
             AddLayout(canvas,delegate{
-                float y=58;list.Zoom=conceptScale;
+                list.Zoom=conceptScale;
                 for(int i=0;i<5;i++){
-                    Place(extraChoices[i],list,48,y+2,890,48,24);Place(badges[i],list,980,y+3,185,39,19);
-                    var errors=lastReport.ContainsKey("errors")?lastReport["errors"] as System.Collections.Generic.Dictionary<string,object>:null;badges[i].Text=readyCharacters.Contains(Commands.OptionalCharacters[i])?"READY / REUSABLE":errors!=null&&errors.ContainsKey(Commands.OptionalCharacters[i])?"NEEDS REPAIR":lastReport.ContainsKey("ready")?"NOT INSTALLED":"NOT CHECKED";
-                    bool expanded=extraChoices[i].Checked;revision[i].Visible=formats[i].Visible=fields[i].Visible=browse[i].Visible=expanded;y+=51;
-                    if(expanded){Place(revision[i],list,55,y,1100,35,20);Place(formats[i],list,55,y+38,1100,52,18);Place(fields[i],list,55,y+96,862,59,24);Place(browse[i],list,934,y+96,226,59,24);y+=174;}
+                    float y=12+i*89;Place(extraChoices[i],list,24,y,405,52,23);
+                    bool expanded=extraChoices[i].Checked;formats[i].Visible=fields[i].Visible=browse[i].Visible=expanded;
+                    Place(fields[i],list,442,y,588,50,22);Place(browse[i],list,1047,y,126,50,21);Place(formats[i],list,443,y+53,730,31,17);
                 }
-                Place(instruction,list,28,y+14,1135,35,21);Place(onlineNotice,list,69,y+64,1080,36,21);list.Size=new Size((int)(1198*conceptScale),(int)((y+116)*conceptScale));
-                float listHeight=extrasYes.Checked?y+116:106,footer=336+listHeight+65;PageHeight(canvas,Math.Max(881,footer+85));
+                list.Size=new Size((int)(1198*conceptScale),(int)(460*conceptScale));
+                float footer=extrasYes.Checked?825:550;PageHeight(canvas,895);
                 Place(warning,canvas,60,209,1130,37,22);Place(extrasNo,canvas,29,265,550,55,24);Place(extrasYes,canvas,625,265,573,55,24);
-                Place(extraInputs,canvas,0,336,1198,y+116,22);extraInputs.Visible=extrasYes.Checked;Place(noExtras,canvas,31,355,1140,80,27);noExtras.Visible=!extrasYes.Checked;
-                Place(reused,canvas,44,footer-48,1145,34,21);Place(back,canvas,0,footer,195,62,27);Place(cancel,canvas,216,footer,194,62,27);Place(installExtras,canvas,909,footer,289,62,27);
+                Place(extraInputs,canvas,0,336,1198,460,22);extraInputs.Visible=extrasYes.Checked;Place(noExtras,canvas,31,355,1140,80,27);noExtras.Visible=!extrasYes.Checked;
+                Place(onlineNotice,canvas,31,extrasYes.Checked?798:footer-34,1140,24,19);Place(back,canvas,0,footer,195,62,27);Place(cancel,canvas,216,footer,194,62,27);Place(installExtras,canvas,909,footer,289,62,27);
             });
         }
+
         private void BuildOperationConcepts() {
             var progressCanvas=Canvas(progressPage);Header(progressCanvas,"Getting ready","4 of 5  ·  Installing","06-operation-states",new Rectangle(190,63,324,43),551,73);
             var completed=CopyLabel("Completed assets stay available if you cancel or retry.",false);progressText.ForeColor=ConceptTheme.White;progressText.BackColor=ConceptTheme.Surface;

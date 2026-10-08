@@ -250,7 +250,7 @@ namespace SuperRocket64 {
         }
         internal static int Main() {
             testRoot = Path.Combine(Path.GetTempPath(), "n64t-" + Guid.NewGuid().ToString("N").Substring(0, 8)); Directory.CreateDirectory(testRoot);
-            try { Extraction(); CommandTests(); AddressTests(); FolderTests(); Console.WriteLine("PASS " + passed + " headless checks; no UI/game/helper/network started"); return 0; }
+            try { Extraction(); CommandTests(); AddressTests(); FolderTests(); SourceValidationTests.Run(Path.Combine(testRoot,"source-inputs")); Console.WriteLine("PASS " + passed + " headless checks; no UI/game/helper/network started"); return 0; }
             catch (Exception error) { Console.Error.WriteLine(error); return 1; }
             finally { Guard.NoRedirect(testRoot); Directory.Delete(testRoot, true); }
         }

@@ -1,6 +1,6 @@
 # Verification and limitations
 
-## v0.2.19: pyramid poles and castle beam entrance
+## v0.2.19: pyramid poles, castle beam and compact launcher
 
 The two native pyramid poles accept local car contact using the full oriented
 body. Mapped steering/pitch and fresh jump drive native grab, climb, slide,
@@ -24,8 +24,16 @@ saved controls, menus, exact Windows build and clean/upgrade/repair packages.
 The env3 compatibility marker and packet format remain unchanged from v0.2.18.
 
 Physical-controller feel, rendered gameplay and two-PC socket delivery remain
-unperformed. Existing extractor package-profile limitations remain. Unfinished
-launcher cleanup, camera binding, tutorials and visual/HUD work are excluded.
+unperformed. Existing extractor package-profile limitations remain. Later launcher
+refinements, camera binding, tutorials and visual/HUD work are excluded.
+
+The completed launcher cleanup fits all pages without scrollbars, simplifies
+installation and optional-character rows, removes requested explanatory/mute
+controls, and routes verified installations directly to Play. Source selection
+requires both pinned game fingerprints before Next; validation is read-only,
+debounced, cancellable and rechecked on advance. Existing update consent and
+activation/data contracts remain unchanged. Native UI and synthetic source
+fixtures cover these changes; real user extraction remains unperformed.
 
 See [terrain controls](../codex/rocketleague/TERRAIN-CONTROLS.md).
 

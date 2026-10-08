@@ -26,7 +26,7 @@ if ($payloadHash -ne $manifest.payload_sha256) { throw 'Embedded payload verific
 $payloadSize = (Get-Item -LiteralPath $payload).Length
 $payloadInfo = 'namespace SuperRocket64 { internal static class PayloadInfo { internal const string ZipSha256 = "' + $payloadHash + '"; internal const long ZipSize = ' + $payloadSize + 'L; } }'
 [IO.File]::WriteAllText((Join-Path $outputRoot 'PayloadInfo.cs'),$payloadInfo,[Text.UTF8Encoding]::new($false))
-$sources = @('Bootstrap.cs','Presentation.cs','PresentationPages.cs','Wizard.cs','Updates.cs','UpdateUi.cs','Shortcuts.cs','UpdateBuild.cs') | ForEach-Object { Join-Path $source $_ }
+$sources = @('Bootstrap.cs','Presentation.cs','PresentationPages.cs','SourceValidation.cs','Wizard.cs','Updates.cs','UpdateUi.cs','Shortcuts.cs','UpdateBuild.cs') | ForEach-Object { Join-Path $source $_ }
 $resources = Get-ChildItem -LiteralPath (Join-Path $source 'Art') -Filter '*.png' | ForEach-Object { '/resource:' + $_.FullName + ',Concept.' + $_.Name }
 $exe = Join-Path $outputRoot ('Super-Rocket-64-v' + $manifest.version + '-Visual-Candidate.exe')
 $compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'

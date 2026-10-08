@@ -621,6 +621,8 @@ namespace SuperRocket64 {
             foreach (Control item in pageHost.Controls) item.Visible = Object.ReferenceEquals(item, page);
             page.BringToFront();
             SelectConcept(page);
+            if(page==setupPage)QueueSourceValidation();
+            else LeaveSourceValidation();
         }
         private void AddPath(FlowLayoutPanel page, string title, TextBox input, bool file) { AddPath(page, title, input, file, null); }
         private void AddPath(FlowLayoutPanel page, string title, TextBox input, bool file, Func<string> fileFilter) {

@@ -89,21 +89,63 @@ namespace SuperRocket64 {
             foreach(var report in new[]{Report(false,false),Report(false,false,"octane"),Report(true,false,"octane"),Report(true,true)}){
                 Set(form,"lastReport",report);Call(form,"CompleteInspection",true);Page(form,"locationPage");Need(!Field<bool>(form,"installationReady")&&transport.Reads==reads,"Incomplete status entered Play/update");
             }
-            Set(form,"lastReport",Report(false,false,"octane"));Call(form,"CompleteInspection",false);Page(form,"setupPage");Need(Field<Label>(form,"sourceStatus").Text.Contains("Shared game data needs repair"),"Resume lost reusable assets");
+            Set(form,"lastReport",Report(false,false,"octane"));Call(form,"CompleteInspection",false);Page(form,"setupPage");Need(!Field<Button>(form,"sourceNext").Enabled,"Repair bypassed source selection");
             Set(form,"lastReport",Report(true,true,"octane"));Call(form,"CompleteInspection",true);Page(form,"homePage");Need(File.ReadAllText(preferences)==before&&Field<TextBox>(form,"install").Text==root&&transport.Reads==reads,"Configured migration changed preferences/path or made a manual update request");
             WindowSnapshot(form,output,"startup-configured-play");
             saved.AutomaticChecks=true;saved.AutomaticApply=true;saved.Save(root);before=File.ReadAllText(preferences);
             Call(form,"CompleteInspection",true);WaitUpdate(form);Page(form,"updatePage");Need(transport.Reads>reads&&File.ReadAllText(preferences)==before,"Configured automatic startup or paused-version preservation failed");
             // Legacy check-only consent must never become automatic install consent.
             File.WriteAllText(preferences,"{\"schema\":1,\"configured\":true,\"automatic_checks\":true,\"desktop_shortcut\":true,\"start_menu_shortcut\":false}");before=File.ReadAllText(preferences);reads=transport.Reads;
-            Call(form,"CompleteInspection",true);Page(form,"readyPage");Need(!Field<RadioButton>(form,"readyAuto").Checked&&!Field<RadioButton>(form,"readyManual").Checked,"Legacy consent was inferred");Need(Field<CheckBox>(form,"readyDesktop").Checked&&!Field<CheckBox>(form,"readyMenu").Checked&&File.ReadAllText(preferences)==before&&transport.Reads==reads,"Migration lost shortcut choices or made a request before Setup");
-            WindowSnapshot(form,output,"startup-legacy-finish-setup");
-            File.Delete(preferences);Call(form,"CompleteInspection",true);Page(form,"readyPage");Need(!File.Exists(preferences)&&transport.Reads==reads,"Unconfigured startup wrote preferences or checked updates");WindowSnapshot(form,output,"startup-unconfigured-finish-setup");
+            Call(form,"CompleteInspection",true);Page(form,"homePage");Need(!UpdatePreferences.Load(root).AutomaticApply,"Legacy consent was inferred");Need(File.ReadAllText(preferences)==before&&transport.Reads==reads,"Migration changed preferences or made an unchosen update request");
+            WindowSnapshot(form,output,"startup-legacy-play");
+            File.Delete(preferences);Call(form,"CompleteInspection",true);Page(form,"homePage");Need(!File.Exists(preferences)&&transport.Reads==reads,"Verified startup wrote preferences or checked updates");WindowSnapshot(form,output,"startup-verified-play");
+            Call(form,"ShowReadyPage");Page(form,"readyPage");
             Field<RadioButton>(form,"readyManual").Checked=true;Click(Field<Control>(form,"readyPage"),"Open launcher");Page(form,"homePage");Need(UpdatePreferences.Load(root).ModeChosen,"Setup completion did not persist explicit choice");Call(form,"CompleteInspection",true);Page(form,"homePage");
             // Existing but interrupted data must run inspection, not infer readiness.
             Directory.CreateDirectory(Commands.DataDirectory(root));Call(form,"StartupUpdates");WaitUpdate(form);Page(form,"failurePage");Need(!Field<bool>(form,"installationReady")&&transport.Reads==reads,"Failed inspection retained stale readiness");Click(Field<Control>(form,"failurePage"),"Back / change source");Page(form,"setupPage");
         }
         static void AssertSeparate(string expected) {Need(DesktopName(GetThreadDesktop(GetCurrentThreadId()))==expected,"Wrong thread desktop; refusing UI");Need(InputDesktop()!=expected,"Test desktop is active; refusing UI");}
+        static void WaitSources(LauncherForm form){var watch=Stopwatch.StartNew();while((Field<bool>(form,"sourceValidationRunning")||Field<System.Windows.Forms.Timer>(form,"sourceDelay").Enabled)&&watch.ElapsedMilliseconds<10000){Application.DoEvents();Thread.Sleep(10);}Need(!Field<bool>(form,"sourceValidationRunning")&&!Field<System.Windows.Forms.Timer>(form,"sourceDelay").Enabled,"Source validation did not finish");Application.DoEvents();}
+        static void SourceSelection(LauncherForm form,string output){
+            var fixture=SourceFixture.Create(Path.Combine(output,"source-fixture"));form.CheckSources=fixture.Validator.Check;
+            var rom=Field<TextBox>(form,"rom");var game=Field<TextBox>(form,"game");var next=Field<Button>(form,"sourceNext");
+            Field<Label>(form,"notice").Text="";Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"setupPage"));rom.Text="";game.Text="";WaitSources(form);Need(!next.Enabled,"Empty selections enabled Next");Snapshot(form,output,"sources-empty");
+            rom.Text=fixture.InvalidRom;game.Text=fixture.Game;Need(!next.Enabled,"Editing retained old validation");WaitSources(form);Need(!next.Enabled,"Existing invalid ROM enabled Next");Snapshot(form,output,"sources-invalid-rom");
+            rom.Text=fixture.Rom;game.Text=output;WaitSources(form);Need(!next.Enabled,"Existing wrong folder enabled Next");Snapshot(form,output,"sources-invalid-folder");
+            game.Text=fixture.Game;WaitSources(form);Need(next.Enabled,"Verified source pair did not enable Next");Reach(form,next);Snapshot(form,output,"sources-valid");
+            foreach(int dpi in new[]{96,120,144,192}){Dpi(form,dpi);Snapshot(form,output,"sources-valid-dpi-"+dpi);rom.Text=fixture.InvalidRom;WaitSources(form);Need(!next.Enabled,"Invalid ROM remained enabled at DPI "+dpi);Snapshot(form,output,"sources-invalid-dpi-"+dpi);rom.Text=fixture.Rom;WaitSources(form);Need(next.Enabled,"Valid pair failed at DPI "+dpi);}
+            // A delayed obsolete success must not enable a new invalid selection.
+            using(var release=new ManualResetEvent(false))using(var started=new ManualResetEvent(false)){
+                form.CheckSources=delegate(string r,string g,CancellationToken token){started.Set();release.WaitOne(5000);return new SourceValidationResult{RomValid=true,GameValid=true,RomMessage="old",GameMessage="old"};};
+                Call(form,"ValidateSelectedSources",false);Need(started.WaitOne(2000),"Validation worker did not start");rom.Text=fixture.InvalidRom;form.CheckSources=fixture.Validator.Check;release.Set();WaitSources(form);Need(!next.Enabled&&Field<Label>(form,"romFeedback").Text!="old","Obsolete success replaced current failure");
+            }
+            rom.Text=fixture.Rom;game.Text=fixture.Game;WaitSources(form);Need(next.Enabled,"Valid source retry failed");
+            using(var release=new ManualResetEvent(false))using(var started=new ManualResetEvent(false)){
+                form.CheckSources=delegate(string r,string g,CancellationToken token){started.Set();release.WaitOne(5000);return new SourceValidationResult{RomValid=true,GameValid=true,RomMessage="old",GameMessage="old"};};
+                next.PerformClick();Need(started.WaitOne(2000),"Next validation worker did not start");Click(Field<Control>(form,"setupPage"),"Back");release.Set();Application.DoEvents();Page(form,"locationPage");Need(!Field<bool>(form,"sourceNextRequested"),"Back retained a pending Next action");
+            }
+            form.CheckSources=fixture.Validator.Check;Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"setupPage"));WaitSources(form);Need(next.Enabled,"Source validation did not resume after Back");
+            // File bytes can change without a TextChanged event. Next rechecks.
+            File.WriteAllText(fixture.Rom,"changed since validation");next.PerformClick();WaitSources(form);Need(!next.Enabled&&!Field<bool>(form,"running"),"Next used stale file validation");Page(form,"setupPage");
+            fixture=SourceFixture.Create(Path.Combine(output,"source-fixture-next"));form.CheckSources=fixture.Validator.Check;rom.Text=fixture.Rom;game.Text=fixture.Game;WaitSources(form);next.PerformClick();WaitSources(form);WaitUpdate(form);Page(form,"failurePage");
+            // The test payload is intentionally absent; the real preflight route
+            // reaches recovery without launching any helper or modifying sources.
+            Need(File.Exists(fixture.Rom),"Selection changed source data");Click(Field<Control>(form,"failurePage"),"Back / change source");WaitSources(form);Need(next.Enabled,"Back did not revalidate selected sources");
+        }
+        static void ControlsFit(Control root,Panel host){
+            foreach(Control c in root.Controls){if(!c.Visible)continue;var scroll=c as ScrollableControl;if(scroll!=null)Need(!scroll.HorizontalScroll.Visible&&!scroll.VerticalScroll.Visible,"Scrollbar visible: "+c.Name);
+                Rectangle r=host.RectangleToClient(c.RectangleToScreen(c.ClientRectangle));Need(r.Left>=-1&&r.Top>=-1&&r.Right<=host.ClientSize.Width+1&&r.Bottom<=host.ClientSize.Height+1,"Clipped control: "+c.Text+" "+r+" viewport="+host.ClientSize);
+                if(c.HasChildren)ControlsFit(c,host);
+            }
+        }
+        static void AllPagesFit(LauncherForm form,string output,string size){
+            Field<Label>(form,"notice").Text="";Field<Label>(form,"readyStatus").Text="Mario + Octane are ready.";
+            Field<RadioButton>(form,"extrasYes").Checked=true;foreach(var c in Field<CheckBox[]>(form,"extraChoices"))c.Checked=true;
+            foreach(string name in new[]{"homePage","locationPage","setupPage","extrasPage","readyPage","onlineChoicePage","onlinePage","settingsPage","updatePage","failurePage","progressPage"}){
+                Call(form,"ShowPage",Field<FlowLayoutPanel>(form,name));if(name=="setupPage")WaitSources(form);
+                Panel host=Field<Panel>(form,"pageHost");Need(!host.AutoScroll&&!host.HorizontalScroll.Visible&&!host.VerticalScroll.Visible,"Page scrollbars are enabled");ControlsFit(Field<Control>(form,name),host);Snapshot(form,output,"fit-"+size+"-"+name);
+            }
+        }
         static void WaitUpdate(LauncherForm form) {
             Stopwatch timer=Stopwatch.StartNew();while(Field<bool>(form,"running")&&timer.ElapsedMilliseconds<15000){Application.DoEvents();Thread.Sleep(20);}
             Need(!Field<bool>(form,"running")&&Field<Control>(form,"pageHost").Enabled,"Update did not finish/re-enable UI");
@@ -197,7 +239,7 @@ namespace SuperRocket64 {
                     form.Size=form.MinimumSize;
                     foreach(string page in new string[]{"homePage","locationPage","setupPage","extrasPage","readyPage","onlinePage","settingsPage","updatePage","failurePage"}){Call(form,"ShowPage",Field<FlowLayoutPanel>(form,page));Snapshot(form,output,page+"-minimum");}
                     Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"extrasPage"));Reach(form,Button(Field<Control>(form,"extrasPage"),"Install / resume"));Snapshot(form,output,"extras-minimum-bottom");
-                    Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"setupPage"));Reach(form,Button(Field<Control>(form,"setupPage"),"Next"));Escape(form);Page(form,"locationPage");
+                    Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"setupPage"));Need(!Field<Button>(form,"sourceNext").Enabled,"Blank sources enabled Next");Reach(form,Button(Field<Control>(form,"setupPage"),"Back"));Escape(form);Page(form,"locationPage");
                     string longFailure=String.Join(" ",new string[12]).Replace(" ","This source needs repair. Check the original file and available disk space before trying again. ");
                     Field<Label>(form,"failureText").Text=LauncherForm.PlainFailure(longFailure);Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"failurePage"));Need(Field<Label>(form,"failureText").Height>164*960/1536,"Long recovery copy did not expand");Snapshot(form,output,"recovery-long-minimum");Reach(form,Button(Field<Control>(form,"failurePage"),"Retry / resume"));
                     form.ClientSize=new Size(1280,720);Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"homePage"));Reach(form,Button(Field<Control>(form,"homePage"),"Setup / repair / add characters"));Snapshot(form,output,"home-wide-short");
@@ -205,6 +247,10 @@ namespace SuperRocket64 {
                     foreach(int dpi in new[]{96,120,144,192}){Dpi(form,dpi);ChoicePaint(form,output,"settings-native-dpi-"+dpi);}
                     Dpi(form,96);form.ClientSize=new Size(960,640);ChoicePaint(form,output,"settings-native-minimum");
                     form.ClientSize=new Size(1536,1024);StartupRoutes(form,output,transport);
+                    SourceSelection(form,output);
+                    foreach(int dpi in new[]{96,120,144,192}){Dpi(form,dpi);AllPagesFit(form,output,"dpi-"+dpi);}
+                    Dpi(form,96);form.ClientSize=new Size(960,640);AllPagesFit(form,output,"minimum");
+                    form.ClientSize=new Size(1280,720);AllPagesFit(form,output,"wide");
                     AssertSeparate(expected);form.Close();
                 }
                 File.WriteAllText(Path.Combine(output,"ui-result.json"),new JavaScriptSerializer().Serialize(new{passed=true,checks=checks,separate_desktop=expected,input_desktop=InputDesktop(),game_started=false,helper_started=
@@ -224,7 +270,7 @@ namespace SuperRocket64 {
                 if(!CreateProcess(exe,command,IntPtr.Zero,IntPtr.Zero,false,0x08000000,IntPtr.Zero,output,ref si,out pi))throw new Win32Exception();
                 Stopwatch timeout=Stopwatch.StartNew();bool childFocused=false;
                 while(WaitForSingleObject(pi.process,100)==258){uint pid;GetWindowThreadProcessId(GetForegroundWindow(),out pid);childFocused|=pid==pi.processId;Need(InputDesktop()!=name,"Input desktop unexpectedly changed");if(timeout.ElapsedMilliseconds>
-                    60000
+                    180000
                 ){TerminateProcess(pi.process,99);throw new TimeoutException("Only the test child was terminated");}}
                 uint result;GetExitCodeProcess(pi.process,out result);Need(!childFocused&&InputDesktop()!=name,"Test took input desktop");
                 File.WriteAllText(Path.Combine(output,"desktop-isolation.json"),new JavaScriptSerializer().Serialize(new{child_exit=result,child_foreground_seen=childFocused,input_desktop_before=input,input_desktop_after=InputDesktop(),test_desktop=name,never_called_switch_desktop=true}));

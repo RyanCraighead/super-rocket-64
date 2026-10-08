@@ -1,5 +1,7 @@
 # Launcher settings and startup fix
 
+Historical v0.2.18 fix record. The subsequent [compact launcher refinement](COMPACT-LAUNCHER.md) supersedes the startup destination for verified installations and replaces scrolling layouts with pages that fit the viewport.
+
 Based on release v0.2.17 (`866600e93ad59387fac5602a05b20cebec8571ad`). Only the C# launcher presentation/startup and its desktop harness change. Game code, payload, data contract, save paths and update activation protocol remain unchanged.
 
 ## Reported rendering fault

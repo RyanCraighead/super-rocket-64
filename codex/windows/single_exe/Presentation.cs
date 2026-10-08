@@ -75,12 +75,10 @@ namespace SuperRocket64 {
         }
     }
     internal sealed class ConceptCheckBox : CheckBox {
-        internal string DisplayText, Skin;
-        internal Rectangle Source;
+        internal string DisplayText;
         internal ConceptCheckBox(){SetStyle(ControlStyles.UserPaint|ControlStyles.OptimizedDoubleBuffer|ControlStyles.AllPaintingInWmPaint|ControlStyles.ResizeRedraw|ControlStyles.SupportsTransparentBackColor,true);BackColor=Color.Transparent;ForeColor=ConceptTheme.Muted;}
         protected override void OnPaint(PaintEventArgs e){
-            if(Skin!=null){e.Graphics.DrawImage(ConceptTheme.Art(Skin),ClientRectangle,Source,GraphicsUnit.Pixel);float z=Width/(float)Source.Width;if(Checked)ConceptTheme.Icon(e.Graphics,"check",new RectangleF(6*z,10*z,18*z,18*z),ConceptTheme.Cyan);if(Focused)ControlPaint.DrawFocusRectangle(e.Graphics,new Rectangle(1,1,Width-3,Height-3),ConceptTheme.Cyan,ConceptTheme.Background);}
-            else PaintChoice(e.Graphics,this,Checked,false,DisplayText??Text);
+            PaintChoice(e.Graphics,this,Checked,false,DisplayText??Text);
         }
         internal static void PaintChoice(Graphics g,ButtonBase c,bool value,bool radio,string text) {
             var canvas=c.Parent as ConceptCanvas;if(canvas!=null)canvas.PaintBehindChild(g,c.Location);else g.Clear(c.Parent==null?ConceptTheme.Background:c.Parent.BackColor);
@@ -162,7 +160,7 @@ namespace SuperRocket64 {
             Size work=Screen.FromControl(this).WorkingArea.Size;MinimumSize=new Size(Math.Min(MinimumSize.Width,work.Width),Math.Min(MinimumSize.Height,work.Height));ClientSize=new Size(Math.Min((int)(1152*displayScale),work.Width-60),Math.Min((int)(768*displayScale),work.Height-60));
             foreach(Control c in new Control[]{pageHost,notice,cancelOperation})if(c.Parent!=null)c.Parent.Controls.Remove(c);
             Controls.Clear();chrome=new ConceptCanvas{Dock=DockStyle.Fill};Controls.Add(chrome);chrome.Controls.Add(pageHost);chrome.Controls.Add(notice);
-            pageHost.Dock=DockStyle.None;pageHost.BackColor=ConceptTheme.Background;pageHost.AutoScroll=true;notice.BackColor=ConceptTheme.Surface;notice.ForeColor=Color.FromArgb(255,208,87);notice.AutoSize=false;notice.MaximumSize=Size.Empty;
+            pageHost.Dock=DockStyle.None;pageHost.BackColor=ConceptTheme.Background;pageHost.AutoScroll=false;notice.BackColor=ConceptTheme.Surface;notice.ForeColor=Color.FromArgb(255,208,87);notice.AutoSize=false;notice.MaximumSize=Size.Empty;
             string[] titles={"PLAY","ONLINE","SETUP","SETTINGS"};string[] icons={"play","online","setup","settings"};
             Action[] actions={delegate{ShowPage(installationReady?homePage:locationPage);},delegate{ShowPage(onlineChoicePage);},ShowSetupPage,ShowUpdateSettings};
             for(int i=0;i<4;i++){int j=i;var b=new ConceptButton{Text=titles[i],IconName=icons[i],AccessibleName=titles[i],Caption=true,Navigation=true};b.Click+=delegate{if(!running)actions[j]();};navigation[i]=b;chrome.Controls.Add(b);}
@@ -177,7 +175,7 @@ namespace SuperRocket64 {
             ResumeLayout();ArrangeConcept();
         }
         private void PaintChrome(Graphics g) {
-            float width=ClientSize.Width/conceptScale,height=ClientSize.Height/conceptScale;
+            float width=ClientSize.Width/chrome.Zoom,height=ClientSize.Height/chrome.Zoom;
             using(var brush=new LinearGradientBrush(new RectangleF(0,0,width,height),Color.FromArgb(12,25,38),ConceptTheme.Background,20f))g.FillRectangle(brush,0,0,width,height);
             g.DrawImage(ConceptTheme.Art("01-play"),new RectangleF(0,0,1536,52),new RectangleF(0,0,1536,52),GraphicsUnit.Pixel);
             g.DrawImage(ConceptTheme.Art("01-play"),new RectangleF(0,52,261,550),new RectangleF(0,52,261,550),GraphicsUnit.Pixel);
@@ -185,19 +183,25 @@ namespace SuperRocket64 {
             using(var p=new Pen(ConceptTheme.Border)){g.DrawLine(p,0,52,width,52);g.DrawLine(p,261,52,261,height-42);g.DrawLine(p,0,height-42,width,height-42);g.DrawRectangle(p,0,0,width-1,height-1);}
             ConceptTheme.Text(g,"WINDOWS LAUNCHER",42,height-73,15,ConceptTheme.Muted,false);
             ConceptTheme.Text(g,"SUPER ROCKET 64  ·  "+UpdateBuild.DisplayVersion,23,height-28,14,ConceptTheme.Muted,false);
-            ConceptTheme.Text(g,"Game sources stay on this PC",width-284,height-28,14,ConceptTheme.Muted,false);
         }
         private void ArrangeConcept() {
             if(chrome==null||arrangingConcept||ClientSize.Width<1)return;arrangingConcept=true;
             try {
-                conceptScale=ClientSize.Width/1536f;chrome.Zoom=conceptScale;conceptOrder=0;
+                conceptScale=ClientSize.Width/1536f;float shellScale=conceptScale;chrome.Zoom=shellScale;conceptOrder=0;
                 int footer=(int)(42*conceptScale),noticeHeight=String.IsNullOrWhiteSpace(notice.Text)?0:(int)(CopyHeight(notice.Text,1198,20,58)*conceptScale);
                 int operationHeight=cancelOperation.Visible?(int)(90*conceptScale):0;
-                pageHost.SetBounds((int)Math.Round(300*conceptScale),(int)Math.Round(86*conceptScale),(int)Math.Round(1198*conceptScale)+SystemInformation.VerticalScrollBarWidth,Math.Max(80,ClientSize.Height-footer-(int)Math.Round(86*conceptScale)-noticeHeight-operationHeight));
+                int availableHeight=Math.Max(80,ClientSize.Height-footer-(int)Math.Round(86*shellScale)-noticeHeight-operationHeight);
                 notice.Visible=noticeHeight>0;Place(notice,chrome,300,(ClientSize.Height-footer-noticeHeight)/conceptScale,1198,noticeHeight/conceptScale,20);
                 for(int i=0;i<4;i++)Place(navigation[i],chrome,11,345+i*66,243,59,26);
                 Place(minimizeCaption,chrome,1350,3,58,47,29);Place(maximizeCaption,chrome,1410,3,58,47,27);Place(closeCaption,chrome,1470,3,58,47,36);
-                foreach(var entry in concepts){var canvas=entry.Value;conceptOrder=0;Action layout;if(conceptLayouts.TryGetValue(canvas,out layout))layout();entry.Key.Width=canvas.Width;entry.Key.Height=canvas.Height;}
+                // Fit the active page in both dimensions. Optional rows retain
+                // fixed height and never enlarge the viewport.
+                FlowLayoutPanel active=null;foreach(var entry in concepts)if(entry.Key.Visible){active=entry.Key;break;}
+                conceptScale=Math.Min(shellScale,availableHeight/895f);
+                foreach(var entry in concepts){conceptOrder=0;conceptLayouts[entry.Value]();entry.Key.Size=entry.Value.Size;entry.Key.Location=Point.Empty;}
+                if(active!=null){var canvas=concepts[active];Action layout=conceptLayouts[canvas];for(int pass=0;pass<4;pass++){conceptOrder=0;layout();if(canvas.Height<=availableHeight)break;conceptScale*=availableHeight/(float)canvas.Height;}active.Size=canvas.Size;active.Location=Point.Empty;}
+                int contentWidth=(int)Math.Round(1198*conceptScale);pageHost.SetBounds((int)Math.Round(300*shellScale+(1198*shellScale-contentWidth)/2),(int)Math.Round(86*shellScale),contentWidth,availableHeight);
+                if(cancelOperation.Visible){float pageScale=conceptScale;conceptScale=shellScale;Place(cancelOperation,chrome,302,(ClientSize.Height-footer-noticeHeight)/shellScale-84,425,65,27);conceptScale=pageScale;}
                 chrome.Invalidate();foreach(var c in concepts.Values)c.Invalidate();
             } finally {arrangingConcept=false;}
         }
@@ -218,23 +222,22 @@ namespace SuperRocket64 {
             Button play=FindButton(homePage,"Play Offline"),online=FindButton(homePage,"Online"),setup=FindButton(homePage,"Setup / repair / add characters");
             var canvas=Canvas(homePage);Header(canvas,"Ready for liftoff.","Your next run starts here.","01-play",new Rectangle(300,86,555,73),555,73);
             canvas.Controls[0].Visible=false;canvas.Controls[1].Visible=false;
-            var homeMute=(ConceptCheckBox)mute;homeMute.Skin="01-play";homeMute.Source=new Rectangle(300,806,1000,44);
-            var hero=new ConceptArt("01-play",new Rectangle(300,213,1198,445),"Super Rocket 64 — cyan Octane boosting over floating tracks");var hint=new ConceptArt("01-play",new Rectangle(302,770,1000,36),"Choose your character in-game.");
+            mute.Visible=false;mute.Checked=false;
+            var hero=new ConceptArt("01-play",new Rectangle(300,213,1198,445),"Super Rocket 64 - cyan Octane boosting over floating tracks");
             Skin(play,"01-play",new Rectangle(300,678,597,82));Skin(online,"01-play",new Rectangle(916,678,582,82));Skin(setup,"01-play",new Rectangle(302,881,1196,70));
             canvas.PaintDesign=delegate(Graphics g){
-                var state=g.Save();g.ExcludeClip(new Rectangle(985,18,213,67));g.DrawImage(ConceptTheme.Art("01-play"),new Rectangle(0,0,1198,881),new Rectangle(300,86,1198,881),GraphicsUnit.Pixel);g.Restore(state);
+                var state=g.Save();g.ExcludeClip(new Rectangle(985,18,213,67));g.DrawImage(ConceptTheme.Art("01-play"),new Rectangle(0,0,1198,118),new Rectangle(300,86,1198,118),GraphicsUnit.Pixel);g.Restore(state);
                 // The one requested removal: reconstruct only the empty background beneath the readiness pill.
                 g.DrawImage(ConceptTheme.Art("01-play"),new Rectangle(985,18,213,67),new Rectangle(1065,104,213,67),GraphicsUnit.Pixel);
             };
-            AddLayout(canvas,delegate{PageHeight(canvas,881);Place(hero,canvas,0,127,1198,445,20);Place(play,canvas,0,592,597,82,32);Place(online,canvas,616,592,582,82,32);Place(hint,canvas,2,684,1000,36,21);Place(mute,canvas,0,720,1000,44,21);Place(setup,canvas,2,795,1196,70,25);});
+            AddLayout(canvas,delegate{PageHeight(canvas,800);Place(hero,canvas,0,127,1198,445,20);Place(play,canvas,0,592,597,82,32);Place(online,canvas,616,592,582,82,32);Place(setup,canvas,2,700,1196,70,25);});
         }
         private void BuildLocationConcept() {
             Button browse=FindButton(install.Parent,"Browse..."),next=FindButton(locationPage,"Next"),cancel=FindButton(locationPage,"Cancel");var field=new ConceptField(install);var canvas=Canvas(locationPage);
             Header(canvas,"Choose where to install","1 of 5  ·  Installation folder","02-install-location",new Rectangle(300,86,810,73),810,73);
-            var title=new ConceptArt("02-install-location",new Rectangle(329,348,741,50),"One folder. Everything together.");var folderArt=new ConceptArt("02-install-location",new Rectangle(1070,331,422,302),"Folder with cyan car and floating island");
-            var description=CopyLabel("Program files, reusable assets, saves and controls.",false);var label=CopyLabel("Installation folder",true);var help=CopyLabel("Optional characters may need more space. Rocket League is not copied in full.",false);
-            Primary(next);canvas.PaintDesign=delegate(Graphics g){Stepper(g,1);ConceptTheme.Card(g,new RectangleF(0,220,1198,330),ConceptTheme.Border);ConceptTheme.Card(g,new RectangleF(0,571,573,129),ConceptTheme.Border);ConceptTheme.Card(g,new RectangleF(594,571,604,129),ConceptTheme.Border);ConceptTheme.Text(g,"1 GB free",140,596,28,ConceptTheme.White,true);ConceptTheme.Text(g,"Allow space for program files\nand temporary work.",140,635,23,ConceptTheme.Muted,false);ConceptTheme.Icon(g,"settings",new RectangleF(34,610,44,44),ConceptTheme.Cyan);ConceptTheme.Text(g,"Have an installation?",746,596,28,ConceptTheme.White,true);ConceptTheme.Text(g,"Choose its folder to update or repair.",746,635,23,ConceptTheme.Muted,false);ConceptTheme.Icon(g,"setup",new RectangleF(628,610,44,44),ConceptTheme.Cyan);using(var p=new Pen(ConceptTheme.Border))g.DrawLine(p,0,772,1198,772);};
-            AddLayout(canvas,delegate{PageHeight(canvas,881);Place(title,canvas,29,262,741,50,40);Place(description,canvas,31,318,730,45,30);Place(folderArt,canvas,770,245,422,302,20);Place(label,canvas,32,388,710,38,25);Place(field,canvas,32,431,519,68,28);Place(browse,canvas,564,431,174,68,28);Place(help,canvas,48,716,1148,40,21);Place(cancel,canvas,2,795,226,70,28);Place(next,canvas,909,795,289,70,28);});
+            var folderArt=new ConceptArt("02-install-location",new Rectangle(1070,331,422,302),"Folder with cyan car and floating island");var label=CopyLabel("Installation folder",true);
+            Primary(next);canvas.PaintDesign=delegate(Graphics g){Stepper(g,1);ConceptTheme.Card(g,new RectangleF(0,220,1198,330),ConceptTheme.Border);};
+            AddLayout(canvas,delegate{PageHeight(canvas,720);Place(folderArt,canvas,770,230,422,302,20);Place(label,canvas,32,276,710,42,31);Place(field,canvas,32,335,519,68,28);Place(browse,canvas,564,335,174,68,28);Place(cancel,canvas,2,586,226,70,28);Place(next,canvas,909,586,289,70,28);});
         }
         private void Stepper(Graphics g,int active){string[] labels={"Location","Games","Characters","Install","Ready"};for(int i=0;i<5;i++){float x=127+i*233;if(i<4)using(var p=new Pen(i+1<active?ConceptTheme.Cyan:ConceptTheme.Border,2))g.DrawLine(p,x+22,146,x+210,146);using(var p=new Pen(i+1<=active?ConceptTheme.Cyan:ConceptTheme.Muted,3))g.DrawEllipse(p,x-13,133,26,26);if(i+1<=active)using(var b=new SolidBrush(ConceptTheme.Cyan))g.FillEllipse(b,x-8,138,16,16);ConceptTheme.Text(g,labels[i],x-47,170,24,i+1==active?ConceptTheme.Cyan:ConceptTheme.Muted,i+1==active);}}
         private void BuildSettingsConcept() {

@@ -15,7 +15,7 @@ if ($LASTEXITCODE) { throw 'Release payload generation failed' }
 $compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 $exe = Join-Path $outputRoot 'Super-Rocket-64-Windows-x64.exe'
 $payload = Join-Path $outputRoot 'Payload.zip'
-$sources = @('Bootstrap.cs','Presentation.cs','PresentationPages.cs','Wizard.cs','Updates.cs','UpdateUi.cs','Shortcuts.cs','UpdateBuild.cs') | ForEach-Object { Join-Path $PSScriptRoot $_ }
+$sources = @('Bootstrap.cs','Presentation.cs','PresentationPages.cs','SourceValidation.cs','Wizard.cs','Updates.cs','UpdateUi.cs','Shortcuts.cs','UpdateBuild.cs') | ForEach-Object { Join-Path $PSScriptRoot $_ }
 $conceptResources = Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'Art') -Filter '*.png' | ForEach-Object { '/resource:' + $_.FullName + ',Concept.' + $_.Name }
 & $compiler /nologo "/win32manifest:$(Join-Path $PSScriptRoot 'Launcher.manifest')" /target:winexe /platform:x64 /optimize+ /warn:4 /warnaserror+ "/out:$exe" "/resource:$payload,Payload" /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll /r:System.Web.Extensions.dll $conceptResources $sources (Join-Path $outputRoot 'PayloadInfo.cs')
 if ($LASTEXITCODE) { throw 'Release launcher compilation failed' }

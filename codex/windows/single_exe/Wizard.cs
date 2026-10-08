@@ -39,10 +39,7 @@ namespace SuperRocket64 {
             AddPath(setupPage, "SM64 US ROM", rom, true);
             AddPath(setupPage, "Rocket League folder", game, false);
             setupPage.Controls.Add(TextBlock("Car sounds are optional and checked separately. Unsupported sounds use the game audio fallback; they do not prevent driving. Extraction tools and Python are handled automatically and verified before use."));
-            AddButton(setupPage, "Next", delegate {
-                var args = Commands.Setup("octane", rom.Text, "", "", game.Text, true); args[0] = "preflight";
-                BeginOperation(args, false, delegate { ShowPage(extrasPage); });
-            });
+            sourceNext=AddButton(setupPage, "Next", ContinueFromSources);
             AddButton(setupPage, "Back", delegate { ShowPage(locationPage); });
             AddButton(setupPage, "Cancel", CancelWizard);
             AddPageText(extrasPage, "3 of 5 · Optional characters", "Very WIP: some progression sections may not work with these characters. Switch back to Mario or Octane using the character wheel if stuck. Extra characters are for Offline play; Online supports Mario and Octane only.");
@@ -75,6 +72,7 @@ namespace SuperRocket64 {
             AddButton(failurePage, "Repair program files", RepairProgramFiles);
             AddButton(failurePage, "Close", delegate { Close(); });
             foreach (Control page in new Control[] { locationPage, extrasPage, progressPage, readyPage, failurePage }) pageHost.Controls.Add(page);
+            InitializeSourceValidation();
         }
         private void CancelWizard() { if (installationReady) ShowPage(homePage); else Close(); }
         private void InspectInstallation(bool startup) {
@@ -87,14 +85,11 @@ namespace SuperRocket64 {
         private void CompleteInspection(bool startup) {
                 ApplyReport();
                 if (startup && installationReady) {
-                    if (!UpdatePreferences.Load(UpdateRoot()).ModeChosen) ShowReadyPage();
-                    else { ShowPage(homePage); ContinueStartupUpdates(); }
+                    ShowPage(homePage); ContinueStartupUpdates();
                 }
                 else {
-                    sourceStatus.Text = installationReady ? "Your base setup is verified and ready. Leave sources blank to reuse it, or select Rocket League to retry car sounds. Optional characters can be added next." : readyCharacters.Contains("octane") ? "Your car assets are ready. Shared game data needs repair; the saved SM64 source will be reused." : "Choose the missing sources below. They will be checked before extraction.";
-                    sourceStatus.Text += "\nSM64 source: " + ((bool)lastReport["sm64"] ? "verified locally; no file needed." : "missing or invalid; select the original US ROM.");
+                    sourceStatus.Text = "";
                     var componentErrors = lastReport["errors"] as Dictionary<string, object>;
-                    sourceStatus.Text += "\nShared game data: " + ((bool)lastReport["engine"] ? "ready" : "needs setup or repair") + ". Car sounds: " + ((bool)lastReport["audio"] ? "ready" : "optional; game audio fallback available") + ".";
                     for (int i = 0; i < extraChoices.Length; i++) {
                         string character = Commands.OptionalCharacters[i]; string label = extraChoices[i].Text.Split(new string[] { " — " }, StringSplitOptions.None)[0];
                         extraChoices[i].Text = label + " — " + (readyCharacters.Contains(character) ? "ready, reusable" : componentErrors != null && componentErrors.ContainsKey(character) ? "needs repair" : "not installed");
@@ -128,7 +123,7 @@ namespace SuperRocket64 {
             });
         }
         private void ShowReadyPage() {
-                readyStatus.Text = "Mario + Octane: ready\nOffline extras: " + (readyCharacters.Count > 1 ? String.Join(", ", readyCharacters) : "none selected") + "\nCar sounds: " + ((bool)lastReport["audio"] ? "ready" : "unavailable; game audio fallback is ready. Select Rocket League in Setup to retry.");
+                readyStatus.Text = "Mario + Octane are ready.";
                 UpdatePreferences prefs = UpdatePreferences.Load(UpdateRoot());
                 readyAuto.Checked = prefs.ModeChosen && prefs.AutomaticApply; readyManual.Checked = prefs.ModeChosen && !prefs.AutomaticApply;
                 readyMenu.Checked = prefs.StartMenuShortcut; readyDesktop.Checked = prefs.DesktopShortcut; ShowPage(readyPage);

@@ -84,7 +84,7 @@ namespace SuperRocket64 {
             try {
                 string root = UpdateRoot(); UpdatePreferences value = UpdatePreferences.Load(root);
                 using (OperationLease lease = OperationLease.Acquire(root)) { UpdateStore.EnsureCurrent(root); LauncherShortcuts.EnsureStable(root); }
-                if (value.AutomaticChecks) CheckUpdates(true);
+                if (value.ModeChosen && value.AutomaticChecks) CheckUpdates(true);
             } catch (Exception error) { ShowUpdateFailure("Could not check updates. " + PlainFailure(error.Message)); }
         }
         private void WaitForUpdateCommit() {
