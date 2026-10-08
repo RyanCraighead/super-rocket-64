@@ -52,6 +52,7 @@
 #include "rocket_whomp.h"
 #include "pc/boss_net.h"
 #include "rocket_platform.h"
+#include "rocket_penguin.h"
 #include "engine/lighting_engine.h"
 
 #define o gCurrentObject

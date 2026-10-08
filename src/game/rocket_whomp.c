@@ -1,3 +1,4 @@
+#include "game/rocket_penguin.h"
 #include "rocket_whomp.h"
 #include "sm64.h"
 #include "rocket_adapter.h"
@@ -104,7 +105,7 @@ int rocket_whomp_ground_pound(struct Object *object) {
             if(available){car=state.car;epoch=state.epoch;}
         }
         struct MarioState *m=&gMarioStates[index];
-        available=available&&m->marioObj&&m->health>=0x100&&!m->freeze&&!m->heldObj&&!m->heldByObj&&!m->riddenObj&&
+        available=available&&m->marioObj&&m->health>=0x100&&!m->freeze&&(!m->heldObj||rocket_penguin_carried(m))&&!m->heldByObj&&!m->riddenObj&&
             (m->action==ACT_IDLE||m->action==ACT_WALKING||m->action==ACT_FREEFALL);
         RocketWhompContact *track=&h->contacts[index];
         if(h->generations[index]!=generation)memset(track,0,sizeof(*track));

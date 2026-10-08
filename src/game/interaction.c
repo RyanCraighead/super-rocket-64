@@ -1,5 +1,6 @@
 #include "game/rocket_caps.h"
 #include "rocket_adapter.h"
+#include "rocket_penguin.h"
 #include "pc/rocket_runtime.h"
 #include "pc/player_bump.h"
 #include "pc/character_net.h"
@@ -351,7 +352,10 @@ void mario_drop_held_object(struct MarioState *m) {
         // ! When dropping an object instead of throwing it, it will be put at Mario's
         // y-positon instead of the HOLP's y-position. This fact is often exploited when
         // cloning objects.
-        if (m->marioBodyState) {
+        Vec3f roofDrop;
+        if (rocket_penguin_drop_position(m,m->heldObj,roofDrop)) {
+            m->heldObj->oPosX=roofDrop[0];m->heldObj->oPosY=roofDrop[1];m->heldObj->oPosZ=roofDrop[2];
+        } else if (m->marioBodyState) {
             m->heldObj->oPosX = m->marioBodyState->heldObjLastPosition[0];
             m->heldObj->oPosY = m->pos[1];
             m->heldObj->oPosZ = m->marioBodyState->heldObjLastPosition[2];

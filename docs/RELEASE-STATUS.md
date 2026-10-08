@@ -1,7 +1,7 @@
 # Verification and limitations
 
 
-## v0.2.14: scrolling settings and controller difficulty
+## v0.2.14: scrolling settings, controller difficulty and penguin carry
 
 Settings and binding panels scroll to keep keyboard/controller focus visible.
 Navigation wraps, nested binding cells remain reachable, and returning from a
@@ -21,6 +21,17 @@ native-controls checks, real SDL mappings and handoffs, 9,609 speed-physics,
 31 headless and 23 updater checks. The shortcut fixture now seeds its own
 isolated installation so a separate running game cannot invalidate the test;
 production active-game guards are unchanged.
+
+Park upright facing a baby penguin and tap the saved Boost/Attack binding to
+carry the native actor on the roof. Another parked press sets it down; flips,
+rolls, water, injury, death and transitions use native drop behavior. The real
+mother still checks the baby, controls dialogue and release, and creates the
+star. Existing held-object packets retain ownership and remote roof position.
+See [controls and coverage](../codex/rocketleague/PENGUIN-CARRY.md).
+
+Gameplay media embeds and their obsolete footage attribution were removed from
+the README. Installation guidance, documentation links and historical files
+remain available.
 
 These are automated development-machine results. Physical-controller feel,
 full-game visual acceptance and two-PC/WAN gameplay remain unverified and are

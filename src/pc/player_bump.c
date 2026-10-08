@@ -1,3 +1,4 @@
+#include "game/rocket_penguin.h"
 /* Non-damaging contacts are arbitrated by the lowest global ID in the area,
  * following existing coin/platform ownership. Only each recipient's own
  * simulation applies its velocity change. Reliable grants are acknowledged;
@@ -88,7 +89,7 @@ static int bump_eligible(unsigned i){
     if(i>=MAX_PLAYERS||!bump_same_area(gNetworkPlayerLocal,&gNetworkPlayers[i]))return 0;
     const struct MarioState *m=&gMarioStates[i];
     return m->marioObj&&m->area==gCurrentArea&&m->health>=0x100&&!m->freeze&&!m->hurtCounter&&!m->healCounter&&
-        !m->squishTimer&&!m->quicksandDepth&&!m->heldObj&&!m->heldByObj&&!m->riddenObj&&!m->skipWarpInteractionsTimer&&
+        !m->squishTimer&&!m->quicksandDepth&&(!m->heldObj||rocket_penguin_carried(m))&&!m->heldByObj&&!m->riddenObj&&!m->skipWarpInteractionsTimer&&
         !(m->action&(ACT_FLAG_INTANGIBLE|ACT_FLAG_INVULNERABLE))&&
         (m->action&ACT_GROUP_MASK)!=ACT_GROUP_CUTSCENE&&(m->action&ACT_GROUP_MASK)!=ACT_GROUP_AUTOMATIC&&
         !(rocket_caps_active_flags(i)&MARIO_VANISH_CAP);

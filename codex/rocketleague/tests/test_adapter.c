@@ -84,7 +84,7 @@ int rocket_runtime_platforms(const RocketPlatform *platforms,size_t count){
     if(count){observedPlatform=platforms[0];observedTriangle=platforms[0].triangles[0];}
     return 1;
 }
-int rocket_runtime_frame(uint64_t frame,const RocketInput *input,int paused,int blocked){(void)frame;(void)paused;observed=rocket_gamepad_merge(input,&fixtureGamepad);if(blocked)memset(&observed,0,sizeof observed);++steps;pose.ticks+=4;draw=1;return 4;}
+int rocket_runtime_frame(uint64_t frame,const RocketInput *input,int paused,int blocked){(void)frame;(void)paused;observed=rocket_gamepad_merge(input,&fixtureGamepad);rocket_penguin_filter_input(&observed);if(blocked)memset(&observed,0,sizeof observed);++steps;pose.ticks+=4;draw=1;return 4;}
 int rocket_runtime_snapshot(RocketSnapshot *out){if(!draw)return 0;*out=pose;return 1;}
 int rocket_runtime_recover(const RocketSnapshot *out){++recoveries;memcpy(pose.position,out->position,sizeof pose.position);memcpy(pose.basis,out->basis,sizeof pose.basis);memset(pose.velocity,0,sizeof pose.velocity);return 1;}
 int rocket_runtime_read_input(const RocketInput *keyboard,RocketInput *out){*out=rocket_gamepad_merge(keyboard,&fixtureGamepad);return !uiBlocked&&draw&&enabled;}
@@ -95,7 +95,12 @@ f32 atan2f(f32 y,f32 x){(void)y;(void)x;return 1234.f;}
 s32 set_water_plunge_action(struct MarioState *m){m->action=ACT_WATER_PLUNGE;return 1;}
 u32 set_mario_action(struct MarioState *m,u32 action,u32 arg){m->action=action;m->actionArg=arg;m->actionState=m->actionTimer=0;return 1;}
 s32 transition_submerged_to_walking(struct MarioState *m){m->action=ACT_WALKING;return 1;}
+#ifdef ROCKET_PENGUIN_REAL_TEST
+struct MarioState gMarioStates[MAX_PLAYERS];
+#define mario gMarioStates[0]
+#else
 static struct MarioState mario;
+#endif
 static struct Object object;
 static struct Controller controller;
 static struct Area testArea;

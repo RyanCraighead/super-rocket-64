@@ -10,6 +10,7 @@
 #include "game/character_presentation.h"
 #include "game/character_switch.h"
 #include "game/rocket_adapter.h"
+#include "game/rocket_penguin.h"
 #include "object_fields.h"
 #include "object_constants.h"
 #include "engine/math_util.h"
@@ -87,7 +88,7 @@ static int physical_state(unsigned index,CharacterNetState *out,uint32_t *genera
     if(!out||!same_area(index))return 0;
     const struct MarioState *m=&gMarioStates[index];
     if(!gNetworkPlayerLocal->currLevelSyncValid||!gNetworkPlayerLocal->currAreaSyncValid||
-       !m->marioObj||m->health<0x100||m->freeze||m->heldObj||m->heldByObj||m->riddenObj)return 0;
+       !m->marioObj||m->health<0x100||m->freeze||(m->heldObj&&!rocket_penguin_carried(m))||m->heldByObj||m->riddenObj)return 0;
     const CharacterNetTrack *track=&tracks[index];
     double now=clock_elapsed_f64();
     if(!(interaction?character_net_track_contact(track,now,out):character_net_track_support(track,now,out))||

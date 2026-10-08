@@ -1,3 +1,4 @@
+#include "game/rocket_penguin.h"
 #include "rocket_enemy.h"
 #include "sm64.h"
 #include "rocket_adapter.h"
@@ -94,7 +95,7 @@ static int source(unsigned index,CharacterNetState *state,uint32_t *generation) 
     }
     if(!character_net_interaction_state(index,state,generation)) return 0;
     const struct MarioState *m=&gMarioStates[index];
-    return m->marioObj&&m->health>=0x100&&!m->heldObj&&!m->heldByObj&&!m->riddenObj&&!m->freeze&&
+    return m->marioObj&&m->health>=0x100&&(!m->heldObj||rocket_penguin_carried(m))&&!m->heldByObj&&!m->riddenObj&&!m->freeze&&
         (m->action==ACT_IDLE||m->action==ACT_WALKING||m->action==ACT_FREEFALL);
 }
 #ifdef ROCKET_CAR_QA

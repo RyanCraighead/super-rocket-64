@@ -1,3 +1,4 @@
+#include "game/rocket_penguin.h"
 #include "rocket_switch.h"
 #include "sm64.h"
 #include "rocket_adapter.h"
@@ -65,7 +66,7 @@ int rocket_switch_ground_pound(struct Object *object) {
        !(object->activeFlags&ACTIVE_FLAG_ACTIVE)||(object->activeFlags&(ACTIVE_FLAG_DORMANT|ACTIVE_FLAG_IN_DIFFERENT_ROOM))||
        object->header.gfx.activeAreaIndex!=gCurrentArea->index||object->oAction!=BLUE_COIN_SWITCH_ACT_IDLE||
        object->oSyncDeath||(object->header.gfx.node.flags&GRAPH_RENDER_INVISIBLE)||
-       !m->marioObj||m->health<0x100||m->freeze||m->heldObj||m->heldByObj||m->riddenObj||
+       !m->marioObj||m->health<0x100||m->freeze||(m->heldObj&&!rocket_penguin_carried(m))||m->heldByObj||m->riddenObj||
        (m->action!=ACT_IDLE&&m->action!=ACT_WALKING&&m->action!=ACT_FREEFALL)||
        (gNetworkType!=NT_NONE&&(!gNetworkPlayerLocal||!gNetworkPlayerLocal->connected||
         !gNetworkPlayerLocal->currLevelSyncValid||!gNetworkPlayerLocal->currAreaSyncValid||

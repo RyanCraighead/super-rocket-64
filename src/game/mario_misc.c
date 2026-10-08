@@ -1,4 +1,5 @@
 #include "character_switch.h"
+#include "rocket_penguin.h"
 #include <PR/ultratypes.h>
 
 #include "sm64.h"
@@ -680,7 +681,7 @@ Gfx* geo_switch_mario_hand_grab_pos(s32 callContext, struct GraphNode* b, Mat4* 
 
     if (callContext == GEO_CONTEXT_RENDER) {
         asHeldObj->objNode = NULL;
-        if (marioState->heldObj != NULL) {
+        if (marioState->heldObj != NULL && !rocket_penguin_carried(marioState)) {
             asHeldObj->objNode = marioState->heldObj;
             switch (marioState->marioBodyState->grabPos) {
             case GRAB_POS_LIGHT_OBJ:

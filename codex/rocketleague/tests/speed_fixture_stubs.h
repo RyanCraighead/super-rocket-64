@@ -1,5 +1,6 @@
 #ifndef ROCKET_SPEED_FIXTURE_STUBS_H
 #define ROCKET_SPEED_FIXTURE_STUBS_H
+#include "penguin_fixture_stubs.h"
 /* Explicit 100% rule boundary for pre-existing component tests. Tests of
  * authenticated rules link the real service instead. Never built into game. */
 #include "../../../src/pc/rocket_boost.h"

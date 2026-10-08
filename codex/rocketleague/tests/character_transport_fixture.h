@@ -58,11 +58,13 @@ void network_send_to(u8 i,struct Packet *p){(void)i;(void)p;forwarded++;}
 void packet_ordered_add(struct Packet *p){packet_process(p);}
 struct NetworkPlayer *network_player_from_global_index(u8 i){for(int n=0;n<MAX_PLAYERS;n++)if(gNetworkPlayers[n].connected&&gNetworkPlayers[n].globalIndex==i)return &gNetworkPlayers[n];return NULL;}
 s32 get_dialog_id(void){return -1;}
-#if !defined(ROCKET_WING_REAL_TEST) && !defined(ROCKET_PLATFORM_REAL_TEST)
+#if !defined(ROCKET_WING_REAL_TEST) && !defined(ROCKET_PLATFORM_REAL_TEST) && !defined(ROCKET_PENGUIN_REAL_TEST)
 struct SyncObject *sync_object_get(u32 i){(void)i;return NULL;}
 #endif
 void construct_player_popup(struct NetworkPlayer *np,char *msg,const char *level){(void)np;(void)msg;(void)level;}
+#ifndef ROCKET_PENGUIN_REAL_TEST
 void mario_drop_held_object(struct MarioState *m){(void)m;}
+#endif
 s32 force_idle_state(struct MarioState *m){(void)m;return 0;}
 u32 set_mario_action(struct MarioState *m,u32 action,u32 arg){(void)m;(void)action;(void)arg;return 0;}
 f32 find_floor_height(f32 x,f32 y,f32 z){(void)x;(void)y;(void)z;return -11000;}

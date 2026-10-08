@@ -320,6 +320,7 @@ void bhv_small_penguin_loop(void) {
                     play_sound(SOUND_OBJ2_BABY_PENGUIN_YELL, o->header.gfx.cameraToObject);
 #endif
             }
+            rocket_penguin_render_held(o);
             break;
         case HELD_THROWN:
             cur_obj_get_thrown_or_placed(0, 0, 0);

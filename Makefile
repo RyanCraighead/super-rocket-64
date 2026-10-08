@@ -853,7 +853,7 @@ BK_OBJECTS := $(BUILD_DIR)/codex/bk/movement/bk_movement.o \
               $(BUILD_DIR)/src/pc/gfx/bk_duo_gl.o
 $(BK_OBJECTS): CFLAGS += -fno-fast-math -ffp-contract=off
 
-$(BUILD_DIR)/src/pc/character_net_codec.o $(BUILD_DIR)/src/pc/character_net.o $(BUILD_DIR)/src/pc/boss_net.o $(BUILD_DIR)/src/game/rocket_caps.o $(BUILD_DIR)/src/game/rocket_wing.o $(BUILD_DIR)/src/game/rocket_wing_topper.o $(BUILD_DIR)/src/game/rocket_adapter.o $(BUILD_DIR)/src/game/rocket_environment.o $(BUILD_DIR)/src/game/rocket_platform.o $(BUILD_DIR)/src/game/rocket_boss.o $(BUILD_DIR)/src/game/rocket_incoming.o $(BUILD_DIR)/src/game/rocket_enemy.o $(BUILD_DIR)/src/game/rocket_contacts.o $(BUILD_DIR)/src/game/rocket_bobomb.o $(BUILD_DIR)/src/game/character_presentation.o $(BUILD_DIR)/src/pc/rocket_runtime.o $(BUILD_DIR)/src/pc/rocket_qa.o: CFLAGS += -fno-fast-math -ffp-contract=off
+$(BUILD_DIR)/src/pc/character_net_codec.o $(BUILD_DIR)/src/pc/character_net.o $(BUILD_DIR)/src/pc/boss_net.o $(BUILD_DIR)/src/game/rocket_caps.o $(BUILD_DIR)/src/game/rocket_wing.o $(BUILD_DIR)/src/game/rocket_wing_topper.o $(BUILD_DIR)/src/game/rocket_adapter.o $(BUILD_DIR)/src/game/rocket_penguin.o $(BUILD_DIR)/src/game/rocket_environment.o $(BUILD_DIR)/src/game/rocket_platform.o $(BUILD_DIR)/src/game/rocket_boss.o $(BUILD_DIR)/src/game/rocket_incoming.o $(BUILD_DIR)/src/game/rocket_enemy.o $(BUILD_DIR)/src/game/rocket_contacts.o $(BUILD_DIR)/src/game/rocket_bobomb.o $(BUILD_DIR)/src/game/character_presentation.o $(BUILD_DIR)/src/pc/rocket_runtime.o $(BUILD_DIR)/src/pc/rocket_qa.o: CFLAGS += -fno-fast-math -ffp-contract=off
 
 SPIDERMAN_OBJECTS := $(patsubst %.c,$(BUILD_DIR)/%.o,$(filter codex/spiderman/%,$(C_FILES))) \
                      $(BUILD_DIR)/src/game/spiderman_adapter.o \

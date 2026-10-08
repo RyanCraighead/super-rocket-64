@@ -6,6 +6,7 @@
 #include "rocket_audio.h"
 extern "C" {
 #include "game/rocket_wing.h"
+#include "game/rocket_penguin.h"
 #include "game/rocket_squish_visual.h"
 #include "game/level_update.h"
 }
@@ -214,6 +215,7 @@ extern "C" int rocket_runtime_frame(uint64_t frame,const RocketInput *input,int 
     blocked=blocked||!SDL_GetKeyboardFocus()||gamepad.ui_blocked;
     if(!input)return -1;
     lastInput=rocket_gamepad_merge(input,&gamepad);
+    rocket_penguin_filter_input(&lastInput);
     const unsigned percent=rocket_speed_percent(),jump=rocket_jump_percent();const uint32_t rule=rocket_rule_revision();
     if(world&&(rocket_world_speed(world.get())!=percent||rocket_world_jump_height(world.get())!=jump||appliedRule!=rule)){
         rocket_world_set_speed(world.get(),percent);rocket_world_set_jump_height(world.get(),jump);appliedRule=rule;

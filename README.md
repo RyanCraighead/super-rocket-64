@@ -2,8 +2,6 @@
 
 **Jump, flip, boost and fly through Super Mario 64 in an Octane.**
 
-![Octane flying around Peach's Castle](docs/media/castle-flight.gif)
-
 Launch over the castle moat, powerslide through familiar courses and find new ways to reach the stars. Octane is your starting character, with Mario and an optional cast available from the character wheel.
 
 **[Download for Windows x64](https://github.com/RyanCraighead/super-rocket-64/releases)** · [Supported game files](docs/ASSET-SOURCES.md) · [Report a problem](https://github.com/RyanCraighead/super-rocket-64/issues)
@@ -15,8 +13,6 @@ Launch over the castle moat, powerslide through familiar courses and find new wa
 - Collect coins for boost: five points per coin, up to 100, with no passive refill.
 - Adjustable car speed and jump height, a car-follow camera and customizable controller bindings.
 - Play as **Mario and Octane online**, or add Link, Bomberman, Banjo-Kazooie, Spider-Man and Tony Hawk for offline play.
-
-![Octane jumping through Bob-omb Battlefield](docs/media/battlefield-jumps.gif)
 
 ## Install and play
 
@@ -99,7 +95,7 @@ This is a Windows preview fan project. RocketSim approximates Rocket League phys
 
 ## Credits and licenses
 
-Created by [Ryan Craighead](https://github.com/RyanCraighead), building on [SM64coopdx](https://github.com/coop-deluxe/sm64coopdx), the SM64 decompilation community, [RocketSim](https://github.com/ZealanL/RocketSim), [Bullet](https://github.com/bulletphysics/bullet3), [UE Viewer](https://github.com/gildor2/UEViewer), [vgmstream](https://github.com/vgmstream/vgmstream), and the character research and conversion work credited in the source. Gameplay footage comes from the creator's captures.
+Created by [Ryan Craighead](https://github.com/RyanCraighead), building on [SM64coopdx](https://github.com/coop-deluxe/sm64coopdx), the SM64 decompilation community, [RocketSim](https://github.com/ZealanL/RocketSim), [Bullet](https://github.com/bulletphysics/bullet3), [UE Viewer](https://github.com/gildor2/UEViewer), [vgmstream](https://github.com/vgmstream/vgmstream), and the character research and conversion work credited in the source.
 
 Mario and Super Mario 64 belong to Nintendo. Rocket League and Octane belong to Psyonix/Epic Games. Other games, characters and trademarks belong to their respective owners. This project is unaffiliated with those owners. Retain the included component licenses and attribution; proprietary game content is not licensed or distributed by this project.
 

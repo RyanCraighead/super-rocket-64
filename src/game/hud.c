@@ -24,6 +24,11 @@
 #include "pc/configfile.h"
 #include "pc/character_wheel.h"
 #include "pc/rocket_runtime.h"
+#include "rocket_penguin.h"
+#include "pc/rocket_bindings.h"
+#include "pc/controller/controller_api.h"
+#include "pc/controller/controller_sdl.h"
+#include "pc/controller/controller_bind_mapping.h"
 #include "pc/network/network.h"
 #include "pc/utils/misc.h"
 #include "pc/lua/smlua.h"
@@ -653,6 +658,19 @@ static void render_rocket_boost_hud(void) {
     if(jet)print_text_centered(SCREEN_WIDTH/2,36,"JET MODE");
     else if(rocket_runtime_boost_mode()==ROCKET_BOOST_INFINITE)print_text_centered(SCREEN_WIDTH/2,36,"BOOST MAX");
     else {char label[16];snprintf(label,sizeof label,"BOOST %d%%",percent);print_text_centered(SCREEN_WIDTH/2,36,label);}
+    int hint=rocket_penguin_hint();
+    if(hint==3) {
+        print_text_centered(SCREEN_WIDTH/2,64,"FLIPS DROP PENGUIN");
+        print_text_centered(SCREEN_WIDTH/2,80,"STOP TO SET DOWN");
+    } else if(hint) {
+        print_text_centered(SCREEN_WIDTH/2,64,hint==1?"BOOST TO PICK UP":"BOOST TO SET DOWN");
+        const RocketBindings *bindings=rocket_bindings_valid(&configRocketBindings)?&configRocketBindings:&rocket_default_bindings;
+        char label[40];snprintf(label,sizeof label,"PAD %s",rocket_binding_names[bindings->action[RA_BOOST]]);
+        print_text_centered(SCREEN_WIDTH/2,80,label);
+        const char *key="UNBOUND";
+        for(int i=0;i<MAX_BINDS;i++)if(configKeyB[i]!=VK_INVALID&&(configKeyB[i]<VK_BASE_SDL_GAMEPAD||configKeyB[i]>=VK_BASE_SDL_MOUSE)){key=translate_bind_to_name(configKeyB[i]);break;}
+        snprintf(label,sizeof label,"KEY %s",key);print_text_centered(SCREEN_WIDTH/2,96,label);
+    }
 }
 
 /**

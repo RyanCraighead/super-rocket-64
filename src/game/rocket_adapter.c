@@ -19,6 +19,7 @@
 #include "object_helpers.h"
 #include "object_list_processor.h"
 #include "rocket_adapter.h"
+#include "rocket_penguin.h"
 #include "rocket_caps.h"
 #include "../../codex/rocketleague/physics/body_contact.h"
 #include "../../codex/rocketleague/physics/vanish_collision.h"
@@ -104,6 +105,7 @@ static struct PlatformIdentity {
 } platformIdentities[1024];
 static uint64_t nextPlatformId;
 void rocket_adapter_forget_platform(struct Object *object) {
+    rocket_penguin_forget(object);
     whomp_crush_forget(object);
     for(size_t i=0;i<1024;i++)if(platformIdentities[i].object==object)
         memset(&platformIdentities[i],0,sizeof platformIdentities[i]);
@@ -194,6 +196,7 @@ static int sync_mesh(struct MarioState *m,int dynamic) {
     free(triangles);free(surfaces);return ok;
 }
 void rocket_adapter_suspend(void) {
+    rocket_penguin_suspend(player);
     // A handoff at the current pose must not strand native Mario inside a grate.
     // Never move a player after an external warp, area change, or level change.
     if(player&&player->area==area&&level==gCurrLevelNum){
@@ -473,10 +476,16 @@ int rocket_adapter_text_pressed(struct MarioState *m,struct Object *o) {
 }
 #include "rocket_whomp_crush.inc.h"
 void rocket_adapter_prepare_interactions(struct MarioState *m) {
+    if(m&&!m->playerIndex) {
+        RocketSnapshot pose;RocketInput input;
+        int ready=m->controller&&rocket_adapter_body_snapshot(m->marioObj,&pose);
+        if(ready){RocketInput keyboard=keyboard_input(m);ready=rocket_runtime_read_input(&keyboard,&input);}
+        rocket_penguin_prepare(m,ready?&pose:NULL,ready?&input:NULL);
+    }
     if(whomp_crush_prepare(m))return;
     prepare_text_input(m);
     if(!selected||!m||m!=player||!m->marioObj||!m->controller||!m->area||m->area!=area||
-       level!=gCurrLevelNum||!supported(m->action)||m->health<0x100||m->heldObj||
+       level!=gCurrLevelNum||!supported(m->action)||m->health<0x100||(m->heldObj&&!rocket_penguin_carried(m))||
        m->riddenObj||m->heldByObj||m->freeze||sCurrPlayMode==PLAY_MODE_PAUSED||
        0||!gObjectLists)return;
     cap_pickups(m);
@@ -532,7 +541,7 @@ int rocket_adapter_body_snapshot(struct Object *object,RocketSnapshot *state) {
     if(!state||!object||!selected||!m||m->playerIndex!=0||m->marioObj!=object||
        !m->area||m->area!=area||level!=gCurrLevelNum||!haveFrame||
        (u32)(gGlobalTimer-previousFrame)>1||!supported(m->action)||m->health<0x100||
-       m->heldObj||m->heldByObj||m->riddenObj||m->freeze||sCurrPlayMode==PLAY_MODE_PAUSED||
+       (m->heldObj&&!rocket_penguin_carried(m))||m->heldByObj||m->riddenObj||m->freeze||sCurrPlayMode==PLAY_MODE_PAUSED||
        (!rocket_runtime_rule_ready()||!rocket_runtime_snapshot(state)))return 0;
     float distance=0;
     for(int k=0;k<3;k++){float d=m->pos[k]-state->position[k];distance+=d*d;}
@@ -553,7 +562,7 @@ int rocket_adapter_update(struct MarioState *m) {
      * water idle. Reacquire only ordinary swimming, never drowning/whirlpool. */
     int metalEntry=metal&&submerged&&(m->action==ACT_WATER_IDLE||m->action==ACT_WATER_PLUNGE||
         m->action==ACT_BREASTSTROKE||m->action==ACT_SWIMMING_END||m->action==ACT_FLUTTER_KICK);
-    if((whompCrush.m==m&&m->squishTimer>0&&m->squishTimer<255)||(!supported(m->action)&&!metalEntry)||m->health<0x100||m->heldObj||m->riddenObj||m->heldByObj||m->quicksandDepth>1||(m->input&INPUT_SQUISHED)) {
+    if((whompCrush.m==m&&m->squishTimer>0&&m->squishTimer<255)||(!supported(m->action)&&!metalEntry)||m->health<0x100||(m->heldObj&&!rocket_penguin_carried(m))||m->riddenObj||m->heldByObj||m->quicksandDepth>1||(m->input&INPUT_SQUISHED)) {
         rocket_adapter_suspend();return 0;
     }
     if(player) {
@@ -609,6 +618,7 @@ int rocket_adapter_update(struct MarioState *m) {
         previousFrame=gGlobalTimer;haveFrame=1;
     }
     RocketSnapshot state;if(!rocket_runtime_snapshot(&state)){rocket_adapter_suspend();return 0;}
+    rocket_penguin_update(m,&state);
     if(!phase_overlap(&state,0)){clearPose=state;haveClearPose=1;}
     vec3f_copy(m->pos,state.position);
     for(int i=0;i<3;++i)m->vel[i]=state.velocity[i]/30.f;
