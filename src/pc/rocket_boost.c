@@ -20,7 +20,7 @@ static unsigned preference(void) {
     return configRocketBoostMode == ROCKET_BOOST_INFINITE ? ROCKET_BOOST_INFINITE : ROCKET_BOOST_COIN_ONLY;
 }
 static unsigned surface_preference(void) {
-    return configRocketSurfaceMode == ROCKET_SURFACES_CAR ? ROCKET_SURFACES_CAR : ROCKET_SURFACES_NATIVE;
+    return rocket_surface_preference(configRocketSurfaceMode);
 }
 unsigned rocket_jump_percent(void) {
     if (gNetworkType == NT_CLIENT) return gCLIOpts.characterNet && revision ? sessionJump : ROCKET_JUMP_DEFAULT;
@@ -44,8 +44,8 @@ int rocket_surface_mode(void) {
     return surface_preference();
 }
 const char *rocket_surface_scope_label(void) {
-    if (gNetworkType == NT_CLIENT) return revision ? "Surface behavior is controlled by the host" : "Waiting for host surface rule (Car grip)";
-    return "Native surfaces are the default. Car grip remains optional. Your saved choice applies offline and when hosting.";
+    if (gNetworkType == NT_CLIENT) return revision ? "Surface behavior is controlled by the host" : "Waiting for host surface rule (Octane)";
+    return "Native: ice and slopes affect grip. Walls off is the new default; walls on allows wall driving. Octane uses full car grip and wall driving. Saves offline and for hosting.";
 }
 int rocket_boost_mode(void) {
     if (gNetworkType == NT_CLIENT) return gCLIOpts.characterNet && revision ? sessionMode : ROCKET_BOOST_COIN_ONLY;
@@ -166,7 +166,7 @@ int rocket_difficulty_set(unsigned preset) {
     rocket_boost_network_update();return 1;
 }
 int rocket_surface_set_mode(unsigned mode) {
-    if (!rocket_boost_can_set_mode() || mode > ROCKET_SURFACES_NATIVE) return 0;
+    if (!rocket_boost_can_set_mode() || !rocket_surface_valid(mode)) return 0;
     if (configRocketSurfaceMode != mode) {
         configRocketSurfaceMode = mode;
         configfile_save(configfile_name());
@@ -183,7 +183,7 @@ static u64 wire_session(const u8 *wire) {
     return value;
 }
 static int valid_wire(const u8 *wire) {
-    return wire[0] <= ROCKET_BOOST_INFINITE && wire[13] <= ROCKET_SURFACES_NATIVE && rocket_speed_valid(wire[14]) && rocket_jump_valid(wire[15]) && wire_revision(wire) && wire_session(wire);
+    return wire[0] <= ROCKET_BOOST_INFINITE && rocket_surface_valid(wire[13]) && rocket_speed_valid(wire[14]) && rocket_jump_valid(wire[15]) && wire_revision(wire) && wire_session(wire);
 }
 static int from_server(const struct Packet *p, int joining) {
     if (!p || p->error || p->dataLength >= PACKET_LENGTH || gNetworkType != NT_CLIENT || !gCLIOpts.characterNet ||

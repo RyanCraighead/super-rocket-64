@@ -15,7 +15,9 @@ static int valid(const CharacterNetState *s){
        !isfinite(c->boost)||c->boost<0||c->boost>100.01f||
        !isfinite(c->jump_time)||c->jump_time<0||c->jump_time>1000000||
        !isfinite(c->flip_time)||c->flip_time<0||c->flip_time>1000000||
-       !isfinite(c->air_time)||c->air_time<0||c->air_time>1000000)return 0;
+       !isfinite(c->air_time)||c->air_time<0||c->air_time>1000000||
+       !isfinite(c->quicksand_depth)||c->quicksand_depth<0||c->quicksand_depth>200||
+       (s->active!=CNET_DRIVING&&c->quicksand_depth!=0))return 0;
     for(int i=0;i<3;i++)for(int j=i;j<3;j++){
         float dot=0;for(int k=0;k<3;k++)dot+=c->basis[i*3+k]*c->basis[j*3+k];
         if(fabsf(dot-(i==j?1.f:0.f))>.015f)return 0;
@@ -52,7 +54,8 @@ int character_net_encode(uint8_t *out,size_t size,const CharacterNetState *s){
     put32(out+at,(uint32_t)c->ticks);put32(out+at+4,(uint32_t)(c->ticks>>32));at+=8;
     unsigned flags=c->grounded|(c->jumped<<1)|(c->double_jumped<<2)|(c->flipped<<3)|(c->flipping<<4)|(c->boosting<<9);
     for(int i=0;i<4;i++)flags|=c->wheel_contacts[i]<<(5+i);
-    out[at]=(uint8_t)flags;out[at+1]=(uint8_t)(flags>>8);return 1;
+    out[at]=(uint8_t)flags;out[at+1]=(uint8_t)(flags>>8);at+=2;
+    uint32_t depth;memcpy(&depth,&c->quicksand_depth,4);put32(out+at,depth);return 1;
 }
 int character_net_decode(CharacterNetState *out,const uint8_t *wire,size_t size){
     if(!out||!wire||size!=CNET_WIRE_SIZE||sizeof(float)!=4||memcmp(wire,"CNET",4)||wire[4]!=4||wire[5]>1||get32(wire+16)!=1)return 0;
@@ -69,6 +72,7 @@ int character_net_decode(CharacterNetState *out,const uint8_t *wire,size_t size)
         c->boosting=!!(flags&512);
         c->grounded=!!(flags&1);c->jumped=!!(flags&2);c->double_jumped=!!(flags&4);c->flipped=!!(flags&8);c->flipping=!!(flags&16);
         for(int i=0;i<4;i++)c->wheel_contacts[i]=!!(flags&(1u<<(5+i)));
+        uint32_t depth=get32(wire+at);memcpy(&c->quicksand_depth,&depth,4);at+=4;
     }
     for(;at<206;at++)if(wire[at])return 0;
     s.area_sequence=wire[206]|((uint16_t)wire[207]<<8);
@@ -106,6 +110,7 @@ int character_net_track_sample(const CharacterNetTrack *track,double now,Charact
     FLOAT_FIELDS(BLEND)
 #undef BLEND
     rotation(a->basis,b->basis,t,c->basis);
+    c->quicksand_depth=a->quicksand_depth+(b->quicksand_depth-a->quicksand_depth)*t;
     /* Wheel centers rotate with the interpolated rigid body. Linear world-space
      * wheel interpolation would pull tires through the chassis during flips. */
     for(int wheel=0;wheel<4;wheel++){

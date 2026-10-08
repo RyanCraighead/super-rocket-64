@@ -6,6 +6,7 @@
 #include "boost_mode.h"
 #include "speed_policy.h"
 #include "jump_policy.h"
+#include "surface_policy.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -33,7 +34,6 @@ void rocket_world_set_temporary_boost(RocketWorld *world,int active);
 /* Only accepted local pickups may call this (one object = 5 points).
  * Consumption remains RocketSim's per-tick arithmetic, with recharge disabled. */
 int rocket_world_collect_coin(RocketWorld *world);
-enum { ROCKET_SURFACES_CAR = 0, ROCKET_SURFACES_NATIVE = 1 };
 enum { ROCKET_MATERIAL_NORMAL = 0, ROCKET_MATERIAL_SLIPPERY = 1,
        ROCKET_MATERIAL_VERY_SLIPPERY = 2, ROCKET_MATERIAL_SLIDING = 4,
        /* Restricted host tag: CCM indoor native ice race, not general ice. */
@@ -68,6 +68,8 @@ typedef struct RocketSnapshot {
     int boosting;
     /* Derived from native environment/action, never added to the pose wire ABI. */
     int water_mode;
+    /* Native graphical sink only; never subtracted from physical position. */
+    float quicksand_depth;
 } RocketSnapshot;
 RocketWorld *rocket_world_create(void);
 void rocket_world_destroy(RocketWorld *world);
@@ -82,6 +84,7 @@ typedef int (*RocketWaterQuery)(float x,float z,float *level);
 void rocket_world_set_water_query(RocketWorld *world,RocketWaterQuery query);
 int rocket_world_set_environment(RocketWorld *world, const RocketEnvironment *environment);
 void rocket_world_set_surface_mode(RocketWorld *world, unsigned mode);
+int rocket_world_set_quicksand_depth(RocketWorld *world, float depth);
 /* Local native Metal Cap underwater mode, never received from a pose packet. */
 void rocket_world_set_metal_water(RocketWorld *world, int active);
 /* Complete replacement of one static collision layer. */

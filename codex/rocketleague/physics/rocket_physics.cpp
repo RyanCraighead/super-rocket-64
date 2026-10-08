@@ -1,5 +1,6 @@
 #include "rocket_physics.h"
 #include "metal_water.h"
+#include "quicksand_policy.h"
 #include "RocketSim.h"
 #include "BulletCollision/CollisionShapes/btTriangleMesh.h"
 #include "BulletCollision/CollisionDispatch/btInternalEdgeUtility.h"
@@ -47,7 +48,7 @@ bool validMaterial(unsigned material) {
         (ROCKET_MATERIAL_RACE_SLIDE | ROCKET_MATERIAL_VERY_SLIPPERY | ROCKET_MATERIAL_SLIDING);
 }
 float materialGrip(const Mesh *mesh,int index) {
-    if(!mesh||!mesh->surfaceMode||*mesh->surfaceMode!=ROCKET_SURFACES_NATIVE||
+    if(!mesh||!mesh->surfaceMode||!rocket_surface_native(*mesh->surfaceMode)||
        index<0||(size_t)index>=mesh->faces.size())return 1.f;
     unsigned material=mesh->faces[index].material;
     // Ratios of native neutral slide losses: .02/.08 (ice), .04/.08
@@ -260,6 +261,7 @@ struct RocketWorld {
     bool haveFrame=false,ready=false,metalWater=false;
     Vec dryGravity;
     unsigned surfaceMode=ROCKET_SURFACES_CAR, speedPercent=100, jumpPercent=100;
+    float quicksandDepth=0;
     RocketEnvironment environment={};
     unsigned inhibited=7;
     int boostMode=ROCKET_BOOST_COIN_ONLY;
@@ -287,11 +289,22 @@ extern "C" float rocket_host_wheel_grip(const void *opaqueWheel) {
     const auto *body=static_cast<const btCollisionObject*>(wheel.m_raycastInfo.m_groundObject);
     if(!body||body->getUserIndex2()!=HOST_MESH_TAG)return 1.f;
     const auto *mesh=static_cast<const Mesh*>(body->getCollisionShape()->getUserPointer());
-    if(!mesh||!mesh->surfaceMode||*mesh->surfaceMode!=ROCKET_SURFACES_NATIVE)return 1.f;
+    if(!mesh||!mesh->surfaceMode||!rocket_surface_native(*mesh->surfaceMode))return 1.f;
     btVector3 p=body->getWorldTransform().inverse()*wheel.m_raycastInfo.m_contactPointWS;
     MaterialAtPoint query(mesh,p);btVector3 extent(.02f,.02f,.02f);
     mesh->shape->processAllTriangles(&query,p-extent,p+extent);
     return query.grip;
+}
+// Adapt only tire support. The chassis still collides with the complete host
+// mesh. With no wall tires, the backend naturally removes tire traction and
+// sticky force and resumes gravity/air control; no velocity clamp or teleport.
+// Ray hit normals are in world space, including rotated kinematic platforms.
+extern "C" int rocket_host_wheel_support(const void *object,const void *normal) {
+    const auto *body=static_cast<const btCollisionObject*>(object);
+    if(!body||body->getUserIndex2()!=HOST_MESH_TAG)return 1;
+    const auto *mesh=static_cast<const Mesh*>(body->getCollisionShape()->getUserPointer());
+    if(!mesh||!mesh->surfaceMode||*mesh->surfaceMode!=ROCKET_SURFACES_NATIVE_NO_WALLS)return 1;
+    return static_cast<const btVector3*>(normal)->z()>ROCKET_NATIVE_FLOOR_NORMAL_MIN;
 }
 extern "C" int rocket_world_set_environment(RocketWorld *w,const RocketEnvironment *environment) {
     if(!w)return 0;
@@ -302,7 +315,13 @@ extern "C" int rocket_world_set_environment(RocketWorld *w,const RocketEnvironme
     w->environment=*environment;return 1;
 }
 extern "C" void rocket_world_set_surface_mode(RocketWorld *w,unsigned mode) {
-    if(w)w->surfaceMode=mode==ROCKET_SURFACES_NATIVE?mode:ROCKET_SURFACES_CAR;
+    if(w)w->surfaceMode=rocket_surface_valid(mode)?mode:ROCKET_SURFACES_CAR;
+}
+extern "C" int rocket_world_set_quicksand_depth(RocketWorld *w,float depth) {
+    if(!w)return 0;
+    w->quicksandDepth=0;
+    if(!std::isfinite(depth)||depth<0||depth>200)return 0;
+    w->quicksandDepth=depth;return 1;
 }
 extern "C" int rocket_world_set_speed(RocketWorld *w,unsigned percent) {
     if(!w||!rocket_speed_valid(percent))return 0;
@@ -317,7 +336,9 @@ extern "C" unsigned rocket_world_jump_height(RocketWorld *w) {return w?w->jumpPe
 static thread_local RocketWorld *steppingEnvironment=nullptr;
 extern "C" float rocket_host_car_jump_impulse(const void *car) {
     auto *w=steppingEnvironment;
-    return w&&w->car==car?rocket_jump_impulse_scale(w->jumpPercent):1.f;
+    if(!w||w->car!=car)return 1.f;
+    float nativeSand=w->quicksandDepth>1.f&&w->car->_internalState.isOnGround?.5f:1.f;
+    return rocket_jump_impulse_scale(w->jumpPercent)*nativeSand;
 }
 extern "C" float rocket_host_car_jump_hold(const void *car) {
     auto *w=steppingEnvironment;
@@ -326,6 +347,10 @@ extern "C" float rocket_host_car_jump_hold(const void *car) {
 extern "C" float rocket_host_car_speed(const void *car) {
     auto *w=steppingEnvironment;
     return w&&w->car==car?rocket_speed_multiplier(w->speedPercent):1.f;
+}
+extern "C" float rocket_host_car_ground_mobility(const void *car) {
+    auto *w=steppingEnvironment;
+    return w&&w->car==car?rocket_quicksand_mobility(w->quicksandDepth):1.f;
 }
 struct EnvironmentStep {
     RocketWorld *previous;
@@ -604,7 +629,7 @@ extern "C" int rocket_world_reset(RocketWorld *w,const float *position,const flo
     Car *next=w->arena->AddCar(Team::BLUE,CAR_CONFIG_OCTANE);
     next->SetState(state);w->arena->RemoveCar(w->car);w->car=next;w->car->controls={};
     clearPlatforms(w);
-    w->ticks=0;w->haveFrame=false;w->inhibited=7;w->ready=true;w->environment={};w->temporaryBoost=false;
+    w->ticks=0;w->haveFrame=false;w->inhibited=7;w->ready=true;w->environment={};w->temporaryBoost=false;w->quicksandDepth=0;
     // Discard old warm-start/contact history on teleports and ownership changes.
     auto *proxy=w->car->_rigidBody.getBroadphaseHandle();
     if(proxy) w->arena->_bulletWorld.getBroadphase()->getOverlappingPairCache()->cleanProxyFromPairs(proxy,w->arena->_bulletWorld.getDispatcher());
@@ -923,6 +948,7 @@ extern "C" int rocket_world_snapshot(RocketWorld *w,RocketSnapshot *out) {
     s.ticks=w->ticks;s.grounded=state.isOnGround;s.jumped=state.hasJumped;s.double_jumped=state.hasDoubleJumped;
     s.water_mode=w->waterMode;
     s.flipped=state.hasFlipped;s.flipping=state.isFlipping;s.boosting=state.isBoosting;
+    s.quicksand_depth=w->quicksandDepth;
     for(int i=0;i<4;++i) {
         s.wheel_contacts[i]=state.wheelsWithContact[i];
         const auto &wheel=w->car->_bulletVehicle.m_wheelInfo[i];

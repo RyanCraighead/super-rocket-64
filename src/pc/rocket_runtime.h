@@ -12,6 +12,7 @@ int rocket_runtime_set_boost_mode(int mode);
 int rocket_runtime_boost_mode(void);
 /* Call once after local native pickup/offline or an authority-approved grant. */
 int rocket_runtime_collect_coin(void);
+void rocket_runtime_set_quicksand_depth(float depth);
 uint32_t rocket_runtime_epoch(void);
 int rocket_runtime_rule_ready(void);
 /* Retire a real online selection's contacts/grants without refilling its tank. */

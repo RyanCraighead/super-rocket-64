@@ -7,7 +7,7 @@ def generate(source):
         ("GetUpDir() * mutatorConfig.jumpImmediateForce * UU_TO_BT", "GetUpDir() * mutatorConfig.jumpImmediateForce * rocket_host_car_jump_impulse(this) * UU_TO_BT", 1),
         ("GetUpDir() * JUMP_IMMEDIATE_FORCE * UU_TO_BT", "GetUpDir() * JUMP_IMMEDIATE_FORCE * rocket_host_car_jump_impulse(this) * UU_TO_BT", 1),
         ("GetUpDir() * mutatorConfig.jumpAccel;", "GetUpDir() * mutatorConfig.jumpAccel * rocket_host_car_jump_hold(this);", 1),
-        ("float absForwardSpeed_UU = abs(forwardSpeed_UU);", "const float speedScale = rocket_host_car_speed(this);\n\tfloat absForwardSpeed_UU = abs(forwardSpeed_UU) / speedScale;", 1),
+        ("float absForwardSpeed_UU = abs(forwardSpeed_UU);", "const float speedScale = rocket_host_car_speed(this) * rocket_host_car_ground_mobility(this);\n\tfloat absForwardSpeed_UU = abs(forwardSpeed_UU) / speedScale;", 1),
         ("* driveSpeedScale;", "* driveSpeedScale * speedScale;", 1),
         ("realBrake * (BRAKE_TORQUE_AMOUNT * UU_TO_BT);", "realBrake * (BRAKE_TORQUE_AMOUNT * UU_TO_BT) * speedScale;", 1),
         ("if (baseFriction > 5)", "if (baseFriction > 5 * speedScale)", 1),
@@ -23,7 +23,7 @@ def generate(source):
         if source.count(old) != count:
             raise ValueError("Pinned car speed site changed: " + old)
         source = source.replace(old, new)
-    return 'extern "C" float rocket_host_car_speed(const void *car);\nextern "C" float rocket_host_car_jump_impulse(const void *car);\nextern "C" float rocket_host_car_jump_hold(const void *car);\n' + source
+    return 'extern "C" float rocket_host_car_ground_mobility(const void *car);\nextern "C" float rocket_host_car_speed(const void *car);\nextern "C" float rocket_host_car_jump_impulse(const void *car);\nextern "C" float rocket_host_car_jump_hold(const void *car);\n' + source
 
 if __name__ == "__main__":
     source, output = map(Path, sys.argv[1:])

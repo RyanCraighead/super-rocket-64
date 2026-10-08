@@ -3,6 +3,7 @@
  * Host adaptation is a fixture; this does NOT establish in-game acceptance. */
 #include "character_transport_fixture.h"
 #include <math.h>
+#include "../physics/quicksand_visual.h"
 
 static RocketWorld *world;
 static RocketSnapshot source;
@@ -86,6 +87,7 @@ static void same_snapshot(const RocketSnapshot *a,const RocketSnapshot *b) {
     CHECK(a->flip_time==b->flip_time&&a->air_time==b->air_time);
     CHECK(a->grounded==b->grounded&&a->jumped==b->jumped);
     CHECK(a->water_mode==b->water_mode);
+    CHECK(fabsf(a->quicksand_depth-b->quicksand_depth)<.0001f);
     CHECK(a->double_jumped==b->double_jumped&&a->flipped==b->flipped&&a->flipping==b->flipping);
 }
 static void receive(struct Packet packet,int active) {
@@ -109,11 +111,15 @@ static void receive(struct Packet packet,int active) {
             double duration=fmin(fmax(fixtureNow-lastDelivery,1./30),.2);
             CHECK(draw_at(fixtureNow+duration*.25));
             for(int k=0;k<3;k++)CHECK(fabsf(drawnSnapshot.position[k]-(previous.position[k]+(source.position[k]-previous.position[k])*.25f))<.02f);
+            CHECK(fabsf(drawnSnapshot.quicksand_depth-(previous.quicksand_depth+(source.quicksand_depth-previous.quicksand_depth)*.25f))<.001f);
             CharacterNetState sampled={0};sampled.speed_percent=100;sampled.kind=CNET_OCTANE;sampled.active=active;sampled.car=drawnSnapshot;
             uint8_t bytes[CNET_WIRE_SIZE];CHECK(character_net_encode(bytes,sizeof bytes,&sampled));
         }else same_snapshot(&drawnSnapshot,&source);
         CHECK(draw_at(fixtureNow+.21));
         same_snapshot(&drawnSnapshot,&source);
+        RocketSnapshot visual=drawnSnapshot;rocket_quicksand_visual_pose(&visual);
+        CHECK(visual.position[1]==drawnSnapshot.position[1]-source.quicksand_depth);
+        for(int w=0;w<4;w++)CHECK(visual.wheel_position[w][1]==drawnSnapshot.wheel_position[w][1]-source.quicksand_depth);
     }else{
         CHECK(!character_net_remote_update(&gMarioStates[1]));
         CHECK(objects[1].oIntangibleTimer==0&&!draw_at(fixtureNow));
@@ -215,8 +221,30 @@ int main(void) {
     slick[0].material=slick[1].material=ROCKET_MATERIAL_VERY_SLIPPERY;
     CHECK(rocket_world_mesh(world,0,slick,2));rocket_world_set_surface_mode(world,ROCKET_SURFACES_NATIVE);
     reset(40);step(30,1);input.throttle=1;step(30,1);CHECK(source.position[2]>50);
+    rocket_world_set_surface_mode(world,ROCKET_SURFACES_NATIVE_NO_WALLS);
+    reset(40);step(30,1);input.throttle=1;step(30,1);CHECK(source.position[2]>50);
+    /* Wall-off gravity/support and its airborne pose survive loss/reordering
+     * through the actual player packet writer, ingress and interpolation. */
+    RocketTriangle wall[]={{{{-3000,0,0},{-3000,10000,0},{3000,10000,0}},0},
+        {{{-3000,0,0},{3000,10000,0},{3000,0,0}},0}};
+    CHECK(rocket_world_mesh(world,1,wall,2));reset(5000);
+    RocketSnapshot wallPose={0};wallPose.position[1]=5000;wallPose.position[2]=-34;
+    wallPose.basis[1]=wallPose.basis[3]=1;wallPose.basis[8]=-1;
+    CHECK(rocket_world_recover(world,&wallPose));step(1,0);input.throttle=1;step(30,1);
+    CHECK(!source.grounded&&source.position[1]<4700&&source.velocity[1]<-900);
+    for(int i=0;i<4;i++)CHECK(!source.wheel_contacts[i]);
+    CHECK(rocket_world_mesh(world,1,NULL,0));reset(40);step(30,1);
     rocket_world_set_surface_mode(world,ROCKET_SURFACES_CAR);step(20,1);
     CHECK(rocket_world_mesh(world,0,floor,2));step(10,1);
+    /* Native bridge supplies depth to the real physics snapshot. Carry it
+     * through actual player packets, impaired delivery and rendering without
+     * ever offsetting the collision body or native Mario packet coordinates. */
+    reset(40);step(30,1);float sandHeight=source.position[1];input.throttle=1;
+    for(int i=1;i<=60;i++){CHECK(rocket_world_set_quicksand_depth(world,(float)i));step(1,1);}
+    CHECK(source.quicksand_depth==60&&fabsf(source.position[1]-sandHeight)<1);
+    CHECK(rocket_world_set_quicksand_depth(world,0));step(5,1);
+    CHECK(source.quicksand_depth==0);
+    transmit(CNET_PRESENTATION,0);transmit(CNET_DRIVING,0);
     transmit(0,0);reset(40);step(30,1);
     CHECK(lostCount>20&&reorderedCount>20&&deliveredCount>200);
     rocket_world_destroy(world);

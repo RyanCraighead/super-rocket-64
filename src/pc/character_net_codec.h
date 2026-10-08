@@ -8,7 +8,9 @@
 enum CharacterNetKind { CNET_MARIO=0, CNET_LINK=1, CNET_BOMBERMAN=2,
     CNET_BANJO=3, CNET_SPIDERMAN=4, CNET_TONY_HAWK=5, CNET_OCTANE=6 };
 #define CNET_WIRE_SIZE 213
-#define CNET_VERSION_SUFFIX "-cnet4-octane2-boost-mode1-enemy1-coin1-boss2-whomp2-switch1-vanish1-jet2-env1-metal1-caps1-platform1-wheel1-bump1-tune2"
+/* env2 added surface rule 2; env3 uses reserved pose bytes for native graphical
+ * sink depth. Exact-version joins prevent silent differences between peers. */
+#define CNET_VERSION_SUFFIX "-cnet4-octane2-boost-mode1-enemy1-coin1-boss2-whomp2-switch1-vanish1-jet2-env3-metal1-caps1-platform1-wheel1-bump1-tune2"
 /* Presentation has a valid mesh pose but MUST NOT participate in car contacts. */
 enum CharacterNetActivity { CNET_INACTIVE=0, CNET_DRIVING=1, CNET_PRESENTATION=2 };
 typedef struct CharacterNetState {

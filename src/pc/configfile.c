@@ -218,7 +218,7 @@ unsigned int configRocketSpeedPercent = ROCKET_SPEED_DEFAULT;
 unsigned int configRocketCameraMode = 1;
 unsigned int configRocketSoundMode = 1;
 unsigned int configRocketBoostMode = 0;
-unsigned int configRocketSurfaceMode = ROCKET_SURFACES_NATIVE;
+unsigned int configRocketSurfaceMode = ROCKET_SURFACES_DEFAULT;
 unsigned int configBouncyLevelBounds              = 0;
 bool         configSkipIntro                      = 0;
 bool         configPauseAnywhere                  = false;
@@ -710,7 +710,7 @@ static void configfile_load_internal(const char *filename, bool* error) {
     configRocketCameraMode = 1; /* Missing/malformed preference uses car follow. */
     configRocketSoundMode = 1; /* Missing preference: car sounds, with Mario fallback. */
     configRocketBoostMode = 0; /* Missing/malformed preferences fail to coin only. */
-    configRocketSurfaceMode = ROCKET_SURFACES_NATIVE; /* Missing preference uses Native; explicit 0/1 stays saved. */
+    configRocketSurfaceMode = ROCKET_SURFACES_DEFAULT; /* Missing: native, walls off. Saved 0/1 keep their meaning. */
     fs_file_t *file;
     char *line;
     unsigned int temp;
@@ -806,8 +806,11 @@ static void configfile_load_internal(const char *filename, bool* error) {
                                 *option->uintValue = numTokens == 2 && strcmp(tokens[1], "0") == 0 ? 0 : 1;
                             else if (option->uintValue == &configRocketBoostMode)
                                 *option->uintValue = numTokens == 2 && strcmp(tokens[1], "1") == 0 ? 1 : 0;
-                            else if (option->uintValue == &configRocketSurfaceMode)
-                                *option->uintValue = numTokens == 2 && strcmp(tokens[1], "0") == 0 ? ROCKET_SURFACES_CAR : ROCKET_SURFACES_NATIVE;
+                            else if (option->uintValue == &configRocketSurfaceMode) {
+                                *option->uintValue = ROCKET_SURFACES_DEFAULT;
+                                if (numTokens == 2 && strlen(tokens[1]) == 1 && tokens[1][0] >= '0' && tokens[1][0] <= '2')
+                                    *option->uintValue = (unsigned)(tokens[1][0] - '0');
+                            }
                             else
                                 sscanf(tokens[1], "%u", option->uintValue);
                             break;
@@ -863,7 +866,7 @@ NEXT_OPTION:
     if (configRocketCameraMode > 1) { configRocketCameraMode = 1; }
     if (configRocketSoundMode > 1) { configRocketSoundMode = 1; }
     if (configRocketBoostMode > 1) { configRocketBoostMode = 0; }
-    if (configRocketSurfaceMode > 1) { configRocketSurfaceMode = ROCKET_SURFACES_NATIVE; }
+    configRocketSurfaceMode = rocket_surface_preference(configRocketSurfaceMode);
 
     if (configGraphicsBackend < GAPI_GL || configGraphicsBackend > GAPI_MAX) { configGraphicsBackend = GAPI_GL; }
 

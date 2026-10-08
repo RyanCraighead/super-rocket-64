@@ -84,7 +84,8 @@ int rocket_runtime_platforms(const RocketPlatform *platforms,size_t count){
     if(count){observedPlatform=platforms[0];observedTriangle=platforms[0].triangles[0];}
     return 1;
 }
-int rocket_runtime_frame(uint64_t frame,const RocketInput *input,int paused,int blocked){(void)frame;(void)paused;observed=rocket_gamepad_merge(input,&fixtureGamepad);rocket_penguin_filter_input(&observed);if(blocked)memset(&observed,0,sizeof observed);++steps;pose.ticks+=4;draw=1;return 4;}
+int rocket_runtime_frame(uint64_t frame,const RocketInput *input,int paused,int blocked){(void)frame;(void)paused;observed=rocket_gamepad_merge(input,&fixtureGamepad);rocket_penguin_filter_input(&observed);rocket_quicksand_filter_input(&observed,blocked);if(blocked)memset(&observed,0,sizeof observed);++steps;pose.ticks+=4;draw=1;return 4;}
+void rocket_runtime_set_quicksand_depth(float depth){pose.quicksand_depth=depth;}
 int rocket_runtime_snapshot(RocketSnapshot *out){if(!draw)return 0;*out=pose;return 1;}
 int rocket_runtime_recover(const RocketSnapshot *out){++recoveries;memcpy(pose.position,out->position,sizeof pose.position);memcpy(pose.basis,out->basis,sizeof pose.basis);memset(pose.velocity,0,sizeof pose.velocity);return 1;}
 int rocket_runtime_read_input(const RocketInput *keyboard,RocketInput *out){*out=rocket_gamepad_merge(keyboard,&fixtureGamepad);return !uiBlocked&&draw&&enabled;}

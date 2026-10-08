@@ -20,6 +20,7 @@
 #include "object_list_processor.h"
 #include "rocket_adapter.h"
 #include "rocket_penguin.h"
+#include "rocket_quicksand.h"
 #include "rocket_caps.h"
 #include "../../codex/rocketleague/physics/body_contact.h"
 #include "../../codex/rocketleague/physics/vanish_collision.h"
@@ -196,6 +197,7 @@ static int sync_mesh(struct MarioState *m,int dynamic) {
     free(triangles);free(surfaces);return ok;
 }
 void rocket_adapter_suspend(void) {
+    rocket_quicksand_suspend();
     rocket_penguin_suspend(player);
     // A handoff at the current pose must not strand native Mario inside a grate.
     // Never move a player after an external warp, area change, or level change.
@@ -570,7 +572,7 @@ int rocket_adapter_update(struct MarioState *m) {
      * water idle. Reacquire only ordinary swimming, never drowning/whirlpool. */
     int metalEntry=metal&&submerged&&(m->action==ACT_WATER_IDLE||m->action==ACT_WATER_PLUNGE||
         m->action==ACT_BREASTSTROKE||m->action==ACT_SWIMMING_END||m->action==ACT_FLUTTER_KICK);
-    if((whompCrush.m==m&&m->squishTimer>0&&m->squishTimer<255)||(!supported(m->action)&&!metalEntry)||m->health<0x100||(m->heldObj&&!rocket_penguin_carried(m))||m->riddenObj||m->heldByObj||m->quicksandDepth>1||(m->input&INPUT_SQUISHED)) {
+    if((whompCrush.m==m&&m->squishTimer>0&&m->squishTimer<255)||(!supported(m->action)&&!metalEntry)||m->health<0x100||(m->heldObj&&!rocket_penguin_carried(m))||m->riddenObj||m->heldByObj||(m->input&INPUT_SQUISHED)) {
         rocket_adapter_suspend();return 0;
     }
     if(player) {
@@ -601,6 +603,7 @@ int rocket_adapter_update(struct MarioState *m) {
         if(!sync_mesh(m,0)||!sync_mesh(m,1)){rocket_adapter_suspend();return 0;}
         RocketSnapshot before={0};RocketEnvironment environment={0};
         if(rocket_runtime_snapshot(&before)){
+            if(rocket_quicksand_update(m,&before)){rocket_adapter_suspend();return 0;}
             /* Recovery may move the chassis across a floor or water boundary.
              * Rebind only the sampling copy; native progression and cap timers
              * remain owned by Mario, and clearPose supplies geometry only. */
@@ -651,5 +654,9 @@ int rocket_adapter_update(struct MarioState *m) {
     vec3f_copy(m->marioObj->header.gfx.pos,m->pos);vec3s_set(m->marioObj->header.gfx.angle,0,m->faceAngle[1],0);
     m->marioObj->header.gfx.node.flags|=GRAPH_RENDER_INVISIBLE;ownHide=1;
     vec3f_copy(lastPosition,m->pos);
+    // Resolve a newly contacted fatal pit on the landing frame as well. The
+    // bridge advances native sink depth only once, including repeated calls.
+    if(rocket_quicksand_update(m,&state)){rocket_adapter_suspend();return 0;}
+    rocket_runtime_set_quicksand_depth(rocket_quicksand_depth());
     return 1;
 }

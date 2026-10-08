@@ -277,6 +277,26 @@ static void difficulty_input_tests(void){
     CHECK(strstr(rocket_difficulty_scope_label(),"Could not save"));CHECK(!rmdir(blocked));
     mouse_difficulty_press(difficulty,true);CHECK(rocket_difficulty()==ROCKET_EASY);
     configfile_load();settle();CHECK(rocket_difficulty()==ROCKET_EASY);
+    struct DjuiBase*surface=NULL;
+    for(struct DjuiBaseChild*c=body->child;c;c=c->next)
+        if(c->base->interactable&&c->base->interactable->on_value_change==surface_changed)surface=c->base;
+    CHECK(surface);CHECK(rocket_surface_set_mode(2));settle();focus(surface);visible(surface);controller_frame();controller_frame();
+    for(unsigned press=0;press<9;press++){
+        unsigned expected=2-(press+1)%3;
+        CHECK(!SDL_JoystickSetVirtualButton(device,SDL_CONTROLLER_BUTTON_X,1));controller_frame();
+        fprintf(stderr,"surface controller press=%u pad=%04x mode=%u selection=%u expected=%u\n",press,gInteractablePad.button,rocket_surface_mode(),surfaceSelection,expected);
+        CHECK(rocket_surface_mode()==expected&&surfaceSelection==2-expected);
+        for(int held=0;held<8;held++){controller_frame();CHECK(rocket_surface_mode()==expected);}
+        CHECK(!SDL_JoystickSetVirtualButton(device,SDL_CONTROLLER_BUTTON_X,0));controller_frame();controller_frame();
+        CHECK(sInputControlledBase==surface);visible(surface);
+    }
+    for(unsigned press=0;press<6;press++){
+        unsigned expected=2-(press+1)%3;
+        djui_interactable_on_key_down(SCANCODE_ENTER);keyboard_frame();CHECK(rocket_surface_mode()==expected);
+        djui_interactable_on_key_up(SCANCODE_ENTER);keyboard_frame();keyboard_frame();
+        configfile_load();settle();CHECK(rocket_surface_mode()==expected);visible(surface);
+    }
+    puts("PASS all three surface modes: actual SDL controller and keyboard cycles, hold/release, focus and persistence");
     configKeyA[1]=VK_BASE_SDL_GAMEPAD+SDL_CONTROLLER_BUTTON_A;controller_sdl_bind();
     focus(difficulty);visible(difficulty);
     puts("PASS production SDL -> DJUI -> difficulty setter: Cross/X cycles, held/release debounce, keyboard Enter, mouse both directions, Custom and save failure/retry");

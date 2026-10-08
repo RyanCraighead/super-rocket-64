@@ -10,6 +10,7 @@
 #include <vector>
 
 static int checks;
+static unsigned surfaceMode=ROCKET_SURFACES_CAR;
 #define CHECK(x) do {++checks;if(!(x)){std::fprintf(stderr,"FAIL line %d: %s (%s)\n",__LINE__,#x,rocket_world_error());std::exit(1);}}while(0)
 using World=std::unique_ptr<RocketWorld,decltype(&rocket_world_destroy)>;
 static void tread(std::vector<RocketTriangle>& mesh,float y,float begin,float end) {
@@ -30,6 +31,7 @@ struct Fixture {
     World w{rocket_world_create(),rocket_world_destroy};uint64_t frame=0;RocketInput input{};
     Fixture(const std::vector<RocketTriangle>& mesh,float z=-500,float y=40,float yaw=0,int layer=0) {
         CHECK(w);
+        rocket_world_set_surface_mode(w.get(),surfaceMode);
         float p[]={0,y,z},v[]={0,0,0};CHECK(rocket_world_reset(w.get(),p,v,yaw));
         if(layer<2)CHECK(rocket_world_mesh(w.get(),layer,mesh.data(),mesh.size()));
         else {RocketPlatform p{};p.object_id=7;p.basis[0]=p.basis[4]=p.basis[8]=1;
@@ -61,6 +63,14 @@ static void climb(float rise,float run,unsigned speed,int layer=0,float yaw=0,fl
     // This is a 30 Hz observation (four substeps), including unmodified
     // suspension velocity. Bound visible ascent by the native floor buffer.
     CHECK(maxRise<=78);
+    if(surfaceMode==ROCKET_SURFACES_NATIVE_NO_WALLS){
+        // Riser tires no longer brake an airborne axle against a vertical
+        // face. Test the actual landing as well as the first goal crossing;
+        // preserve momentum instead of adding a mode-specific downward clamp.
+        f.input={};f.step(30);previous=f.state();CHECK(previous.grounded);
+        CHECK(!previous.jumped&&!previous.flipped);
+        CHECK(std::fabs(previous.position[1]-rise*8-34)<5);
+    }
     CHECK(std::fabs(previous.position[1]-rise*8-34)<65);
 }
 static uint64_t digest(uint64_t h,const RocketSnapshot &s) {
@@ -112,6 +122,9 @@ static void nativeGeometry(int argc,char **argv) {
     if(argc==11)CHECK(prev.position[2]>=std::stof(argv[10]));
 }
 int main(int argc,char **argv) {
+    // Optional trailing rule exercises the same owned-geometry and synthetic
+    // fixtures in each mode, without changing their established CLI.
+    if(argc>2&&std::strcmp(argv[argc-2],"--surface")==0){surfaceMode=std::stoul(argv[argc-1]);CHECK(rocket_surface_valid(surfaceMode));argc-=2;}
     if(argc>1&&std::strcmp(argv[1],"--speed-sweep")==0) {
         for(unsigned speed=50;speed<=100;++speed)climb(51,102,speed,0,0,1,true);
         std::printf("stair speed sweep: %d checks passed\n",checks);return 0;

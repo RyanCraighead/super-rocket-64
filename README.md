@@ -64,7 +64,7 @@ Custom keyboard, controller and camera settings follow you between Offline, Host
 | **Options > Camera > Octane camera** | Car follow | Car follow or Mario camera; use the normal look/recenter controls. |
 | **Options > Octane boost** | Coin only | Coin only or Infinite. |
 | **Options > Octane sounds** | Car | Local Rocket League jump/flip/boost sounds, or Mario sounds. |
-| **Options > Octane surfaces** | Native surfaces | Native surfaces or Car grip. |
+| **Options > Octane surfaces** | Native: walls off | Native grip with wall driving off or on, or Octane grip with wall driving. Existing saved choices are preserved. |
 
 Jump height is approximate: tap and held jumps reach roughly the selected fraction of normal height; second-jump timing and momentum affect total height. For higher ledges, hold jump, double jump, boost or choose 100%. Gravity, boost flight and swim-up stay independent of this setting.
 

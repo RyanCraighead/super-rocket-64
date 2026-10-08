@@ -64,3 +64,70 @@ at the same coordinates and inputs. Those decoded assets remain outside source
 control. The executable's optional --geometry path reads a caller-provided
 triangle fixture; no game process, renderer, player input or installed save is
 used. The tests do not substitute for post-release rendered gameplay acceptance.
+
+## Three surface modes
+
+Settings shows Native: walls off, Native: walls on, then Octane. Missing or
+malformed settings now default to Native: walls off (value 2). Stored 0 remains
+Octane and stored 1 remains Native with wall driving on, so an upgrade never
+reinterprets a deliberate choice. The same unsigned config field is retained.
+
+Walls off adapts the verified suspension-ray decision before support, friction
+and adhesion are calculated. An actual host-mesh hit must have an upward world
+normal above the native floor/wall split (.01). Vertical walls and ceilings no
+longer count as tire support. Real chassis collision remains, and the pinned
+backend resumes gravity and air controls naturally. Rotated object-keyed faces
+use their world normal. Slopes, partial ice grip, currents, poles/trees and the
+bounded stair helper remain separate. Momentum and airborne boost are retained;
+this option prevents tire-driven wall climbing, not rocket-powered flight.
+Existing modes return the original support result and retain their trajectories.
+
+The host's authenticated 16-byte session rule uses value 2 in the existing
+surface byte. Pose packets stay 213 bytes. The compatibility suffix advances
+env1 to env2: all peers must run this wall-policy version. Otherwise an older
+client could join at value 0/1, reject a later value 2 update and silently keep
+the wrong rule. Native join-request tests verify old-version rejection, while
+rule tests cover host changes, late joins, stale/forged values, read-only client
+widgets and restoration of the client's personal preference on leaving.
+
+Real physics tests cover upward/reverse wall driving, support loss and gravity,
+ceiling release, retained chassis collision, reverse exit, all air axes and
+boost, plus bit-identical native floor/slippery/slope trajectories across static,
+dynamic and rotated object-keyed meshes. The stair matrix also runs with walls
+off, including every speed from 50 to 100; airborne goal crossings must land
+on the real final tread without jump/flip grants. Owned castle and pyramid
+geometry crossings pass at 50/75/100. The actual SDL/menu/config harness cycles
+all three choices through controller and keyboard, preserves focus and reloads
+each saved choice. All testing here remains windowless.
+
+## Quicksand
+
+Car ownership previously bypassed Mario's sinking update, then surrendered
+controls as soon as any native sink depth exceeded one unit. The native bridge
+now probes actual contacting tires and oriented chassis corners and calls the
+original quicksand updater once per host frame. Shallow, ordinary, deep and
+instant sand retain their native caps, hazard hook and fatal action. A stronger
+pit contacted after motion can still trigger death on that landing frame.
+Native death continues through its existing death hook, bubble or warp path.
+
+Ordinary sinking retains steering, reverse and the configured jump binding.
+A fresh jump press while buried starts the native thirteen-frame extraction
+sequence, including its six depth reductions. Holding cannot repeat it or
+produce a delayed jump when leaving sand. Pause/focus gates stop extraction,
+and a new press below the native buried threshold can launch normally. Wheel
+propulsion uses the native 6.25/depth factor; the initial grounded jump is halved
+while sunk. Air controls, gravity, boost, global speed rules and collision
+coordinates remain independent. The existing moving-sand current is preserved.
+
+Sink depth is visual metadata: the renderer offsets a copy of body and all four
+wheel transforms. Physical coordinates stay unchanged. Native presentation
+already includes sinking and clears the metadata to prevent a second offset.
+Four reserved bytes in the existing 213-byte pose packet carry bounded depth;
+packet validation rejects nonfinite/out-of-range values and non-driving depth.
+The native compatibility marker advances env2 to env3 so all peers agree.
+
+Tests run the original sinking, extraction and fatal action functions, actual
+adapter, every remappable controller jump binding plus keyboard, real physics,
+native presentation, packet writer/ingress and render interpolation under loss
+and reordering. Engine services in native tests remain explicit fixtures;
+these checks do not claim a recorded game session or real network delivery.

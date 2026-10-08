@@ -52,8 +52,18 @@ static void fresh(enum CharacterSwitchId id){
  snapshotReady=0; /* real adapter would suspend before native action execution */
 }
 #include "test_door_presentation.inc.c"
+#include "../physics/quicksand_visual.h"
 int main(void){
  test_door_presentation();
+    fresh(CHARACTER_OCTANE);car.quicksand_depth=60;snapshotReady=1;
+    character_presentation_begin(&mario);snapshotReady=0;
+    /* Native death/graphics has already sunk this transform. The same render
+     * helper used by local and remote cars must not sink it a second time. */
+    mario.action=ACT_QUICKSAND_DEATH;playerObject.header.gfx.pos[1]=20;
+    character_presentation_finish(&mario,0);RocketSnapshot sand;
+    assert(character_presentation_car_snapshot(&sand)&&sand.quicksand_depth==0&&sand.position[1]==60);
+    RocketSnapshot rendered=sand;rocket_quicksand_visual_pose(&rendered);
+    assert(!memcmp(&rendered,&sand,sizeof sand));
  for(int id=CHARACTER_LINK;id<CHARACTER_COUNT;id++){
   fresh(id);struct MarioState before=mario;character_presentation_finish(&mario,0);
   assert(presenting&&(playerObject.header.gfx.node.flags&GRAPH_RENDER_INVISIBLE));

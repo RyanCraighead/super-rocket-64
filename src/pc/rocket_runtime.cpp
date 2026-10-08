@@ -7,6 +7,8 @@
 extern "C" {
 #include "game/rocket_wing.h"
 #include "game/rocket_penguin.h"
+#include "game/rocket_quicksand.h"
+#include "../../codex/rocketleague/physics/quicksand_visual.h"
 #include "game/rocket_squish_visual.h"
 #include "game/level_update.h"
 }
@@ -220,6 +222,8 @@ extern "C" int rocket_runtime_frame(uint64_t frame,const RocketInput *input,int 
     if(!input)return -1;
     lastInput=rocket_gamepad_merge(input,&gamepad);
     rocket_penguin_filter_input(&lastInput);
+    rocket_quicksand_filter_input(&lastInput,blocked||paused);
+    rocket_runtime_set_quicksand_depth(rocket_quicksand_depth());
     const unsigned percent=rocket_speed_percent(),jump=rocket_jump_percent();const uint32_t rule=rocket_rule_revision();
     if(world&&(rocket_world_speed(world.get())!=percent||rocket_world_jump_height(world.get())!=jump||appliedRule!=rule)){
         rocket_world_set_speed(world.get(),percent);rocket_world_set_jump_height(world.get(),jump);appliedRule=rule;
@@ -239,10 +243,14 @@ extern "C" int rocket_runtime_frame(uint64_t frame,const RocketInput *input,int 
 }
 extern "C" int rocket_runtime_bump(const float delta[3]){if(!drawable||!rocket_world_bump(world.get(),delta))return 0;return rocket_world_snapshot(world.get(),&current);}
 extern "C" int rocket_runtime_snapshot(RocketSnapshot *snapshot){if(!drawable||!snapshot)return 0;*snapshot=current;return 1;}
+extern "C" void rocket_runtime_set_quicksand_depth(float depth){
+    if(rocket_world_set_quicksand_depth(world.get(),depth))current.quicksand_depth=depth;
+    else current.quicksand_depth=0;
+}
 extern "C" const char *rocket_runtime_status(void){return status.c_str();}
 static int drawSnapshot(const RocketSnapshot *snapshot,uint32_t nativeFlags,const float squish[3],const float *view,const float *projection,const int *viewport){
     if(!snapshot)return 0;
-    const RocketSnapshot &pose=*snapshot;
+    RocketSnapshot pose=*snapshot;rocket_quicksand_visual_pose(&pose);
     if(body.empty()||wheel.empty()||!finite(view,16)||!finite(projection,16)||!viewport||viewport[2]<=0||viewport[3]<=0)return 0;
     try{
         initGL();GLState saved(gl);stream.clear();stream.reserve(body.size()+wheel.size()*4);
@@ -315,6 +323,7 @@ extern "C" int rocket_runtime_recover(const RocketSnapshot*){return 0;}
 extern "C" int rocket_runtime_frame(uint64_t,const RocketInput*,int,int){return -1;}
 extern "C" int rocket_runtime_bump(const float*){return 0;}
 extern "C" int rocket_runtime_snapshot(RocketSnapshot*){return 0;}
+extern "C" void rocket_runtime_set_quicksand_depth(float){}
 extern "C" int rocket_runtime_draw(const float*,const float*,const int*){return 0;}
 extern "C" const char *rocket_runtime_status(void){return "Rocket car is not compiled; build with ROCKET_CAR=1";}
 #endif

@@ -73,3 +73,25 @@ static void difficulty_tests(void){
     gNetworkType=NT_NONE;ui_refresh();CHECK(*ui[0].value==ROCKET_CUSTOM&&*ui[1].value==88&&*ui[2].value==67);
     CHECK(ui[0].base->enabled&&ui[1].base->enabled&&ui[2].base->enabled);
 }
+static void surface_rule_tests(void){
+    host();rocket_boost_session_reset();configRocketSurfaceMode=2;ui_refresh();
+    CHECK(*ui[5].value==0&&ui[5].base->enabled&&boxes[3].choiceCount==3);
+    struct Packet initial=join(),on={0},car={0},off={0};u32 first=rocket_rule_revision();
+    capturedPacket=&on;ui_choose(5,1);capturedPacket=NULL;
+    CHECK(configRocketSurfaceMode==1&&rocket_rule_revision()==first+1);
+    capturedPacket=&car;ui_choose(5,2);capturedPacket=NULL;CHECK(configRocketSurfaceMode==0);
+    capturedPacket=&off;ui_choose(5,0);capturedPacket=NULL;CHECK(configRocketSurfaceMode==2);
+    CHECK(off.dataLength==on.dataLength&&off.dataLength==car.dataLength&&off.buffer[off.dataLength-3]==2);
+    struct Packet late=join();int saved=saves;configRocketSurfaceMode=1;
+    accept_join(initial);ui_refresh();CHECK(rocket_surface_mode()==2&&*ui[5].value==0&&!ui[5].base->enabled);
+    for(unsigned i=0;i<3;i++){ui_choose(5,i);CHECK(rocket_surface_mode()==2&&saves==saved&&configRocketSurfaceMode==1);}
+    receive(on);ui_refresh();CHECK(rocket_surface_mode()==1&&*ui[5].value==1);
+    receive(car);ui_refresh();CHECK(rocket_surface_mode()==0&&*ui[5].value==2);
+    receive(off);ui_refresh();CHECK(rocket_surface_mode()==2&&*ui[5].value==0);
+    receive(on);CHECK(rocket_surface_mode()==2); // old revision
+    struct Packet bad=on;bad.localIndex=2;bad.addr=(void*)2;bad.cursor=3;bad.buffer[6]=200;
+    packet_receive(&bad);CHECK(rocket_surface_mode()==2); // another peer
+    bad=off;bad.buffer[bad.dataLength-3]=3;bad.buffer[6]=200;receive(bad);CHECK(rocket_surface_mode()==2);
+    accept_join(late);CHECK(rocket_surface_mode()==2&&configRocketSurfaceMode==1&&saves==saved);
+    gNetworkType=NT_NONE;ui_refresh();CHECK(rocket_surface_mode()==1&&*ui[5].value==1&&ui[5].base->enabled);
+}

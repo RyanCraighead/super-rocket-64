@@ -63,13 +63,14 @@ static void jump_scope(struct DjuiBase *base, UNUSED bool *unused) {
 }
 static unsigned selection;
 static unsigned surfaceSelection;
+/* Display the new default first without changing persisted/wire values 0/1. */
 static void surface_refresh(struct DjuiBase *base, UNUSED bool *unused) {
-    surfaceSelection = rocket_surface_mode();
+    surfaceSelection = 2 - rocket_surface_mode();
     djui_selectionbox_update_value(base);
     djui_base_set_enabled(base, rocket_boost_can_set_mode());
 }
 static void surface_changed(struct DjuiBase *base) {
-    rocket_surface_set_mode(surfaceSelection);
+    if (surfaceSelection < 3) rocket_surface_set_mode(2 - surfaceSelection);
     surface_refresh(base, NULL);
 }
 static void surface_scope(struct DjuiBase *base, UNUSED bool *unused) {
@@ -134,9 +135,9 @@ void djui_rocket_boost_create(struct DjuiBase *parent) {
     djui_base_set_size_type(&text->base, DJUI_SVT_RELATIVE, DJUI_SVT_ABSOLUTE);
     djui_base_set_size(&text->base, 1, 64);
     text->base.on_render_pre = scope;
-    char *surfaces[] = { "Car grip", "Native surfaces" };
-    surfaceSelection = rocket_surface_mode();
-    box = djui_selectionbox_create(parent, "Octane surfaces", surfaces, 2, &surfaceSelection, surface_changed);
+    char *surfaces[] = { "Native: walls off", "Native: walls on", "Octane" };
+    surfaceSelection = 2 - rocket_surface_mode();
+    box = djui_selectionbox_create(parent, "Octane surfaces", surfaces, 3, &surfaceSelection, surface_changed);
     box->base.on_render_pre = surface_refresh;
     surface_refresh(&box->base, NULL);
     row = djui_rect_container_create(parent, 96);

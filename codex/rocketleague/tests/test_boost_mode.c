@@ -101,12 +101,12 @@ int main(void){
     initial=join();struct Packet native={0},compat={0};
     capturedPacket=&native;rocket_boost_network_update();capturedPacket=NULL;
     int oldSaves=saves;capturedPacket=&compat;CHECK(rocket_surface_set_mode(0));capturedPacket=NULL;
-    CHECK(saves==oldSaves+1);CHECK(!rocket_surface_set_mode(2));
+    CHECK(saves==oldSaves+1);CHECK(!rocket_surface_set_mode(3));
     configRocketSurfaceMode=0;accept_join(initial);CHECK(rocket_surface_mode()==1&&rocket_boost_mode()==1);
     CHECK(!rocket_surface_set_mode(0)&&configRocketSurfaceMode==0);
     receive(compat);CHECK(rocket_surface_mode()==0&&rocket_boost_mode()==1);
     receive(native);CHECK(rocket_surface_mode()==0);
-    bad=native;bad.buffer[6]=200;bad.buffer[bad.dataLength-3]=2;receive(bad);CHECK(rocket_surface_mode()==0);
+    bad=native;bad.buffer[6]=200;bad.buffer[bad.dataLength-3]=3;receive(bad);CHECK(rocket_surface_mode()==0);
     bad=initial;bad.buffer[bad.dataLength-3]=255;
     client();gNetworkPlayerLocal=gNetworkPlayerServer=NULL;CHECK(!rocket_boost_join_valid(&bad));
     host();int relayBefore=forwarded;bad=native;bad.localIndex=1;bad.cursor=3;bad.buffer[3]|=2;
@@ -115,8 +115,8 @@ int main(void){
     CHECK(rocket_surface_mode()==1);bad=compat;bad.buffer[6]=200;receive(bad);CHECK(rocket_surface_mode()==1);
     configRocketSurfaceMode=0;rocket_boost_session_reset();CHECK(rocket_surface_mode()==0);
     gNetworkType=NT_NONE;CHECK(rocket_surface_set_mode(1));CHECK(rocket_surface_mode()==1);
-    configRocketSurfaceMode=255;CHECK(rocket_surface_mode()==1);
-    CHECK(strstr(get_version(),"env1")!=NULL);
+    configRocketSurfaceMode=255;CHECK(rocket_surface_mode()==2);
+    CHECK(strstr(get_version(),"env3")!=NULL);
     /* Speed shares the same authenticated join/session/revision contract. */
     gNetworkType=NT_NONE;configRocketSpeedPercent=0;CHECK(rocket_speed_percent()==100);
     CHECK(!rocket_speed_set_percent(0)&&!rocket_speed_set_percent(49)&&!rocket_speed_set_percent(101));
@@ -194,5 +194,6 @@ int main(void){
     rocket_boost_session_reset();CHECK(rocket_jump_percent()==100&&strstr(rocket_jump_scope_label(),"Waiting"));
     gNetworkType=NT_NONE;CHECK(rocket_jump_percent()==100&&configRocketJumpPercent==100);
     difficulty_tests();
+    surface_rule_tests();
     printf("boost and surface rules: %d checks passed\n",checks);return 0;
 }

@@ -23,8 +23,20 @@ int main(void){
     CHECK(b.sequence==100&&b.epoch==2&&b.car.ticks==a.car.ticks&&b.car.boost==100&&b.car.grounded);
     CHECK(wire[8]==100&&wire[9]==0&&wire[188]==2&&wire[192]==1); /* little endian golden offsets */
     for(size_t n=0;n<sizeof wire;n++)CHECK(!character_net_decode(&b,wire,n));
-    const int corrupt[]={0,4,5,6,7,16,198,205};
+    const int corrupt[]={0,4,5,6,7,16,202,205};
     for(unsigned i=0;i<sizeof corrupt/sizeof *corrupt;i++){memcpy(copy,wire,sizeof wire);copy[corrupt[i]]=255;CHECK(!character_net_decode(&b,copy,sizeof copy));}
+    /* Bounded visual depth occupies four reserved bytes; physical coordinates
+     * and the total wire size remain identical. Native presentation is already sunk. */
+    b=a;b.car.quicksand_depth=25;CHECK(character_net_encode(copy,sizeof copy,&b));
+    CHECK(copy[198]==0&&copy[199]==0&&copy[200]==0xc8&&copy[201]==0x41);
+    CharacterNetState sand;CHECK(character_net_decode(&sand,copy,sizeof copy));
+    CHECK(sand.car.quicksand_depth==25&&!memcmp(sand.car.position,a.car.position,sizeof a.car.position));
+    for(int i=0;i<4;i++){b=a;b.car.quicksand_depth=(float[]){-1,201,INFINITY,NAN}[i];CHECK(!character_net_encode(copy,sizeof copy,&b));}
+    b=a;b.active=CNET_PRESENTATION;b.car.quicksand_depth=1;CHECK(!character_net_encode(copy,sizeof copy,&b));
+    CharacterNetTrack sandTrack={0};b=a;b.car.quicksand_depth=10;CHECK(character_net_track_push(&sandTrack,&b,1));
+    b.sequence++;b.car.quicksand_depth=50;CHECK(character_net_track_push(&sandTrack,&b,1.1));
+    CHECK(character_net_track_sample(&sandTrack,1.15,&sand));CHECK(fabsf(sand.car.quicksand_depth-30)<.001f);
+    CHECK(!memcmp(sand.car.position,a.car.position,sizeof a.car.position));
     /* Nonfinite / reflected / non-orthonormal / wildly displaced inputs rejected atomically. */
     CharacterNetState unchanged={0};unchanged.speed_percent=100;unchanged.sequence=42;b=unchanged;
     memcpy(copy,wire,sizeof wire);copy[22]=0x80;copy[23]=0x7f;

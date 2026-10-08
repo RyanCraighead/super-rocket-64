@@ -1,32 +1,38 @@
 # Verification and limitations
 
-## v0.2.18: native launcher choices, Setup routing and low stairs
+## v0.2.18: launcher startup, stairs, surface modes and quicksand
 
-Native radio/checkbox painting now restores the actual parent background;
-update descriptions have separate bounds. Native PrintWindow captures cover
-both choices and simulated 100-200% DPI. Missing/incomplete installations stay
-in Setup or actionable recovery. Verified installations without explicit update
-consent finish the Ready step; configured installations retain Play/update flow.
-Preferences, shortcuts and save paths are preserved until explicit completion.
+Native launcher choices paint the parent background; update descriptions have
+separate bounds. Native PrintWindow captures cover both choices and simulated
+100-200% DPI. Missing/incomplete installations remain in Setup or recovery;
+verified installations without explicit consent finish Setup's Ready step.
+Configured installations retain their saved Play/update flow.
 
-Octane traverses actual low native risers using bounded vertical clearance of
-the full chassis and real tire support. Horizontal velocity, fuel, jump/flip
-state and collision shapes are preserved. Automated stair fixtures include
-40,686 checks and real castle/pyramid collision crossings. Exhaustive 50-100
-speed fixtures use an explicitly logged steering controller; fixed-input
-50/75/100 cases are separate. Non-stair trajectory invariants remain unchanged.
+Completed low-stair clearance, three surface modes and native quicksand handling
+are included cumulatively. New/malformed preferences default to Native: walls
+off; saved 0/1 retain Octane / Native: walls on. Full chassis collision, floor
+and slope grip, airborne boost, fuel, abilities and saved choices are preserved.
+
+Native quicksand sinking/fatal handoff, fresh mapped-jump extraction and native
+wheel-mobility reduction work without surrendering buried steering/reverse.
+Sink depth offsets a render copy, including wheels, while body coordinates stay
+unchanged. Four reserved pose bytes carry validated/interpolated depth; the
+213-byte pose size and 16-byte rule size stay unchanged. The compatibility
+marker is env3: every multiplayer peer must update together.
 
 Validation includes 288 native-window UI assertions, 31 headless, 23 updater
-and seven setup-inspection checks, the cumulative Windows/native physics and
-gameplay suites, and clean/upgrade/setup/repair/cancellation package checks.
-Physical-controller, rendered-gameplay, two-PC and real-monitor DPI acceptance
-remain unperformed. Existing Rocket League package-profile limitations remain.
-Three-mode surface changes, quicksand and other unfinished gameplay are excluded.
+and seven setup-inspection checks, 17 Windows physics suites, cumulative native
+menu/rule/network checks, impaired fixture packet delivery, both stair modes
+and owned castle/pyramid crossings, plus exact-build package and save-preserving
+upgrade/repair/cancellation checks. Exhaustive 50-100 stair fixtures use an
+explicit steering controller; separate 50/75/100 fixed-input cases remain.
+
+Physical controllers, rendered gameplay, two-PC delivery and real-monitor DPI
+transitions remain unperformed. Existing Rocket League package-profile limits
+remain. Poles and later unfinished gameplay are excluded.
 
 See [launcher fix](../launcher/SETTINGS-STARTUP-FIX.md) and
 [terrain controls](../codex/rocketleague/TERRAIN-CONTROLS.md).
-
-
 
 ## v0.2.17: approved launcher presentation
 
