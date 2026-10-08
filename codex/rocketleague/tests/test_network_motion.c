@@ -4,6 +4,7 @@
 #include "character_transport_fixture.h"
 #include <math.h>
 #include "../physics/quicksand_visual.h"
+#include "../physics/pole_pose.h"
 
 static RocketWorld *world;
 static RocketSnapshot source;
@@ -246,6 +247,15 @@ int main(void) {
     CHECK(source.quicksand_depth==0);
     transmit(CNET_PRESENTATION,0);transmit(CNET_DRIVING,0);
     transmit(0,0);reset(40);step(30,1);
+    /* Native pole presentation and its actual vertical RocketSim release use
+     * the existing activity/pose channel; observers never execute a local grab. */
+    reset(5000);float poleFeet[]={0,5000,0};RocketSnapshot launch=source;
+    rocket_pole_pose(&launch,poleFeet,0,1);launch.velocity[1]=1860;launch.velocity[2]=-720;
+    CHECK(rocket_world_pole_release(world,&launch,1));sourceEpoch++;frame=0;
+    CHECK(rocket_world_snapshot(world,&source));transmit(CNET_PRESENTATION,1);transmit(CNET_PRESENTATION,1);
+    step(20,1);CHECK(source.jumped&&!source.double_jumped&&!source.flipped&&source.position[1]>5500);
+    input.pitch=-1;input.jump=1;step(1,0);CHECK(source.flipped);
+    input.jump=0;step(8,1);
     CHECK(lostCount>20&&reorderedCount>20&&deliveredCount>200);
     rocket_world_destroy(world);
     printf("network motion: %d checks; %u sent, %u applied, %u dropped, %u duplicate/older rejected\n",checks,sentCount,deliveredCount,lostCount,reorderedCount);

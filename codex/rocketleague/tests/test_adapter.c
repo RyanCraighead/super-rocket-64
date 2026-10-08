@@ -88,6 +88,7 @@ int rocket_runtime_frame(uint64_t frame,const RocketInput *input,int paused,int 
 void rocket_runtime_set_quicksand_depth(float depth){pose.quicksand_depth=depth;}
 int rocket_runtime_snapshot(RocketSnapshot *out){if(!draw)return 0;*out=pose;return 1;}
 int rocket_runtime_recover(const RocketSnapshot *out){++recoveries;memcpy(pose.position,out->position,sizeof pose.position);memcpy(pose.basis,out->basis,sizeof pose.basis);memset(pose.velocity,0,sizeof pose.velocity);return 1;}
+int rocket_runtime_pole_release(const RocketSnapshot *out,int jumped){float fuel=pose.boost;++resets;pose=*out;pose.boost=fuel;pose.jumped=jumped;draw=0;return 1;}
 int rocket_runtime_read_input(const RocketInput *keyboard,RocketInput *out){*out=rocket_gamepad_merge(keyboard,&fixtureGamepad);return !uiBlocked&&draw&&enabled;}
 // The host exports a nonstandard atan2f. Heading conversion must not use it.
 #ifndef TEST_NATIVE_MATH

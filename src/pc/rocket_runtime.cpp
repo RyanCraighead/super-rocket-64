@@ -217,6 +217,11 @@ extern "C" int rocket_runtime_recover(const RocketSnapshot *pose){
     ++epoch; // Remote interpolation must not sweep a recovered car through the gate.
     return rocket_world_snapshot(world.get(),&current);
 }
+extern "C" int rocket_runtime_pole_release(const RocketSnapshot *pose,int jumped){
+    if(!rocket_world_pole_release(world.get(),pose,jumped))return 0;
+    rocket_audio_reset();++epoch;drawable=false;capVisuals=0;std::fill(spin,spin+4,0.f);
+    return rocket_world_snapshot(world.get(),&current);
+}
 extern "C" int rocket_runtime_frame(uint64_t frame,const RocketInput *input,int paused,int blocked){
     blocked=blocked||!SDL_GetKeyboardFocus()||gamepad.ui_blocked;
     if(!input)return -1;
@@ -324,6 +329,7 @@ extern "C" int rocket_runtime_frame(uint64_t,const RocketInput*,int,int){return 
 extern "C" int rocket_runtime_bump(const float*){return 0;}
 extern "C" int rocket_runtime_snapshot(RocketSnapshot*){return 0;}
 extern "C" void rocket_runtime_set_quicksand_depth(float){}
+extern "C" int rocket_runtime_pole_release(const RocketSnapshot*,int){return 0;}
 extern "C" int rocket_runtime_draw(const float*,const float*,const int*){return 0;}
 extern "C" const char *rocket_runtime_status(void){return "Rocket car is not compiled; build with ROCKET_CAR=1";}
 #endif

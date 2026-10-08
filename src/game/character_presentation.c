@@ -2,6 +2,7 @@
  * mesh. Retain the last validated selected-character pose, following the native
  * position/yaw. No invented source animation, source ticks, attacks or immunity. */
 #include "character_presentation.h"
+#include "rocket_pole.h"
 #include "sm64.h"
 #include "character_switch.h"
 #include "mario.h"
@@ -106,6 +107,7 @@ void character_presentation_finish(struct MarioState *m,int source_owns_action) 
                 }
                 pose.car.wheel_position[i][k]=v;
             }
+            rocket_pole_present(m,&pose.car);
             ok=1;break;
         }
         case CHARACTER_BANJO:

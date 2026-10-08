@@ -1,5 +1,35 @@
 # Verification and limitations
 
+## v0.2.19: pyramid poles and castle beam entrance
+
+The two native pyramid poles accept local car contact using the full oriented
+body. Mapped steering/pitch and fresh jump drive native grab, climb, slide,
+top and jump actions. The complete body and wheels turn vertically through
+the narrow shaft, with bounded full-body native-surface clearance. Native
+release pose/velocity return once to car physics while preserving fuel and
+quarantining held jump/boost until release. Focus, pause, deletion, ownership
+and native-state gates prevent unintended progression or immediate recapture.
+
+The castle Wing Cap beam entrance accepts a deliberate two-second wait on
+its actual native floor: sixty consecutive distinct frames, parked upright,
+all four tires grounded, dry and with driving/jump/boost released. Native
+saved-star requirements, warp scheduling and authored destination remain
+authoritative. Leaving, movement, interruption or pending warps reset/block
+the bridge; no cap, star, saved preference or other unlock is granted.
+
+Verification covers native implementation and actual input/adapter bridges,
+18 Windows physics suites, owned pyramid clearance and release, castle/pyramid
+stairs, unchanged non-stair trajectories, packet ingress/interpolation,
+saved controls, menus, exact Windows build and clean/upgrade/repair packages.
+The env3 compatibility marker and packet format remain unchanged from v0.2.18.
+
+Physical-controller feel, rendered gameplay and two-PC socket delivery remain
+unperformed. Existing extractor package-profile limitations remain. Unfinished
+launcher cleanup, camera binding, tutorials and visual/HUD work are excluded.
+
+See [terrain controls](../codex/rocketleague/TERRAIN-CONTROLS.md).
+
+
 ## v0.2.18: launcher startup, stairs, surface modes and quicksand
 
 Native launcher choices paint the parent background; update descriptions have

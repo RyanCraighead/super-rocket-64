@@ -21,6 +21,8 @@
 #include "rocket_adapter.h"
 #include "rocket_penguin.h"
 #include "rocket_quicksand.h"
+#include "rocket_pole.h"
+#include "rocket_beam.h"
 #include "rocket_caps.h"
 #include "../../codex/rocketleague/physics/body_contact.h"
 #include "../../codex/rocketleague/physics/vanish_collision.h"
@@ -71,6 +73,30 @@ static struct Surface *phase_overlap(const RocketSnapshot *pose,int allSolid) {
     }
     return NULL;
 }
+int rocket_adapter_pole_pose_clear(const RocketSnapshot *pose,unsigned nativeFlags){
+    if(!rocket_body_pose_valid(pose))return 0;
+    int low[3]={0},high[3]={0};
+    const float half[3]={ROCKET_BODY_HALF_LENGTH+2,ROCKET_BODY_HALF_WIDTH+2,ROCKET_BODY_HALF_HEIGHT+2};
+    for(int k=0;k<3;k+=2){
+        float center=pose->position[k]+pose->basis[k]*ROCKET_BODY_FORWARD_OFFSET+pose->basis[6+k]*ROCKET_BODY_UP_OFFSET;
+        float extent=0;for(int axis=0;axis<3;axis++)extent+=fabsf(pose->basis[axis*3+k])*half[axis];
+        if(center-extent<=-LEVEL_BOUNDARY_MAX||center+extent>=LEVEL_BOUNDARY_MAX)return 0;
+        low[k]=(int)((center-extent+LEVEL_BOUNDARY_MAX)/CELL_SIZE);
+        high[k]=(int)((center+extent+LEVEL_BOUNDARY_MAX)/CELL_SIZE);
+    }
+    for(int dynamic=0;dynamic<2;dynamic++){
+        SpatialPartitionCell (*partition)[NUM_CELLS]=dynamic?gDynamicSurfacePartition:gStaticSurfacePartition;
+        for(int x=low[0];x<=high[0];x++)for(int z=low[2];z<=high[2];z++)for(int p=0;p<3;p++)
+            for(struct SurfaceNode *node=partition[z][x][p].next;node;node=node->next){
+                const struct Surface *s=node->surface;
+                if(!solid_surface(s)||((nativeFlags&MARIO_VANISH_CAP)&&native_phase_surface(s)))continue;
+                float triangle[3][3];const s16 *v[]={s->vertex1,s->vertex2,s->vertex3};
+                for(int i=0;i<3;i++)for(int k=0;k<3;k++)triangle[i][k]=v[i][k];
+                if(rocket_car_triangle_overlap(pose,triangle,2.f))return 0;
+            }
+    }
+    return 1;
+}
 static int phase_clear_pose(const RocketSnapshot *pose,RocketSnapshot *out) {
     struct Surface *surface=phase_overlap(pose,0);
     if(!surface){*out=*pose;return 1;}
@@ -106,6 +132,7 @@ static struct PlatformIdentity {
 } platformIdentities[1024];
 static uint64_t nextPlatformId;
 void rocket_adapter_forget_platform(struct Object *object) {
+    rocket_pole_forget(object);
     rocket_penguin_forget(object);
     whomp_crush_forget(object);
     for(size_t i=0;i<1024;i++)if(platformIdentities[i].object==object)
@@ -197,6 +224,7 @@ static int sync_mesh(struct MarioState *m,int dynamic) {
     free(triangles);free(surfaces);return ok;
 }
 void rocket_adapter_suspend(void) {
+    rocket_beam_reset();
     rocket_quicksand_suspend();
     rocket_penguin_suspend(player);
     // A handoff at the current pose must not strand native Mario inside a grate.
@@ -221,6 +249,7 @@ void rocket_adapter_set_selected(int active) {
     active = !!active;
     if (selected != active) rocket_adapter_suspend();
     selected = active;
+    if(!active)rocket_pole_forget(NULL);
 }
 int rocket_adapter_car_selected(void) { return selected && rocket_runtime_enabled(); }
 const char *rocket_adapter_switch_reason(void) {
@@ -491,6 +520,7 @@ void rocket_adapter_prepare_interactions(struct MarioState *m) {
        m->riddenObj||m->heldByObj||m->freeze||sCurrPlayMode==PLAY_MODE_PAUSED||
        0||!gObjectLists)return;
     cap_pickups(m);
+    rocket_pole_prepare(m);
     if(rocket_pipe_interaction(m)||ccm_chimney_interaction(m)||jrb_ship_interaction(m)||pss_alcove_interaction(m))return;
     RocketSnapshot state;RocketInput keyboard=keyboard_input(m),input;
     if(!rocket_runtime_read_input(&keyboard,&input)||input.throttle<=.2f||input.jump||
@@ -567,12 +597,14 @@ int rocket_adapter_update(struct MarioState *m) {
     if(!rocket_runtime_enabled()||!m->marioObj||!m->controller||!m->area) {rocket_adapter_suspend();return 0;}
     if(player&&(player!=m||area!=m->area||level!=gCurrLevelNum))rocket_adapter_suspend();
     int metal=!!(m->flags&MARIO_METAL_CAP);
+    RocketSnapshot poleRelease;int poleJump=0;
+    int releasing=rocket_pole_take_release(m,&poleRelease,&poleJump);
     int submerged=m->pos[1]<m->waterLevel-100.f;
     /* A cap can be collected while swimming, or native shock can recover into
      * water idle. Reacquire only ordinary swimming, never drowning/whirlpool. */
     int metalEntry=metal&&submerged&&(m->action==ACT_WATER_IDLE||m->action==ACT_WATER_PLUNGE||
         m->action==ACT_BREASTSTROKE||m->action==ACT_SWIMMING_END||m->action==ACT_FLUTTER_KICK);
-    if((whompCrush.m==m&&m->squishTimer>0&&m->squishTimer<255)||(!supported(m->action)&&!metalEntry)||m->health<0x100||(m->heldObj&&!rocket_penguin_carried(m))||m->riddenObj||m->heldByObj||(m->input&INPUT_SQUISHED)) {
+    if((whompCrush.m==m&&m->squishTimer>0&&m->squishTimer<255)||(!supported(m->action)&&!metalEntry&&!releasing)||m->health<0x100||(m->heldObj&&!rocket_penguin_carried(m))||m->riddenObj||m->heldByObj||(m->input&INPUT_SQUISHED)) {
         rocket_adapter_suspend();return 0;
     }
     if(player) {
@@ -587,12 +619,12 @@ int rocket_adapter_update(struct MarioState *m) {
         phaseActive=!!(m->flags&MARIO_VANISH_CAP);
         if(m->pos[1]<m->waterLevel-100.f)p[1]=m->pos[1];
         if(m->action==ACT_FREEFALL||metalEntry||(m->action&ACT_FLAG_METAL_WATER))for(int i=0;i<3;++i)v[i]=m->vel[i]*30.f;
-        if(!sync_mesh(m,0)||!sync_mesh(m,1)||!rocket_runtime_reset(p,v,(float)(u16)m->faceAngle[1]*(6.28318530718f/65536.f))) {
+        if(!sync_mesh(m,0)||!sync_mesh(m,1)||!(releasing?rocket_runtime_pole_release(&poleRelease,poleJump):rocket_runtime_reset(p,v,(float)(u16)m->faceAngle[1]*(6.28318530718f/65536.f)))) {
             rocket_adapter_suspend();return 0;
         }
         player=m;area=m->area;level=gCurrLevelNum;
     }
-    if(m->freeze||sCurrPlayMode==PLAY_MODE_PAUSED){rocket_runtime_interrupt();m->marioObj->header.gfx.node.flags|=GRAPH_RENDER_INVISIBLE;ownHide=1;return 1;}
+    if(m->freeze||sCurrPlayMode==PLAY_MODE_PAUSED){rocket_beam_reset();rocket_runtime_interrupt();m->marioObj->header.gfx.node.flags|=GRAPH_RENDER_INVISIBLE;ownHide=1;return 1;}
     if(!haveFrame||previousFrame!=gGlobalTimer) {
         int nextPhase=!!(m->flags&MARIO_VANISH_CAP);
         RocketSnapshot pose,recovered;
@@ -658,5 +690,6 @@ int rocket_adapter_update(struct MarioState *m) {
     // bridge advances native sink depth only once, including repeated calls.
     if(rocket_quicksand_update(m,&state)){rocket_adapter_suspend();return 0;}
     rocket_runtime_set_quicksand_depth(rocket_quicksand_depth());
+    rocket_beam_update(m,&state);
     return 1;
 }

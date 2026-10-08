@@ -63,7 +63,12 @@ s32 check_ledge_grab(struct MarioState *m,struct Surface *wall,Vec3f pos,Vec3f n
 u32 mario_get_terrain_sound_addend(struct MarioState *m){(void)m;return 0;}
 s32 mario_get_floor_class(struct MarioState *m){(void)m;return SURFACE_CLASS_DEFAULT;}
 s32 mario_facing_downhill(struct MarioState *m,s32 yaw){(void)m;(void)yaw;return 0;}
-f32 get_additive_y_vel_for_jumps(void){CHECK(0);return 0;}
+f32 get_additive_y_vel_for_jumps(void){
+#ifndef ROCKET_POLE_REAL_TEST
+    CHECK(0);
+#endif
+    return 0; // Explicit default bonus-velocity config in the pole fixture.
+}
 void mario_set_forward_vel(struct MarioState *m,f32 v){m->forwardVel=v;m->vel[0]=m->slideVelX=v*sins(m->faceAngle[1]);m->vel[2]=m->slideVelZ=v*coss(m->faceAngle[1]);}
 s32 drop_and_set_mario_action(struct MarioState *m,u32 action,u32 arg){drops++;m->heldObj=NULL;return set_mario_action(m,action,arg);}
 bool smlua_call_event_hooks_HOOK_BEFORE_SET_MARIO_ACTION(struct MarioState *m,u32 a,u32 arg,u32 *override){(void)m;(void)a;(void)arg;(void)override;return false;}

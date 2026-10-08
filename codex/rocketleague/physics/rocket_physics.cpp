@@ -663,6 +663,20 @@ extern "C" int rocket_world_recover(RocketWorld *w,const RocketSnapshot *pose) {
     return 1;
     } catch(const std::exception &e) {error=e.what();return 0;}
 }
+extern "C" int rocket_world_pole_release(RocketWorld *w,const RocketSnapshot *pose,int jumped){
+    if(!w||!pose||!finite3(pose->position)||!finite3(pose->velocity)||(jumped!=0&&jumped!=1))return 0;
+    for(int i=0;i<3;i++)for(int j=i;j<3;j++){
+        float dot=0;for(int k=0;k<3;k++)dot+=pose->basis[i*3+k]*pose->basis[j*3+k];
+        if(!std::isfinite(dot)||std::fabs(dot-(i==j?1.f:0.f))>.015f)return 0;
+    }
+    RotMat rotation(fromHost(pose->basis)*ROCKET_HOST_SCALE,fromHost(pose->basis+3)*ROCKET_HOST_SCALE,fromHost(pose->basis+6)*ROCKET_HOST_SCALE);
+    if(rotation.forward.Cross(rotation.right).Dot(rotation.up)<.98f)return 0;
+    if(!rocket_world_reset(w,pose->position,pose->velocity,0))return 0;
+    auto state=w->car->GetState();state.rotMat=rotation;
+    state.hasJumped=!!jumped;state.isJumping=false;state.jumpTime=0;
+    w->car->SetState(state);w->arena->_bulletWorld.updateSingleAabb(&w->car->_rigidBody);
+    return 1;
+}
 // Swimming up also releases wall/ceiling adhesion. Contact normals come
 // from the current suspension rays and accepted chassis manifolds, never a
 // guessed nearby surface. Cap separation speed instead of accumulating jump

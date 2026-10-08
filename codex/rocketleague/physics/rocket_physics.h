@@ -85,6 +85,7 @@ void rocket_world_set_water_query(RocketWorld *world,RocketWaterQuery query);
 int rocket_world_set_environment(RocketWorld *world, const RocketEnvironment *environment);
 void rocket_world_set_surface_mode(RocketWorld *world, unsigned mode);
 int rocket_world_set_quicksand_depth(RocketWorld *world, float depth);
+int rocket_world_pole_release(RocketWorld *world,const RocketSnapshot *pose,int jumped);
 /* Local native Metal Cap underwater mode, never received from a pose packet. */
 void rocket_world_set_metal_water(RocketWorld *world, int active);
 /* Complete replacement of one static collision layer. */

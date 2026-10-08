@@ -1,12 +1,18 @@
 /* Actual presentation bridge; source render services are explicit inert mocks. */
 #include <assert.h>
 #include <stdio.h>
+#define ROCKET_POLE_REAL_TEST
+#include "pole_fixture_stubs.h"
 #ifndef CHARACTER_PRESENTATION_SOURCE
 #define CHARACTER_PRESENTATION_SOURCE "../../../src/game/character_presentation.c"
 #endif
 #include CHARACTER_PRESENTATION_SOURCE
+#include "behavior_data.h"
+#include "level_table.h"
+#include "../physics/pole_pose.h"
 struct CLIOptions gCLIOpts;
 s16 gCurrLevelNum;
+s16 sCurrPlayMode;u32 gGlobalTimer;
 static int available=1,snapshotReady,submits,draws,linkReady;
 static enum CharacterSwitchId choice=CHARACTER_OCTANE;
 static RocketSnapshot car;
@@ -14,6 +20,13 @@ static BkRenderSnapshot banjo;
 static Bm64RenderSnapshot bomber;
 static SpidermanRenderSnapshot spider;
 static ThpsRenderSnapshot tony;
+const BehaviorScript bhvPoleGrabbing[]={44};
+int rocket_adapter_car_selected(void){return available&&choice==CHARACTER_OCTANE;}
+int rocket_adapter_pole_pose_clear(const RocketSnapshot*p,unsigned flags){(void)flags;assert(rocket_body_pose_valid(p));return 1;}
+s32 obj_has_behavior(struct Object*o,const BehaviorScript*b){return o&&o->behavior==b;}
+int rocket_runtime_read_selected_input(const RocketInput*k,RocketInput*out){*out=*k;return available;}
+s32 mario_execute_automatic_action(struct MarioState*m){assert(m->action==ACT_HOLDING_POLE);return 0;}
+u32 set_mario_action(struct MarioState*m,u32 action,u32 arg){m->action=action;m->actionArg=arg;return 1;}
 int character_switch_enabled(void){return 1;}
 enum CharacterSwitchId character_switch_active(void){return choice;}
 int rocket_runtime_enabled(void){return available;}
@@ -38,6 +51,7 @@ static struct Object playerObject;
 static struct Area testArea;
 static struct Surface floorSurface;
 static void fresh(enum CharacterSwitchId id){
+ rocket_pole_forget(NULL);
  owner=NULL;valid=presenting=0;choice=id;submits=draws=linkReady=0;available=1;
  memset(&mario,0,sizeof mario);memset(&playerObject,0,sizeof playerObject);memset(&car,0,sizeof car);
  memset(&gCLIOpts,0,sizeof gCLIOpts);gCLIOpts.characterWheel=1;
@@ -55,6 +69,21 @@ static void fresh(enum CharacterSwitchId id){
 #include "../physics/quicksand_visual.h"
 int main(void){
  test_door_presentation();
+    fresh(CHARACTER_OCTANE);struct Object poleObject={0};struct Controller poleController={0};
+    gCurrLevelNum=LEVEL_SSL;testArea.index=2;poleObject.behavior=bhvPoleGrabbing;poleObject.activeFlags=ACTIVE_FLAG_ACTIVE;
+    poleObject.header.gfx.activeAreaIndex=2;poleObject.hitboxHeight=920;poleObject.oPosX=123;poleObject.oPosZ=456;
+    mario.usedObj=&poleObject;mario.controller=&poleController;mario.action=ACT_HOLDING_POLE;
+    vec3f_copy(mario.pos,playerObject.header.gfx.pos);playerObject.oMarioPolePos=mario.pos[1];
+    assert(rocket_pole_execute(&mario)==0);character_presentation_begin(&mario);
+    struct MarioState poleBefore=mario;character_presentation_finish(&mario,0);
+    RocketSnapshot polePicture;assert(character_presentation_car_snapshot(&polePicture));
+    assert(polePicture.basis[1]==1&&polePicture.basis[7]==0&&rocket_body_pose_valid(&polePicture));
+    assert(fabsf(polePicture.position[1]-(80+ROCKET_BODY_HALF_LENGTH-ROCKET_BODY_FORWARD_OFFSET))<.001f);
+    assert(!memcmp(&mario,&poleBefore,sizeof mario));
+    CharacterNetState poleNet={0};poleNet.kind=CNET_OCTANE;poleNet.active=CNET_PRESENTATION;poleNet.speed_percent=100;poleNet.car=polePicture;
+    uint8_t poleWire[CNET_WIRE_SIZE];assert(character_net_encode(poleWire,sizeof poleWire,&poleNet));
+    CharacterNetState received;assert(character_net_decode(&received,poleWire,sizeof poleWire)&&received.car.basis[1]==1);
+    character_presentation_draw(NULL,NULL,NULL);assert(draws==1);
     fresh(CHARACTER_OCTANE);car.quicksand_depth=60;snapshotReady=1;
     character_presentation_begin(&mario);snapshotReady=0;
     /* Native death/graphics has already sunk this transform. The same render

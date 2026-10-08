@@ -131,3 +131,56 @@ adapter, every remappable controller jump binding plus keyboard, real physics,
 native presentation, packet writer/ingress and render interpolation under loss
 and reordering. Engine services in native tests remain explicit fixtures;
 these checks do not claim a recorded game session or real network delivery.
+
+## Pyramid poles
+
+The two native pole-grab objects inside SSL area 2 now accept local airborne
+car contact. The actual oriented car box supplies nose/side reach to these
+pole cylinders, with native collision-list limits and solid-wall visibility;
+other objects retain their existing reach. Native Mario retains the actual grab, turn, climb, slide, top and
+jump-off actions. The configured steering stick and keyboard supply native
+climb/turn input through a temporary controller copy; remapped jump uses a fresh
+edge. Held entry, menus, focus, pause and freeze cannot synthesize a jump. Other
+tree/pole contacts retain car control and native Mario remains unchanged.
+
+While attached the complete car stands nose-up along the pole. Its offset
+Octane box is not scaled: the 241-unit length fits vertically through the
+authored 203-by-205 upper shaft. Native capsule floor/wall/ceiling checks still
+run, with additional full-car swept position/yaw clearance from the actual
+nearby static/dynamic surface cells. A blocked climb retains its last clear
+position. The same transform rotates body and wheels in native presentation.
+
+Jump-off hands the real native launch velocity and vertical orientation back
+to RocketSim. It retains fuel, marks the native first jump as spent and leaves
+normal aerial controls, fresh second jump/flip, boost and real body collisions
+available. Held actions remain quarantined until release. The same pole cannot
+immediately grab the car again before it leaves the native overlap region.
+Object deletion, selection/area changes and native cancellation retire state.
+
+The existing presentation/driving packet activity carries these poses; no new
+wire fields or compatibility marker are needed. Remote observers never run a
+second local grab. Tests exercise actual native actions, remaps and adapter
+handoff, full-model presentation/codec, both owned pyramid climbs, all headings
+through the narrow shaft, all three surface modes at 50/75/100% speed, real
+mid-shaft launch collision and impaired packet delivery. These are headless
+fixtures, not a rendered gameplay or physical-controller session.
+
+## Castle light beam
+
+Park upright on all four wheels on the native castle lobby light-beam floor
+for two uninterrupted seconds to enter the Wing Cap tower. Release driving,
+jump and boost controls. The native saved-star requirement still applies;
+this does not unlock the cap switch or award stars. The existing F2 warp owns
+the thirty-frame white transition and authored destination.
+
+The car bridge samples the actual floor under the chassis after motion and
+requires nearby ground, dry contact and only small resting velocity. Leaving,
+moving, jumping, changing character/area, injury, pause, frozen control,
+focus loss or menu input resets the wait. Duplicate frame calls do not add
+time, skipped frames restart the wait, and an accepted visit fires once.
+Native Mario's camera look-up path and all saved settings remain unchanged.
+
+Windowless tests run the actual native warp scheduling/destination functions,
+the real car adapter and controller/keyboard mapping, with explicit saved-star,
+surface, runtime and audiovisual service fixtures. No real gameplay capture
+or controller hardware session is implied.

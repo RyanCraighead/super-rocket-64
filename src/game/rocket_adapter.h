@@ -12,6 +12,7 @@ int rocket_adapter_read_input(struct RocketInput *input);
 /* Local ownership/pose query for native collision detection; input capture
  * does not make a stationary car immune to enemies. Never steps physics. */
 int rocket_adapter_body_snapshot(struct Object *object,struct RocketSnapshot *state);
+int rocket_adapter_pole_pose_clear(const struct RocketSnapshot *pose,unsigned nativeFlags);
 int rocket_adapter_platform_snapshot(struct RocketSnapshot *state);
 int rocket_adapter_car_selected(void);
 void rocket_adapter_forget_platform(struct Object *object);

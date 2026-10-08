@@ -1,5 +1,6 @@
 #include "game/rocket_caps.h"
 #include "rocket_lava.h"
+#include "rocket_pole.h"
 #include "character_switch.h"
 #include "character_presentation.h"
 #include <PR/ultratypes.h>
@@ -2180,7 +2181,10 @@ s32 execute_mario_action(UNUSED struct Object *o) {
                     break;
 
                 case ACT_GROUP_AUTOMATIC:
-                    inLoop = mario_execute_automatic_action(gMarioState);
+                    {
+                        int pole = rocket_pole_execute(gMarioState);
+                        inLoop = pole < 0 ? mario_execute_automatic_action(gMarioState) : pole;
+                    }
                     break;
 
                 case ACT_GROUP_OBJECT:
