@@ -3,9 +3,12 @@
 struct MarioState;
 struct Object;
 struct RocketSnapshot;
+struct RocketInput;
 struct Surface;
 int rocket_adapter_platform_contact(struct MarioState *m,struct Surface *floor,float height);
 int rocket_adapter_interaction_snapshot(struct RocketSnapshot *state);
+/* Current mapped local controls with the same focus/menu/pose ownership gates. */
+int rocket_adapter_read_input(struct RocketInput *input);
 /* Local ownership/pose query for native collision detection; input capture
  * does not make a stationary car immune to enemies. Never steps physics. */
 int rocket_adapter_body_snapshot(struct Object *object,struct RocketSnapshot *state);

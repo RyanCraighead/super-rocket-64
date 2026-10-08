@@ -220,6 +220,22 @@ static void test_body_snapshot(void){
     assert(steps==before&&resets==oldResets);
     rocket_adapter_suspend();assert(!rocket_adapter_body_snapshot(&object,&snapshot));
 }
+static void test_current_controls(void){
+    RocketInput input;
+    fresh();assert(!rocket_adapter_read_input(&input));step();
+    controller.rawStickY=80;controller.rawStickX=-40;
+    assert(rocket_adapter_read_input(&input)&&input.throttle==1&&input.steer==.5f);
+    int before=steps,oldResets=resets;
+    assert(!rocket_adapter_read_input(NULL));
+    uiBlocked=1;assert(!rocket_adapter_read_input(&input));uiBlocked=0;
+    mario.freeze=1;assert(!rocket_adapter_read_input(&input));mario.freeze=0;
+    sCurrPlayMode=PLAY_MODE_PAUSED;assert(!rocket_adapter_read_input(&input));sCurrPlayMode=0;
+    mario.action=ACT_LAVA_BOOST;assert(!rocket_adapter_read_input(&input));mario.action=ACT_IDLE;
+    mario.controller=NULL;assert(!rocket_adapter_read_input(&input));mario.controller=&controller;
+    gGlobalTimer+=2;assert(!rocket_adapter_read_input(&input));gGlobalTimer-=2;
+    assert(rocket_adapter_read_input(&input)&&steps==before&&resets==oldResets);
+    rocket_adapter_set_selected(0);assert(!rocket_adapter_read_input(&input));
+}
 static void grate_setup(int dynamic){
     fresh();door_wall(2,dynamic);
     surfaces[2].type=SURFACE_VANISH_CAP_WALLS;surfaces[2].normal.z=-1;
@@ -505,6 +521,7 @@ int main(int argc,char **argv){
     test_doors();
     test_interaction_snapshot();
     test_body_snapshot();
+    test_current_controls();
     test_vanish();test_vanish_environment_recovery();test_vanish_progression();
     test_metal_water();test_switch_platform();
     puts("PASS real host adapter: collision/dedup, controls, pause, reset/doors, selective Vanish/full-body recovery, blue switch/box detection and native pickups/stars");

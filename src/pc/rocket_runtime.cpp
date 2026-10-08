@@ -182,11 +182,15 @@ extern "C" void rocket_runtime_gamepad(const RocketGamepad *pad){
     gamepad=next;
 }
 extern "C" void rocket_runtime_last_input(RocketInput *input){if(input)*input=lastInput;}
-extern "C" int rocket_runtime_read_input(const RocketInput *keyboard,RocketInput *input){
+extern "C" int rocket_runtime_read_selected_input(const RocketInput *keyboard,RocketInput *input){
     if(!keyboard||!input)return 0;
     *input=rocket_gamepad_merge(keyboard,&gamepad);
-    if(!world||!drawable||!SDL_GetKeyboardFocus()||gamepad.ui_blocked){*input={};return 0;}
+    if(!world||!SDL_GetKeyboardFocus()||gamepad.ui_blocked){*input={};return 0;}
     return 1;
+}
+extern "C" int rocket_runtime_read_input(const RocketInput *keyboard,RocketInput *input){
+    if(!drawable){if(input)*input={};return 0;}
+    return rocket_runtime_read_selected_input(keyboard,input);
 }
 extern "C" void rocket_runtime_suspend(void){rocket_audio_stop();drawable=false;capVisuals=0;rocket_world_set_environment(world.get(),nullptr);rocket_world_set_water_query(world.get(),nullptr);rocket_world_set_water(world.get(),0,0,0);rocket_world_interrupt(world.get());}
 extern "C" void rocket_runtime_set_cap_visuals(uint32_t flags){capVisuals=flags&MARIO_SPECIAL_CAPS;}
@@ -296,6 +300,7 @@ extern "C" int rocket_runtime_owns_controls(void){return 0;}
 extern "C" void rocket_runtime_gamepad(const RocketGamepad*){}
 extern "C" void rocket_runtime_last_input(RocketInput *input){if(input)*input=RocketInput{};}
 extern "C" int rocket_runtime_read_input(const RocketInput*,RocketInput *input){if(input)*input=RocketInput{};return 0;}
+extern "C" int rocket_runtime_read_selected_input(const RocketInput*,RocketInput *input){if(input)*input=RocketInput{};return 0;}
 extern "C" void rocket_runtime_suspend(void){}
 extern "C" int rocket_runtime_set_environment(const RocketEnvironment*){return 0;}
 extern "C" void rocket_runtime_interrupt(void){}

@@ -16,11 +16,20 @@ u32 gGlobalTimer;
 static struct Object playerObject,enemy;
 static struct Surface floorObject;
 static int actions,sends;
+#ifdef ROCKET_BULLY_REAL_TEST
+static RocketSnapshot bullyCar;
+static int bullyCarActive=1,bullyRingFloor;
+static struct Surface lavaFloor;
+#endif
 /* This fixture exercises ordinary damage/grabs; real boss ownership has its own suite. */
 int boss_net_managed(const struct Object *object){(void)object;return 0;}
 int boss_net_simulates(const struct Object *object){(void)object;return 0;}
 int rocket_adapter_body_snapshot(struct Object *object,RocketSnapshot *car){
     if(object!=&playerObject||gMarioStates[0].action!=ACT_IDLE)return 0;
+#ifdef ROCKET_BULLY_REAL_TEST
+    if(!bullyCarActive)return 0;
+    *car=bullyCar;return 1;
+#endif
     memset(car,0,sizeof(*car));car->basis[2]=car->basis[3]=car->basis[7]=1;return 1;
 }
 int spiderman_adapter_enemy_contact(struct MarioState *m,struct Object *object){(void)m;(void)object;return 0;}
@@ -45,7 +54,13 @@ void network_send_object_reliability(struct Object *object,bool reliable){(void)
 void stop_shell_music(void){}
 void obj_set_held_state(struct Object *object,const BehaviorScript *behavior){(void)object;(void)behavior;assert(0);}
 s32 f32_find_wall_collision(f32 *x,f32 *y,f32 *z,f32 offset,f32 radius){(void)x;(void)y;(void)z;(void)offset;(void)radius;return 0;}
-f32 find_floor(f32 x,f32 y,f32 z,struct Surface **floor){(void)x;(void)y;(void)z;*floor=&floorObject;return 0;}
+f32 find_floor(f32 x,f32 y,f32 z,struct Surface **floor){
+    (void)x;(void)y;(void)z;
+#ifdef ROCKET_BULLY_REAL_TEST
+    if(bullyRingFloor&&z>=200){*floor=&lavaFloor;return 0;}
+#endif
+    *floor=&floorObject;return 0;
+}
 
 static struct MarioState *fresh(void){
     memset(gMarioStates,0,sizeof(gMarioStates));memset(&playerObject,0,sizeof(playerObject));memset(&enemy,0,sizeof(enemy));

@@ -1,4 +1,5 @@
 #include "game/rocket_caps.h"
+#include "rocket_lava.h"
 #include "character_switch.h"
 #include "character_presentation.h"
 #include <PR/ultratypes.h>
@@ -1024,6 +1025,7 @@ static u32 set_mario_action_airborne(struct MarioState *m, u32 action, u32 actio
             if (actionArg == 0) {
                 m->forwardVel = 0.0f;
             }
+            rocket_lava_start(m, actionArg);
             break;
 
         case ACT_DIVE:

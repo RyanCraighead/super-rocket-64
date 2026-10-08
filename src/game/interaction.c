@@ -1,6 +1,8 @@
 #include "game/rocket_caps.h"
 #include "rocket_adapter.h"
 #include "rocket_penguin.h"
+#include "rocket_bully.h"
+#include "rocket_lava.h"
 #include "pc/rocket_runtime.h"
 #include "pc/player_bump.h"
 #include "pc/character_net.h"
@@ -1783,7 +1785,7 @@ u32 interact_bully(struct MarioState *m, UNUSED u32 interactType, struct Object 
     UNUSED u32 unused;
 
     u32 interaction;
-    if (m->flags & MARIO_METAL_CAP) {
+    if ((m->flags & MARIO_METAL_CAP) || rocket_bully_ram(m,o)) {
         interaction = INT_FAST_ATTACK_OR_SHELL;
     } else {
         interaction = determine_interaction(m, o);
@@ -2505,7 +2507,8 @@ void check_death_barrier(struct MarioState *m) {
 void check_lava_boost(struct MarioState *m) {
     if (!m) { return; }
     if (m->action == ACT_BUBBLED) { return; }
-    if (!(m->action & ACT_FLAG_RIDING_SHELL) && m->pos[1] < m->floorHeight + 10.0f) {
+    if (!(m->action & ACT_FLAG_RIDING_SHELL) &&
+        (m->pos[1] < m->floorHeight + 10.0f || rocket_lava_floor_contact(m))) {
         bool allowHazard = true;
         smlua_call_event_hooks(HOOK_ALLOW_HAZARD_SURFACE, m, HAZARD_TYPE_LAVA_FLOOR, &allowHazard);
         if (!allowHazard) { return; }
@@ -2549,6 +2552,11 @@ void pss_end_slide(struct MarioState *m) {
 void mario_handle_special_floors(struct MarioState *m) {
     if (!m) { return; }
     if ((m->action & ACT_GROUP_MASK) == ACT_GROUP_CUTSCENE || gDjuiInMainMenu) {
+        return;
+    }
+
+    if (rocket_lava_floor_contact(m)) {
+        check_lava_boost(m);
         return;
     }
 

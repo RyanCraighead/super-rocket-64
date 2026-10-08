@@ -1,6 +1,33 @@
 # Verification and limitations
 
 
+## v0.2.15: deliberate Bully rams and native lava escape
+
+Forward throttle, genuine forward motion and a closing frontal contact now use
+the native Bully fast-attack path. Stationary, side, rear, slow and receding
+contacts still take native damage. Native Bully code retains knockback,
+ownership, lava death and star/bridge/coin/minion rewards.
+
+Contacting tires and oriented body corners trigger native lava burns even when
+the car origin is above the floor. Native burn flight receives bounded mapped
+steering, acceleration and braking for escape. Native vertical motion, repeated
+landing damage, health drain, safe landing, Metal protection/expiry and death
+remain intact. Boost, jump and air-roll add no burn-flight force.
+
+Automated native integration checks cover 155 Bully and 140 lava cases, plus
+runtime input/focus gates and cumulative menu, penguin, damage, Metal, host and
+networking regressions. Windows build and package checks use public source and
+COOPNET=0. These tests use explicit geometry, input, audio and transport fixtures;
+physical-controller feel, rendered gameplay and two-PC acceptance remain
+unperformed post-release checks. No active game or installed save is used.
+
+The existing Rocket League extraction profile is unchanged. The available newer
+local Steam wheel package is unsupported; cached verified Octane assets remain
+usable. Fresh extraction from the supported package pair was not rerun.
+
+See [Bully ram](../codex/rocketleague/BULLY-RAM.md) and
+[lava bounce](../codex/rocketleague/LAVA-BOUNCE.md) for controls and test boundaries.
+
 ## v0.2.14: scrolling settings, controller difficulty and penguin carry
 
 Settings and binding panels scroll to keep keyboard/controller focus visible.

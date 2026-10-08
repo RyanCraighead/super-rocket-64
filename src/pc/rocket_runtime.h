@@ -27,6 +27,9 @@ void rocket_runtime_gamepad(const RocketGamepad *pad);
 void rocket_runtime_last_input(RocketInput *input);
 /* Read current input for host interactions without stepping physics. */
 int rocket_runtime_read_input(const RocketInput *keyboard,RocketInput *input);
+/* Caller must verify local car selection/native action. Keeps focus/UI gates
+ * while native damage temporarily owns movement and the car is not drawable. */
+int rocket_runtime_read_selected_input(const RocketInput *keyboard,RocketInput *input);
 void rocket_runtime_suspend(void);
 void rocket_runtime_interrupt(void);
 void rocket_runtime_set_water(int present,float level,int metal);

@@ -552,6 +552,14 @@ int rocket_adapter_interaction_snapshot(RocketSnapshot *state) {
     RocketInput keyboard=keyboard_input(player),input;
     return rocket_runtime_read_input(&keyboard,&input);
 }
+int rocket_adapter_read_input(RocketInput *input) {
+    RocketSnapshot pose;
+    if(!input)return 0;
+    *input=(RocketInput){0};
+    if(!player||!player->controller||!rocket_adapter_platform_snapshot(&pose))return 0;
+    RocketInput keyboard=keyboard_input(player);
+    return rocket_runtime_read_input(&keyboard,input);
+}
 int rocket_adapter_update(struct MarioState *m) {
     if(!selected||!m||m->playerIndex!=0)return 0;
     if(!rocket_runtime_enabled()||!m->marioObj||!m->controller||!m->area) {rocket_adapter_suspend();return 0;}

@@ -7,6 +7,9 @@ def extract(out):
     repo = Path(__file__).resolve().parents[3]
     out = Path(out); out.mkdir(parents=True, exist_ok=True)
     source = (repo/'src/game/mario.c').read_text()
+    # These health/cap functions use no sockets. The public Windows source
+    # intentionally excludes Linux transport headers from this fixture host.
+    source = source.replace('#include "pc/network/socket/socket.h"', '')
     (out/'metal_health_native.inc').write_text(slice_source(source,
         ['update_mario_health','update_and_return_cap_flags','mario_update_hitbox_and_cap_model'],['sCapFlickerFrames']))
     source = (repo/'src/game/interaction.c').read_text()

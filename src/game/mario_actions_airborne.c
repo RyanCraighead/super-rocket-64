@@ -1,4 +1,5 @@
 #include <PR/ultratypes.h>
+#include "rocket_lava.h"
 
 #include "sm64.h"
 #include "area.h"
@@ -1676,11 +1677,12 @@ s32 act_lava_boost(struct MarioState *m) {
     }
     play_character_sound_if_no_flag(m, CHAR_SOUND_ON_FIRE, MARIO_MARIO_SOUND_PLAYED);
 
-    if (!(m->input & INPUT_NONZERO_ANALOG)) {
-        m->forwardVel = approach_f32(m->forwardVel, 0.0f, 0.35f, 0.35f);
+    if (!rocket_lava_update(m)) {
+        if (!(m->input & INPUT_NONZERO_ANALOG)) {
+            m->forwardVel = approach_f32(m->forwardVel, 0.0f, 0.35f, 0.35f);
+        }
+        update_lava_boost_or_twirling(m);
     }
-
-    update_lava_boost_or_twirling(m);
 
     switch (perform_air_step(m, 0)) {
         case AIR_STEP_LANDED:
