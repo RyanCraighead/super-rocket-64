@@ -6,6 +6,7 @@
 #include "BulletCollision/CollisionDispatch/btCollisionObjectWrapper.h"
 #include "BulletCollision/BroadphaseCollision/btCollisionAlgorithm.h"
 #include "BulletCollision/CollisionShapes/btTriangleShape.h"
+#include "BulletCollision/NarrowPhaseCollision/btRaycastCallback.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -331,6 +332,7 @@ struct EnvironmentStep {
     explicit EnvironmentStep(RocketWorld *world):previous(steppingEnvironment){steppingEnvironment=world;}
     ~EnvironmentStep(){steppingEnvironment=previous;}
 };
+static void stepLowRiser(RocketWorld *w);
 static void environmentTick(btDynamicsWorld *world,btScalar dt) {
     auto *w=steppingEnvironment;
     if(!w||world!=&w->arena->_bulletWorld)return;
@@ -677,6 +679,166 @@ static void waterWallEscape(RocketWorld *w) {
     if(delta.length2()>limit*limit)delta=delta.normalized()*limit;
     body.setLinearVelocity(before+delta);
 }
+namespace {
+struct StepSweep : btCollisionWorld::ClosestConvexResultCallback {
+    const btCollisionObject *self;
+    btVector3 motion,faceNormal{0,0,0};
+    bool floorOnly=false;
+    StepSweep(const btCollisionObject *body,const btVector3 &a,const btVector3 &b)
+        : ClosestConvexResultCallback(a,b),self(body),motion(b-a) {}
+    bool needsCollision(btBroadphaseProxy *proxy) const override {
+        return proxy->m_clientObject!=self&&ClosestConvexResultCallback::needsCollision(proxy);
+    }
+    btScalar addSingleResult(btCollisionWorld::LocalConvexResult &hit,bool worldNormal) override {
+        btVector3 normal=worldNormal?hit.m_hitNormalLocal:
+            hit.m_hitCollisionObject->getWorldTransform().getBasis()*hit.m_hitNormalLocal;
+        if(normal.dot(motion)>=-SIMD_EPSILON)return m_closestHitFraction;
+        btVector3 authored=normal;
+        if(hit.m_hitCollisionObject->getUserIndex2()==HOST_MESH_TAG&&hit.m_localShapeInfo) {
+            auto *mesh=static_cast<const Mesh*>(hit.m_hitCollisionObject->getCollisionShape()->getUserPointer());
+            int index=hit.m_localShapeInfo->m_triangleIndex;
+            if(mesh&&index>=0&&(size_t)index<mesh->faces.size()) {
+                authored=hit.m_hitCollisionObject->getWorldTransform().getBasis()*mesh->faces[index].normal;
+                if(normal.dot(authored)<0)return m_closestHitFraction;
+            }
+        }
+        if(floorOnly&&authored.z()<.9961947f)return m_closestHitFraction;
+        faceNormal=authored;
+        return ClosestConvexResultCallback::addSingleResult(hit,worldNormal);
+    }
+};
+struct StepRay : btCollisionWorld::ClosestRayResultCallback {
+    const btCollisionObject *self;
+    StepRay(const btCollisionObject *body,const btVector3 &a,const btVector3 &b)
+        : ClosestRayResultCallback(a,b,body),self(body) {
+        m_flags=btTriangleRaycastCallback::kF_FilterBackfaces;
+    }
+    bool needsCollision(btBroadphaseProxy *proxy) const override {
+        return proxy->m_clientObject!=self&&ClosestRayResultCallback::needsCollision(proxy);
+    }
+};
+}
+static void stepLowRiser(RocketWorld *w) {
+    auto &car=*w->car;auto &body=car._rigidBody;
+    const auto &state=car._internalState;
+    if(w->waterMode!=ROCKET_WATER_DRY||state.hasJumped||state.hasFlipped||state.isJumping||state.isFlipping||
+       car.controls.jump||!car.controls.throttle)return;
+    // Native ground movement's upper wall probe is 60 host units. Follow
+    // the verified next support height before suspension compresses at a
+    // low vertical riser, avoiding an artificial ray-wheel impact impulse.
+    // The full real Octane box must fit above and beyond that bounded lift.
+    constexpr float maxStep=60.f/ROCKET_HOST_SCALE*UU_TO_BT;
+    constexpr float flatFloor=.9961947f; // native minimum slope angle: cos(5 deg)
+    int supported=0;float support=-SIMD_INFINITY;
+    for(int i=0;i<4;++i) {
+        const auto &ray=car._bulletVehicle.m_wheelInfo[i].m_raycastInfo;
+        if(ray.m_isInContact&&ray.m_contactNormalWS.z()>=flatFloor) {
+            ++supported;support=std::max(support,float(ray.m_contactPointWS.z()));
+        }
+    }
+    // One axle may bridge adjacent treads. Never invent a ground contact or
+    // alter the backend's grounded/jump state to grant this allowance.
+    if(supported<2)return;
+    auto transform=body.getWorldTransform();
+    if(transform.getBasis().getColumn(2).z()<=0)return;
+    btVector3 motion=body.getLinearVelocity()*ROCKET_TICK_SECONDS;motion.setZ(0);
+    btVector3 direction=transform.getBasis().getColumn(0);direction.setZ(0);
+    if(direction.length2()<=SIMD_EPSILON*SIMD_EPSILON)return;
+    direction.normalize();
+    direction*=car.controls.throttle>0?1.f:-1.f;
+    float along=motion.dot(direction),margin=car._childHitboxShape.getMargin();
+    if(along < -margin)return; // braking against established reverse travel
+    if(along<0)motion-=direction*along;
+    // Probe through the existing collision skin too. A car pressed against a
+    // riser has almost zero resolved speed; it still has a valid drive intent.
+    // This expands the query, never horizontal displacement or engine force.
+    motion+=direction*margin;
+    auto child=transform*car._compoundShape.getChildTransform(0),next=child;
+    next.getOrigin()+=motion;
+    auto &world=w->arena->_bulletWorld;
+    // Native ground movement measures the next rise from the floor under the
+    // character. When the front rays meet a riser, rear-tire height alone can
+    // lag that real center floor by a whole tread on short flights.
+    btVector3 center=transform.getOrigin(),under=center;under.setZ(support-maxStep);
+    StepRay centerFloor(&body,center,under);world.rayTest(center,under,centerFloor);
+    if(centerFloor.hasHit()&&centerFloor.m_collisionObject->getUserIndex2()==HOST_MESH_TAG&&
+       centerFloor.m_hitNormalWorld.z()>=flatFloor)
+        support=std::max(support,float(centerFloor.m_hitPointWorld.z()));
+    auto cast=[&](const btTransform &a,const btTransform &b,StepSweep &hit) {
+        world.convexSweepTest(&car._childHitboxShape,a,b,hit,0);
+    };
+    auto supportLift=[&](const btVector3 &point) {
+        // The pinned Octane resting plane, transformed with its current tilt.
+        // Target a height, not another relative rise on every prediction tick:
+        // the tire may still be before the edge after an earlier clearance lift.
+        btVector3 local=transform.inverse()*point;
+        float amount=(local.z()+RLConst::CAR_SPAWN_REST_Z*UU_TO_BT)/transform.getBasis().getColumn(2).z();
+        return amount>0&&amount<=maxStep?amount:0.f;
+    };
+    float lift=0;
+    for(int i=0;i<4;++i) {
+        const auto &wheel=car._bulletVehicle.m_wheelInfo[i];const auto &ray=wheel.m_raycastInfo;
+        if(!ray.m_isInContact)continue;
+        bool onRiser=std::fabs(ray.m_contactNormalWS.z())<=.01f;
+        if(!onRiser&&ray.m_contactNormalWS.z()<flatFloor)continue;
+        btVector3 previous=ray.m_contactPointWS,point=previous+motion;
+        if(onRiser) {
+            // A tilted suspension ray can hit a riser before it reaches the
+            // upper tread. Use its real endpoint and the floor below its hard
+            // point; a wall contact itself must never become tire support.
+            previous=ray.m_hardPointWS;previous.setZ(ray.m_contactPointWS.z()+maxStep);
+            btVector3 below=previous;below.setZ(ray.m_contactPointWS.z()-maxStep);
+            StepRay oldFloor(&body,previous,below);world.rayTest(previous,below,oldFloor);
+            if(!oldFloor.hasHit()||oldFloor.m_hitNormalWorld.z()<flatFloor)continue;
+            previous=oldFloor.m_hitPointWorld;
+            float length=wheel.getSuspensionRestLength()+wheel.m_maxSuspensionTravelCm/100.f+
+                wheel.m_wheelsRadius-RLConst::BTVehicle::SUSPENSION_SUBTRACTION;
+            point=ray.m_hardPointWS+ray.m_wheelDirectionWS*length+motion;
+        }
+        point.setZ(previous.z()+maxStep);
+        btVector3 bottom=point;bottom.setZ(previous.z()-SIMD_EPSILON);
+        StepRay floor(&body,point,bottom);world.rayTest(point,bottom,floor);
+        if(!floor.hasHit()||floor.m_collisionObject->getUserIndex2()!=HOST_MESH_TAG||
+           floor.m_hitNormalWorld.z()<flatFloor)continue;
+        float rise=floor.m_hitPointWorld.z()-previous.z();
+        if(rise<=SIMD_EPSILON||rise>maxStep)continue;
+        btVector3 from=previous,to=floor.m_hitPointWorld;
+        from.setZ(from.z()+rise*.5f);to.setZ(from.z());
+        StepRay riser(&body,from,to);world.rayTest(from,to,riser);
+        if(!riser.hasHit()||riser.m_collisionObject->getUserIndex2()!=HOST_MESH_TAG||
+           std::fabs(riser.m_hitNormalWorld.z())>.01f)continue;
+        float required=onRiser?floor.m_hitPointWorld.z()-ray.m_contactPointWS.z()+margin:
+            supportLift(floor.m_hitPointWorld);
+        if(required>0&&required<=maxStep)lift=std::max(lift,required);
+    }
+    // A taller low riser meets the nose before the front tire. Require its
+    // actual top within the native step bound measured from existing tire
+    // support, not from body height.
+    StepSweep obstacle(&body,child.getOrigin(),next.getOrigin());cast(child,next,obstacle);
+    if(obstacle.hasHit()&&obstacle.m_hitCollisionObject->getUserIndex2()==HOST_MESH_TAG&&
+       std::fabs(obstacle.faceNormal.z())<=.01f) {
+        auto high=next;high.getOrigin().setZ(next.getOrigin().z()+maxStep);
+        StepSweep down(&body,high.getOrigin(),next.getOrigin());down.floorOnly=true;cast(high,next,down);
+        if(down.hasHit()&&down.faceNormal.z()>=flatFloor&&
+           down.m_hitPointWorld.z()>support&&down.m_hitPointWorld.z()-support<=maxStep)
+            lift=std::max(lift,std::min(maxStep,maxStep*(1.f-down.m_closestHitFraction)+margin));
+    }
+    if(lift<=SIMD_EPSILON)return;
+    auto raised=child;raised.getOrigin().setZ(child.getOrigin().z()+lift);
+    StepSweep up(&body,child.getOrigin(),raised.getOrigin());cast(child,raised,up);
+    if(up.hasHit())return;
+    auto across=raised;across.getOrigin()+=motion;
+    StepSweep forward(&body,raised.getOrigin(),across.getOrigin());cast(raised,across,forward);
+    if(forward.hasHit())return;
+    transform.getOrigin().setZ(transform.getOrigin().z()+lift);
+    body.setWorldTransform(transform);body.setInterpolationWorldTransform(transform);
+    // The accepted supporting tread resolves downward motion like a ground
+    // contact. Do not carry a fall impulse through the positional correction;
+    // retain upward/horizontal motion, fuel, and every jump/flip timer.
+    auto velocity=body.getLinearVelocity();
+    if(velocity.z()<0) {velocity.setZ(0);body.setLinearVelocity(velocity);}
+    world.updateSingleAabb(&body);
+}
 extern "C" int rocket_world_frame(RocketWorld *w,uint64_t frame,const RocketInput *in,int paused,int blocked) {
     if(!w||!w->ready||!in) {error="World not ready or missing input";return -1;}
     unsigned held=(in->jump?1u:0u)|(in->boost?2u:0u)|(in->powerslide?4u:0u);
@@ -730,6 +892,7 @@ extern "C" int rocket_world_frame(RocketWorld *w,uint64_t frame,const RocketInpu
         float finiteBoost=w->car->_internalState.boost;
         bool unlimited=w->boostMode==ROCKET_BOOST_INFINITE||w->temporaryBoost||w->waterMode==ROCKET_WATER_JET;
         if(unlimited)w->car->_internalState.boost=100.f;
+        stepLowRiser(w);
         {EnvironmentStep scope(w);w->arena->Step();}
         btVector3 drift=fromHost(w->environment.drift)*UU_TO_BT;
         if(!drift.isZero())w->car->_rigidBody.setLinearVelocity(w->car->_rigidBody.getLinearVelocity()-drift);

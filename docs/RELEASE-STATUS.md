@@ -1,5 +1,32 @@
 # Verification and limitations
 
+## v0.2.18: native launcher choices, Setup routing and low stairs
+
+Native radio/checkbox painting now restores the actual parent background;
+update descriptions have separate bounds. Native PrintWindow captures cover
+both choices and simulated 100-200% DPI. Missing/incomplete installations stay
+in Setup or actionable recovery. Verified installations without explicit update
+consent finish the Ready step; configured installations retain Play/update flow.
+Preferences, shortcuts and save paths are preserved until explicit completion.
+
+Octane traverses actual low native risers using bounded vertical clearance of
+the full chassis and real tire support. Horizontal velocity, fuel, jump/flip
+state and collision shapes are preserved. Automated stair fixtures include
+40,686 checks and real castle/pyramid collision crossings. Exhaustive 50-100
+speed fixtures use an explicitly logged steering controller; fixed-input
+50/75/100 cases are separate. Non-stair trajectory invariants remain unchanged.
+
+Validation includes 288 native-window UI assertions, 31 headless, 23 updater
+and seven setup-inspection checks, the cumulative Windows/native physics and
+gameplay suites, and clean/upgrade/setup/repair/cancellation package checks.
+Physical-controller, rendered-gameplay, two-PC and real-monitor DPI acceptance
+remain unperformed. Existing Rocket League package-profile limitations remain.
+Three-mode surface changes, quicksand and other unfinished gameplay are excluded.
+
+See [launcher fix](../launcher/SETTINGS-STARTUP-FIX.md) and
+[terrain controls](../codex/rocketleague/TERRAIN-CONTROLS.md).
+
+
 
 ## v0.2.17: approved launcher presentation
 

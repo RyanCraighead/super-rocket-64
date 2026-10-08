@@ -35,6 +35,7 @@ namespace SuperRocket64 {
         [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr handle);
         [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
         [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr window,out uint process);
+        [DllImport("user32.dll")] static extern bool PrintWindow(IntPtr window,IntPtr dc,uint flags);
         static int checks;
         static void Need(bool condition,string message) { checks++; if(!condition) throw new InvalidOperationException(message); }
         static string DesktopName(IntPtr handle) { if(handle==IntPtr.Zero)throw new Win32Exception(); int length;StringBuilder value=new StringBuilder(512);if(!GetUserObjectInformation(handle,2,value,1024,out length))throw new Win32Exception();return value.ToString(); }
@@ -52,7 +53,56 @@ namespace SuperRocket64 {
         static Button Button(Control parent,string text) {foreach(Control c in parent.Controls){Button b=c as Button;if(b!=null&&b.Text==text)return b;if(c.HasChildren){b=Button(c,text);if(b!=null)return b;}}return null;}
         static void Click(Control page,string text) {Button b=Button(page,text);Need(b!=null&&b.Visible&&b.Enabled,"Missing usable button: "+text);b.PerformClick();Application.DoEvents();}
         static void Page(LauncherForm form,string name) {Need(Field<Control>(form,name).Visible,"Wrong page: "+name+"; notice="+Field<Label>(form,"notice").Text);}
-        static void Snapshot(LauncherForm form,string output,string name) {Application.DoEvents();form.PerformLayout();using(Bitmap b=new Bitmap(form.Width,form.Height)){form.DrawToBitmap(b,new Rectangle(Point.Empty,b.Size));b.Save(Path.Combine(output,name+".png"),ImageFormat.Png);}}
+        // DrawToBitmap composites transparent children differently and hid the
+        // reported black radio/checkbox bars. Capture the native window instead.
+        static void Snapshot(LauncherForm form,string output,string name) {WindowSnapshot(form,output,name);}
+        static void WindowSnapshot(LauncherForm form,string output,string name) {
+            form.Refresh();Application.DoEvents();using(var bitmap=new Bitmap(form.Width,form.Height))using(var graphics=Graphics.FromImage(bitmap)){
+                IntPtr dc=graphics.GetHdc();try{Need(PrintWindow(form.Handle,dc,0),"Window rendering failed");}finally{graphics.ReleaseHdc(dc);}bitmap.Save(Path.Combine(output,name+".png"),ImageFormat.Png);
+            }
+        }
+        static Control TextControl(Control parent,string text){foreach(Control c in parent.Controls){if(c.Text==text)return c;Control found=TextControl(c,text);if(found!=null)return found;}return null;}
+        static void ChoicePaint(LauncherForm form,string output,string name){
+            Field<Label>(form,"notice").Text="";Call(form,"ShowUpdateSettings");
+            var auto=Field<RadioButton>(form,"automaticUpdates");var manual=Field<RadioButton>(form,"manualUpdates");
+            Control autoHelp=TextControl(auto.Parent,"Check at startup, verify and apply before play."),manualHelp=TextControl(auto.Parent,"No startup update checks. Check when you choose.");
+            Need(auto.Bottom<autoHelp.Top&&autoHelp.Bottom<manual.Top&&manual.Bottom<manualHelp.Top,"Update choices overlap their descriptions");
+            foreach(bool selected in new[]{false,true}){
+                auto.Checked=selected;manual.Checked=!selected;auto.Focus();form.Refresh();Application.DoEvents();
+                using(var bitmap=new Bitmap(form.Width,form.Height))using(var graphics=Graphics.FromImage(bitmap)){
+                    IntPtr dc=graphics.GetHdc();try{Need(PrintWindow(form.Handle,dc,0),"Native choice rendering failed");}finally{graphics.ReleaseHdc(dc);}
+                    foreach(Control choice in new Control[]{auto,manual,Field<CheckBox>(form,"desktopShortcut"),Field<CheckBox>(form,"menuShortcut")}){
+                        Point point=form.PointToClient(choice.PointToScreen(new Point(choice.Width-15,choice.Height/2)));
+                        Color color=bitmap.GetPixel(point.X,point.Y);Need(color.B>20&&color.B>color.R,"Native choice background is black: "+choice.Text+" @ "+form.ClientSize);
+                    }
+                    bitmap.Save(Path.Combine(output,name+(selected?"-automatic":"-manual")+".png"),ImageFormat.Png);
+                }
+            }
+            Reach(form,Button(Field<Control>(form,"settingsPage"),"Save preferences"));Escape(form);
+        }
+        static Dictionary<string,object> Report(bool playable,bool engine,params string[] ready){return new Dictionary<string,object>{{"playable",playable},{"engine",engine},{"ready",ready},{"sm64",true},{"audio",false},{"errors",new Dictionary<string,object>()},{"detected",new string[0]}};}
+        static void StartupRoutes(LauncherForm form,string output,FakeUpdateTransport transport){
+            string root=Field<TextBox>(form,"install").Text;string preferences=UpdatePreferences.PathFor(root);
+            var saved=new UpdatePreferences{Configured=true,ModeChosen=true,AutomaticChecks=false,AutomaticApply=false,DesktopShortcut=true,StartMenuShortcut=false,PausedVersion="0.3.0"};saved.Save(root);
+            string before=File.ReadAllText(preferences);int reads=transport.Reads;
+            Call(form,"StartupUpdates");Page(form,"locationPage");Need(transport.Reads==reads&&!Field<bool>(form,"installationReady"),"Preferences alone bypassed Setup");
+            foreach(var report in new[]{Report(false,false),Report(false,false,"octane"),Report(true,false,"octane"),Report(true,true)}){
+                Set(form,"lastReport",report);Call(form,"CompleteInspection",true);Page(form,"locationPage");Need(!Field<bool>(form,"installationReady")&&transport.Reads==reads,"Incomplete status entered Play/update");
+            }
+            Set(form,"lastReport",Report(false,false,"octane"));Call(form,"CompleteInspection",false);Page(form,"setupPage");Need(Field<Label>(form,"sourceStatus").Text.Contains("Shared game data needs repair"),"Resume lost reusable assets");
+            Set(form,"lastReport",Report(true,true,"octane"));Call(form,"CompleteInspection",true);Page(form,"homePage");Need(File.ReadAllText(preferences)==before&&Field<TextBox>(form,"install").Text==root&&transport.Reads==reads,"Configured migration changed preferences/path or made a manual update request");
+            WindowSnapshot(form,output,"startup-configured-play");
+            saved.AutomaticChecks=true;saved.AutomaticApply=true;saved.Save(root);before=File.ReadAllText(preferences);
+            Call(form,"CompleteInspection",true);WaitUpdate(form);Page(form,"updatePage");Need(transport.Reads>reads&&File.ReadAllText(preferences)==before,"Configured automatic startup or paused-version preservation failed");
+            // Legacy check-only consent must never become automatic install consent.
+            File.WriteAllText(preferences,"{\"schema\":1,\"configured\":true,\"automatic_checks\":true,\"desktop_shortcut\":true,\"start_menu_shortcut\":false}");before=File.ReadAllText(preferences);reads=transport.Reads;
+            Call(form,"CompleteInspection",true);Page(form,"readyPage");Need(!Field<RadioButton>(form,"readyAuto").Checked&&!Field<RadioButton>(form,"readyManual").Checked,"Legacy consent was inferred");Need(Field<CheckBox>(form,"readyDesktop").Checked&&!Field<CheckBox>(form,"readyMenu").Checked&&File.ReadAllText(preferences)==before&&transport.Reads==reads,"Migration lost shortcut choices or made a request before Setup");
+            WindowSnapshot(form,output,"startup-legacy-finish-setup");
+            File.Delete(preferences);Call(form,"CompleteInspection",true);Page(form,"readyPage");Need(!File.Exists(preferences)&&transport.Reads==reads,"Unconfigured startup wrote preferences or checked updates");WindowSnapshot(form,output,"startup-unconfigured-finish-setup");
+            Field<RadioButton>(form,"readyManual").Checked=true;Click(Field<Control>(form,"readyPage"),"Open launcher");Page(form,"homePage");Need(UpdatePreferences.Load(root).ModeChosen,"Setup completion did not persist explicit choice");Call(form,"CompleteInspection",true);Page(form,"homePage");
+            // Existing but interrupted data must run inspection, not infer readiness.
+            Directory.CreateDirectory(Commands.DataDirectory(root));Call(form,"StartupUpdates");WaitUpdate(form);Page(form,"failurePage");Need(!Field<bool>(form,"installationReady")&&transport.Reads==reads,"Failed inspection retained stale readiness");Click(Field<Control>(form,"failurePage"),"Back / change source");Page(form,"setupPage");
+        }
         static void AssertSeparate(string expected) {Need(DesktopName(GetThreadDesktop(GetCurrentThreadId()))==expected,"Wrong thread desktop; refusing UI");Need(InputDesktop()!=expected,"Test desktop is active; refusing UI");}
         static void WaitUpdate(LauncherForm form) {
             Stopwatch timer=Stopwatch.StartNew();while(Field<bool>(form,"running")&&timer.ElapsedMilliseconds<15000){Application.DoEvents();Thread.Sleep(20);}
@@ -99,6 +149,7 @@ namespace SuperRocket64 {
                     Need(Field<Label>(form,"notice").Text.Contains("Choose"),"No update choice validation");
                     Snapshot(form,output,"05-ready");
                     Call(form,"ShowUpdateSettings");
+                    form.ClientSize=new Size(1152,768);WindowSnapshot(form,output,"settings-window-default");form.ClientSize=new Size(1536,1024);
                     Snapshot(form,output,"settings-first-run");
                     Field<RadioButton>(form,"manualUpdates").Checked=true;Click(Field<Control>(form,"settingsPage"),"Save preferences");
                     string installRoot=Field<TextBox>(form,"install").Text;
@@ -150,6 +201,10 @@ namespace SuperRocket64 {
                     string longFailure=String.Join(" ",new string[12]).Replace(" ","This source needs repair. Check the original file and available disk space before trying again. ");
                     Field<Label>(form,"failureText").Text=LauncherForm.PlainFailure(longFailure);Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"failurePage"));Need(Field<Label>(form,"failureText").Height>164*960/1536,"Long recovery copy did not expand");Snapshot(form,output,"recovery-long-minimum");Reach(form,Button(Field<Control>(form,"failurePage"),"Retry / resume"));
                     form.ClientSize=new Size(1280,720);Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"homePage"));Reach(form,Button(Field<Control>(form,"homePage"),"Setup / repair / add characters"));Snapshot(form,output,"home-wide-short");
+                    Dpi(form,96);form.ClientSize=new Size(1152,768);ChoicePaint(form,output,"settings-native-default");
+                    foreach(int dpi in new[]{96,120,144,192}){Dpi(form,dpi);ChoicePaint(form,output,"settings-native-dpi-"+dpi);}
+                    Dpi(form,96);form.ClientSize=new Size(960,640);ChoicePaint(form,output,"settings-native-minimum");
+                    form.ClientSize=new Size(1536,1024);StartupRoutes(form,output,transport);
                     AssertSeparate(expected);form.Close();
                 }
                 File.WriteAllText(Path.Combine(output,"ui-result.json"),new JavaScriptSerializer().Serialize(new{passed=true,checks=checks,separate_desktop=expected,input_desktop=InputDesktop(),game_started=false,helper_started=

@@ -78,12 +78,18 @@ namespace SuperRocket64 {
         }
         private void CancelWizard() { if (installationReady) ShowPage(homePage); else Close(); }
         private void InspectInstallation(bool startup) {
+            installationReady = false;
             string target = UpdateRoot(); string parent = target;
             while (!Directory.Exists(parent)) parent = Path.GetDirectoryName(parent);
             Guard.Need(new DriveInfo(Path.GetPathRoot(parent)).AvailableFreeSpace >= 1024L * 1024 * 1024 || Directory.Exists(Installer.Destination(target, PayloadInfo.ZipSha256)), "Free at least 1 GB on this drive, or choose another installation folder.");
-            BeginOperation(new List<string> { "wizard-status" }, false, delegate {
+            BeginOperation(new List<string> { "wizard-status" }, false, delegate { CompleteInspection(startup); });
+        }
+        private void CompleteInspection(bool startup) {
                 ApplyReport();
-                if (startup && installationReady) { ShowPage(homePage); ContinueStartupUpdates(); }
+                if (startup && installationReady) {
+                    if (!UpdatePreferences.Load(UpdateRoot()).ModeChosen) ShowReadyPage();
+                    else { ShowPage(homePage); ContinueStartupUpdates(); }
+                }
                 else {
                     sourceStatus.Text = installationReady ? "Your base setup is verified and ready. Leave sources blank to reuse it, or select Rocket League to retry car sounds. Optional characters can be added next." : readyCharacters.Contains("octane") ? "Your car assets are ready. Shared game data needs repair; the saved SM64 source will be reused." : "Choose the missing sources below. They will be checked before extraction.";
                     sourceStatus.Text += "\nSM64 source: " + ((bool)lastReport["sm64"] ? "verified locally; no file needed." : "missing or invalid; select the original US ROM.");
@@ -96,12 +102,12 @@ namespace SuperRocket64 {
                     object detected; if (!readyCharacters.Contains("octane") && String.IsNullOrWhiteSpace(game.Text) && lastReport.TryGetValue("detected", out detected)) foreach (object path in (IEnumerable)detected) { game.Text = (string)path; break; }
                     if (startup) ShowPage(locationPage); else ShowPage(setupPage);
                 }
-            });
         }
         private void ApplyReport() {
             readyCharacters.Clear(); object list;
             if (lastReport.TryGetValue("ready", out list)) foreach (object character in (IEnumerable)list) readyCharacters.Add((string)character);
-            object ready; installationReady = lastReport.TryGetValue("playable", out ready) && (bool)ready;
+            object ready, engine; installationReady = lastReport.TryGetValue("playable", out ready) && ready is bool && (bool)ready
+                && lastReport.TryGetValue("engine", out engine) && engine is bool && (bool)engine && readyCharacters.Contains("octane");
         }
         private void ValidateExtras(int index) {
             if (!extrasYes.Checked || index == 5) { PrepareQueue(); return; }
@@ -118,11 +124,14 @@ namespace SuperRocket64 {
             if (setupQueue.Count > 0) { BeginOperation(setupQueue.Dequeue(), true, NextSetup); return; }
             BeginOperation(new List<string> { "wizard-status" }, false, delegate {
                 ApplyReport(); Guard.Need(installationReady, "Base setup is incomplete. Return to sources and retry.");
+                ShowReadyPage();
+            });
+        }
+        private void ShowReadyPage() {
                 readyStatus.Text = "Mario + Octane: ready\nOffline extras: " + (readyCharacters.Count > 1 ? String.Join(", ", readyCharacters) : "none selected") + "\nCar sounds: " + ((bool)lastReport["audio"] ? "ready" : "unavailable; game audio fallback is ready. Select Rocket League in Setup to retry.");
                 UpdatePreferences prefs = UpdatePreferences.Load(UpdateRoot());
                 readyAuto.Checked = prefs.ModeChosen && prefs.AutomaticApply; readyManual.Checked = prefs.ModeChosen && !prefs.AutomaticApply;
                 readyMenu.Checked = prefs.StartMenuShortcut; readyDesktop.Checked = prefs.DesktopShortcut; ShowPage(readyPage);
-            });
         }
         private void FinishWizard(bool play) {
             Guard.Need(readyAuto.Checked || readyManual.Checked, "Choose automatic or manual updates before continuing.");

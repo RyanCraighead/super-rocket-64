@@ -83,6 +83,7 @@ namespace SuperRocket64 {
             else PaintChoice(e.Graphics,this,Checked,false,DisplayText??Text);
         }
         internal static void PaintChoice(Graphics g,ButtonBase c,bool value,bool radio,string text) {
+            var canvas=c.Parent as ConceptCanvas;if(canvas!=null)canvas.PaintBehindChild(g,c.Location);else g.Clear(c.Parent==null?ConceptTheme.Background:c.Parent.BackColor);
             g.SmoothingMode=SmoothingMode.AntiAlias;g.TextRenderingHint=TextRenderingHint.AntiAliasGridFit;if(c.BackColor.A==255)g.Clear(c.BackColor);float side=Math.Min(c.Height-8,Math.Max(16,c.Font.Size*(radio?1.2f:1f)));RectangleF box=new RectangleF(3,(c.Height-side)/2,side,side);
             using(var pen=new Pen(value?ConceptTheme.Cyan:ConceptTheme.Muted,Math.Max(1.7f,side/12))) {if(radio){g.DrawEllipse(pen,box);if(value)using(var b=new SolidBrush(ConceptTheme.Cyan))g.FillEllipse(b,box.X+side*.25f,box.Y+side*.25f,side*.5f,side*.5f);}else{using(var path=ConceptTheme.Round(box,2)){if(value)using(var b=new SolidBrush(ConceptTheme.Cyan))g.FillPath(b,path);g.DrawPath(pen,path);}if(value)ConceptTheme.Icon(g,"check",new RectangleF(box.X+side*.2f,box.Y+side*.2f,side*.6f,side*.6f),ConceptTheme.Background);}}
             using(var brush=new SolidBrush(c.Enabled?c.ForeColor:Color.Gray))using(var format=new StringFormat{LineAlignment=StringAlignment.Center})g.DrawString(text,c.Font,brush,new RectangleF(side+23,0,Math.Max(1,c.Width-side-23),c.Height),format);
@@ -110,6 +111,10 @@ namespace SuperRocket64 {
         internal float Zoom=1;
         internal Action<Graphics> PaintDesign;
         internal ConceptCanvas(){BackColor=ConceptTheme.Background;Margin=Padding.Empty;SetStyle(ControlStyles.UserPaint|ControlStyles.OptimizedDoubleBuffer|ControlStyles.AllPaintingInWmPaint|ControlStyles.ResizeRedraw,true);}
+        // RadioButton/CheckBox themed background painting can leave a black buffer
+        // during WM_PRINT and normal repaints. Paint the actual parent surface in
+        // the child's coordinate space; do not rely on inherited transparency.
+        internal void PaintBehindChild(Graphics graphics,Point location){var state=graphics.Save();try{graphics.TranslateTransform(-location.X,-location.Y);using(var brush=new SolidBrush(BackColor))graphics.FillRectangle(brush,ClientRectangle);OnPaint(new PaintEventArgs(graphics,ClientRectangle));}finally{graphics.Restore(state);}}
         protected override void OnPaint(PaintEventArgs e){base.OnPaint(e);var state=e.Graphics.Save();e.Graphics.ScaleTransform(Zoom,Zoom);e.Graphics.SmoothingMode=SmoothingMode.AntiAlias;e.Graphics.TextRenderingHint=TextRenderingHint.AntiAliasGridFit;if(PaintDesign!=null)PaintDesign(e.Graphics);e.Graphics.Restore(state);}
     }
     internal sealed class ConceptField : Panel {
@@ -238,8 +243,8 @@ namespace SuperRocket64 {
             var updateTitle=new ConceptArt("03-settings",new Rectangle(336,229,394,39),"Launcher updates");var shortcutTitle=new ConceptArt("03-settings",new Rectangle(338,592,254,36),"Shortcuts");
             var autoHelp=CopyLabel("Check at startup, verify and apply before play.",false);var manualHelp=CopyLabel("No startup update checks. Check when you choose.",false);var previews=CopyLabel("Preview releases are included.",false);var safe=CopyLabel("Assets, saves and controller settings stay in the data folder.",false);
             settingsMessage.BackColor=ConceptTheme.Background;settingsMessage.ForeColor=ConceptTheme.Muted;Primary(save);
-            canvas.PaintDesign=delegate(Graphics g){ConceptTheme.Card(g,new RectangleF(0,124,1198,338),ConceptTheme.Border);ConceptTheme.Card(g,new RectangleF(0,480,1198,175),ConceptTheme.Border);};
-            AddLayout(canvas,delegate{bool detailed=settingsMessage.Text.Length>120;float extra=detailed?80:0;PageHeight(canvas,881+extra);Place(updateTitle,canvas,36,143,394,39,40);Place(automaticUpdates,canvas,36,193,1100,47,28);Place(autoHelp,canvas,99,233,1000,36,24);Place(manualUpdates,canvas,36,270,1100,47,28);Place(manualHelp,canvas,99,310,1040,36,24);Place(previews,canvas,91,349,980,34,21);Place(check,canvas,39,391,345,57,26);Place(shortcutTitle,canvas,38,506,254,36,38);Place(desktopShortcut,canvas,36,551,1000,46,27);Place(menuShortcut,canvas,36,600,1000,46,27);Place(rollbackUpdate,canvas,1,673,573,70,24);Place(remove,canvas,592,673,606,70,24);Place(safe,canvas,46,750,1140,33,20);Place(settingsMessage,canvas,46,781,1140,28+extra,17);Place(back,canvas,2,810+extra,226,67,27);Place(save,canvas,909,810+extra,289,67,27);});
+            canvas.PaintDesign=delegate(Graphics g){ConceptTheme.Card(g,new RectangleF(0,124,1198,352),ConceptTheme.Border);ConceptTheme.Card(g,new RectangleF(0,494,1198,175),ConceptTheme.Border);};
+            AddLayout(canvas,delegate{bool detailed=settingsMessage.Text.Length>120;float extra=detailed?80:0;PageHeight(canvas,895+extra);Place(updateTitle,canvas,36,143,394,39,40);Place(automaticUpdates,canvas,36,193,1100,40,28);Place(autoHelp,canvas,99,239,1000,32,24);Place(manualUpdates,canvas,36,283,1100,40,28);Place(manualHelp,canvas,99,329,1040,32,24);Place(previews,canvas,91,367,980,27,21);Place(check,canvas,39,405,345,57,26);Place(shortcutTitle,canvas,38,520,254,36,38);Place(desktopShortcut,canvas,36,565,1000,46,27);Place(menuShortcut,canvas,36,614,1000,46,27);Place(rollbackUpdate,canvas,1,687,573,70,24);Place(remove,canvas,592,687,606,70,24);Place(safe,canvas,46,764,1140,33,20);Place(settingsMessage,canvas,46,795,1140,28+extra,17);Place(back,canvas,2,824+extra,226,67,27);Place(save,canvas,909,824+extra,289,67,27);});
         }
         private void BuildOnlineConcept() {
             Button chooseHost=FindButton(onlineChoicePage,"Host"),chooseJoin=FindButton(onlineChoicePage,"Join"),backChoice=FindButton(onlineChoicePage,"Back"),back=FindButton(onlinePage,"Back"),paste=FindButton(joinAddressRow,"Paste");

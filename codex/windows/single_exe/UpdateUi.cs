@@ -71,16 +71,20 @@ namespace SuperRocket64 {
             desktopShortcut.Checked = menuShortcut.Checked = false; notice.Text = "Shortcuts removed. Your installation and game data are kept.";
         }
         private void StartupUpdates() {
-            if (HandshakeToken != null) { WaitForUpdateCommit(); return; }
-            if (!Directory.Exists(Commands.DataDirectory(UpdateRoot()))) { ShowPage(locationPage); return; }
-            InspectInstallation(true);
+            try {
+                installationReady = false;
+                if (HandshakeToken != null) { WaitForUpdateCommit(); return; }
+                // A data directory or saved update preference is not proof that
+                // setup completed. Only the current helper's verified report is.
+                if (!Directory.Exists(Commands.DataDirectory(UpdateRoot()))) { ShowPage(locationPage); return; }
+                InspectInstallation(true);
+            } catch (Exception error) { ShowFailure(PlainFailure(error.Message), StartupUpdates, null, locationPage); }
         }
         private void ContinueStartupUpdates() {
             try {
                 string root = UpdateRoot(); UpdatePreferences value = UpdatePreferences.Load(root);
                 using (OperationLease lease = OperationLease.Acquire(root)) { UpdateStore.EnsureCurrent(root); LauncherShortcuts.EnsureStable(root); }
                 if (value.AutomaticChecks) CheckUpdates(true);
-                else if (!value.ModeChosen) ShowUpdateSettings();
             } catch (Exception error) { ShowUpdateFailure("Could not check updates. " + PlainFailure(error.Message)); }
         }
         private void WaitForUpdateCommit() {
