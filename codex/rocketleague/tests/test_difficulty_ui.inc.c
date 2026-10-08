@@ -19,6 +19,8 @@ struct DjuiSlider *djui_slider_create(struct DjuiBase *parent,const char *label,
 struct DjuiRect *djui_rect_container_create(struct DjuiBase *parent,f32 height){(void)parent;(void)height;CHECK(rowsUsed<5);return &rows[rowsUsed++];}
 struct DjuiText *djui_text_create(struct DjuiBase *parent,const char *message){(void)parent;CHECK(labelsUsed<5);labels[labelsUsed].message=(char*)message;return &labels[labelsUsed++];}
 void djui_text_set_text(struct DjuiText *text,const char *message){text->message=(char*)message;}
+/* Layout is exercised by tests/menu-scroll; this fixture only tests rules. */
+f32 djui_text_measure_height(struct DjuiText *text,f32 width){(void)text;(void)width;return 96;}
 void djui_base_set_enabled(struct DjuiBase *base,bool enabled){base->enabled=enabled;}
 void djui_base_set_size_type(struct DjuiBase *b,enum DjuiScreenValueType x,enum DjuiScreenValueType y){(void)b;(void)x;(void)y;}
 void djui_base_set_size(struct DjuiBase *b,f32 w,f32 h){(void)b;(void)w;(void)h;}

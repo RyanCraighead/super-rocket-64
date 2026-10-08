@@ -99,9 +99,9 @@ static void unchanged_paths(){
     }
 }
 static void changes_and_limits(){
-    CHECK(rocket_jump_preference(0)==50&&rocket_jump_preference(29)==50&&rocket_jump_preference(101)==50);
+    CHECK(rocket_jump_preference(0)==100&&rocket_jump_preference(29)==100&&rocket_jump_preference(101)==100);
     CHECK(rocket_jump_impulse_scale(100)==1.f&&rocket_jump_hold_scale(100)==1.f);
-    for(unsigned bad:{0u,29u,101u})CHECK(rocket_jump_impulse_scale(bad)==rocket_jump_impulse_scale(50)&&rocket_jump_hold_scale(bad)==rocket_jump_hold_scale(50));
+    for(unsigned bad:{0u,29u,101u})CHECK(rocket_jump_impulse_scale(bad)==rocket_jump_impulse_scale(100)&&rocket_jump_hold_scale(bad)==rocket_jump_hold_scale(100));
     CHECK(!rocket_world_set_jump_height(nullptr,50));
     auto w=create(100);CHECK(rocket_world_jump_height(w.get())==100);
     CHECK(!rocket_world_set_jump_height(w.get(),0)&&!rocket_world_set_jump_height(w.get(),29)&&!rocket_world_set_jump_height(w.get(),101));

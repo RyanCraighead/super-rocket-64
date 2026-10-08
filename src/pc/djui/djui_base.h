@@ -44,6 +44,8 @@ struct DjuiBase {
     bool gradient;
     s64 tag;
     bool bTag;
+    // Optional intrinsic row sizing, used by scrolling menu layouts.
+    void (*measure)(struct DjuiBase*, f32 width);
     void (*get_cursor_hover_location)(struct DjuiBase*, f32* x, f32* y);
     void (*on_child_render)(struct DjuiBase*, struct DjuiBase*);
     void (*on_render_pre)(struct DjuiBase*, bool*);

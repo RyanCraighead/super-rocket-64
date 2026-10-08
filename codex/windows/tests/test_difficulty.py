@@ -28,7 +28,7 @@ with tempfile.TemporaryDirectory(prefix='sr64-difficulty-') as tmp:
     for layout in ('persistent data','portable folder'):
         save=root/layout/'data/.runtime/combined/save';save.mkdir(parents=True)
         config=save/'sm64config.txt';marker=save/'progress.sav';marker.write_bytes(b'fixture-progress\0\xff')
-        check(probe(save)==(75,50,1),'Fresh install must be Medium')
+        check(probe(save)==(100,100,0),'Fresh install must be Easy')
         config.write_text('rocket_speed_percent 88\nrocket_jump_height_percent 67\nkey_a 002c 1003 1103\nrocket_boost_mode 1\nrocket_surface_mode 0\n')
         original=config.read_bytes()
         check(probe(save)==(88,67,3),'Upgrade must retain custom pair')
@@ -41,14 +41,19 @@ with tempfile.TemporaryDirectory(prefix='sr64-difficulty-') as tmp:
             check('rocket_boost_mode 1' in content and 'rocket_surface_mode 0' in content,'Preset changed unrelated gameplay')
             check(not (save/'sm64config.txt.tmp').exists(),'Staged file leaked')
         for content,expected in (
+            ('rocket_speed_percent 100\nrocket_jump_height_percent 100\n',(100,100,0)),
+            ('rocket_speed_percent 75\nrocket_jump_height_percent 50\n',(75,50,1)),
+            ('rocket_speed_percent 50\nrocket_jump_height_percent 30\n',(50,30,2)),
             ('rocket_speed_percent 74\nrocket_jump_height_percent 51\n',(74,51,3)),
-            ('rocket_speed_percent 88\n',(88,50,3)),
-            ('rocket_jump_height_percent 30\n',(75,30,3)),
-            ('rocket_speed_percent 49\nrocket_jump_height_percent 29\n',(75,50,1)),
-            ('rocket_speed_percent broken\nrocket_jump_height_percent 101\n',(75,50,1)),
+            ('rocket_speed_percent 88\n',(88,100,3)),
+            ('rocket_jump_height_percent 30\n',(100,30,3)),
+            ('rocket_speed_percent 49\nrocket_jump_height_percent 29\n',(100,100,0)),
+            ('rocket_speed_percent broken\nrocket_jump_height_percent 101\n',(100,100,0)),
             ('rocket_difficulty 0\nrocket_speed_percent 88\nrocket_jump_height_percent 67\n',(88,67,3)),
-            ('show_fps true\n',(75,50,1))):
-            config.write_text(content);check(probe(save)==expected,'Missing/invalid/manual/stale preset value')
+            ('show_fps true\n',(100,100,0))):
+            config.write_text(content);before=config.read_bytes()
+            check(probe(save)==expected,'Missing/invalid/manual/stale preset value')
+            check(config.read_bytes()==before,'Loading old/default settings rewrote saved choices')
         config.write_text('rocket_speed_percent 88\nrocket_jump_height_percent 67\n')
         before=config.read_bytes()
         for bad in ('3','99','-1','broken'):probe(save,bad,2);check(config.read_bytes()==before,'Invalid preset changed saved pair')

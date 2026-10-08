@@ -8,6 +8,12 @@ static void sound_changed(struct DjuiBase *base) {
     (void)base; rocket_audio_stop(); configfile_save(configfile_name());
 }
 
+static void scope_measure(struct DjuiBase *base, f32 width) {
+    struct DjuiText *text = (struct DjuiText*)base->child->base;
+    base->height.value = fmaxf(32, djui_text_measure_height(text, width));
+    text->base.height.value = base->height.value;
+}
+
 static unsigned difficultySelection;
 static void difficulty_refresh(struct DjuiBase *base, UNUSED bool *unused) {
     difficultySelection=rocket_difficulty();
@@ -15,6 +21,14 @@ static void difficulty_refresh(struct DjuiBase *base, UNUSED bool *unused) {
     djui_base_set_enabled(base,rocket_boost_can_set_mode());
 }
 static void difficulty_changed(struct DjuiBase *base) {
+    /* Custom describes the sliders; it is not an applicable preset. The
+     * controller always advances, so stopping on Custom trapped it at Hard.
+     * Skip that display-only slot in either direction around the preset ring. */
+    if (difficultySelection == ROCKET_CUSTOM) {
+        unsigned previous = rocket_difficulty();
+        if (previous == ROCKET_HARD) difficultySelection = ROCKET_EASY;
+        else if (previous == ROCKET_EASY) difficultySelection = ROCKET_HARD;
+    }
     rocket_difficulty_set(difficultySelection);
     difficulty_refresh(base,NULL);
 }
@@ -80,6 +94,7 @@ void djui_rocket_boost_create(struct DjuiBase *parent) {
     difficulty->base.on_render_pre=difficulty_refresh;
     difficulty_refresh(&difficulty->base,NULL);
     struct DjuiRect *difficultyRow=djui_rect_container_create(parent,96);
+    difficultyRow->base.measure=scope_measure;
     struct DjuiText *difficultyText=djui_text_create(&difficultyRow->base,rocket_difficulty_scope_label());
     djui_base_set_size_type(&difficultyText->base,DJUI_SVT_RELATIVE,DJUI_SVT_ABSOLUTE);
     djui_base_set_size(&difficultyText->base,1,96);
@@ -90,6 +105,7 @@ void djui_rocket_boost_create(struct DjuiBase *parent) {
     slider->base.on_render_pre = speed_refresh;
     speed_refresh(&slider->base, NULL);
     struct DjuiRect *speedRow = djui_rect_container_create(parent, 96);
+    speedRow->base.measure=scope_measure;
     struct DjuiText *speedText = djui_text_create(&speedRow->base, rocket_speed_scope_label());
     djui_base_set_size_type(&speedText->base, DJUI_SVT_RELATIVE, DJUI_SVT_ABSOLUTE);
     djui_base_set_size(&speedText->base, 1, 96);
@@ -100,6 +116,7 @@ void djui_rocket_boost_create(struct DjuiBase *parent) {
     jumpSlider->base.on_render_pre = jump_refresh;
     jump_refresh(&jumpSlider->base, NULL);
     struct DjuiRect *jumpRow = djui_rect_container_create(parent, 96);
+    jumpRow->base.measure=scope_measure;
     struct DjuiText *jumpText = djui_text_create(&jumpRow->base, rocket_jump_scope_label());
     djui_base_set_size_type(&jumpText->base, DJUI_SVT_RELATIVE, DJUI_SVT_ABSOLUTE);
     djui_base_set_size(&jumpText->base, 1, 96);
@@ -112,6 +129,7 @@ void djui_rocket_boost_create(struct DjuiBase *parent) {
     box->base.on_render_pre = refresh;
     refresh(&box->base, NULL);
     struct DjuiRect *row = djui_rect_container_create(parent, 64);
+    row->base.measure=scope_measure;
     struct DjuiText *text = djui_text_create(&row->base, rocket_boost_scope_label());
     djui_base_set_size_type(&text->base, DJUI_SVT_RELATIVE, DJUI_SVT_ABSOLUTE);
     djui_base_set_size(&text->base, 1, 64);
@@ -122,6 +140,7 @@ void djui_rocket_boost_create(struct DjuiBase *parent) {
     box->base.on_render_pre = surface_refresh;
     surface_refresh(&box->base, NULL);
     row = djui_rect_container_create(parent, 96);
+    row->base.measure=scope_measure;
     text = djui_text_create(&row->base, rocket_surface_scope_label());
     djui_base_set_size_type(&text->base, DJUI_SVT_RELATIVE, DJUI_SVT_ABSOLUTE);
     djui_base_set_size(&text->base, 1, 96);

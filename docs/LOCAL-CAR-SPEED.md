@@ -6,7 +6,7 @@ supersonic entry is2200RL/4400host. The host currently hardcodes additional
 enemy, boss, Bob-omb and downward-impact thresholds. Merely clamping the final
 velocity would strand those thresholds and leave acceleration/steering wrong.
 
-Implemented policy: an integer speed percentage, range50–100, default75,
+Implemented policy: an integer speed percentage, range50–100, default100,
 100 restoring the original behavior. Missing/invalid config becomes75; valid
 explicit choices persist. No prior speed preference exists to migrate. One
 shared policy header converts percentages to a multiplier. The engine's lower
@@ -56,7 +56,7 @@ Verification completed locally:
 - Actual 50% and 75% physics samples replay through the owned native collision/behavior functions: 16,423 assertions per setting, including three Whomp King hits and one star, small Whomp loot, eight headings, offline/host/client and blue-switch activation/rejection. The proprietary collision inputs and generated samples stay outside the repository.
 - 3,389 camera checks include normalized distance at all three settings. Existing tree, boss, cap, door and pipe regression checks remain applicable; full results are recorded in the local release verification.
 
-The standalone physics API and pre-existing component fixtures explicitly use 100% unless configured. The game supplies its saved/host value before stepping. This distinction is intentional; it does not bypass the game's 75% default.
+The standalone physics API and pre-existing component fixtures explicitly use 100% unless configured. The game supplies its saved/host value before stepping. This distinction is intentional; it does not bypass the game's 100% default. Valid explicit saved choices are retained.
 
 The current game session was never used for testing. Headless native-function tests and process-local SDL input do not establish physical-controller feel or two-PC/WAN acceptance. This implementation is included in v0.2.9.
 

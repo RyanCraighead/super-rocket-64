@@ -22,6 +22,11 @@ static void djui_bind_button_on_bind(struct DjuiBase* caller) {
     // get key
     u32 key = controller_get_raw_key();
     if (key == VK_INVALID) { return; }
+    if (key == VK_ESCAPE) {
+        djui_bind_refresh(bind);
+        djui_interactable_set_binding(NULL);
+        return;
+    }
 
     // invalidate key
     for (int i = 0; i < MAX_BINDS; i++) {
@@ -44,6 +49,15 @@ static void djui_bind_destroy(struct DjuiBase* base) {
     free(bind);
 }
 
+static void djui_bind_measure(struct DjuiBase* base, f32 width) {
+    struct DjuiBind* bind = (struct DjuiBind*)base;
+    f32 height = djui_text_measure_height(bind->text, width * 0.3f);
+    for (int i = 0; i < MAX_BINDS; i++) {
+        height = fmaxf(height, djui_text_measure_height(bind->buttons[i]->text, width * 0.7f * 0.33f - 4));
+    }
+    base->height.value = fmaxf(28, height + 8);
+}
+
 struct DjuiBind* djui_bind_create(struct DjuiBase* parent, const char* message, unsigned int configKey[]) {
     struct DjuiBind* bind = calloc(1, sizeof(struct DjuiBind));
     struct DjuiBase* base     = &bind->base;
@@ -51,6 +65,7 @@ struct DjuiBind* djui_bind_create(struct DjuiBase* parent, const char* message, 
     bind->configKey = configKey;
 
     djui_base_init(parent, base, NULL, djui_bind_destroy);
+    base->measure = djui_bind_measure;
     djui_base_set_size_type(&bind->base, DJUI_SVT_RELATIVE, DJUI_SVT_ABSOLUTE);
     djui_base_set_size(&bind->base, 1.0f, 28);
     djui_base_set_color(&bind->base, 0, 0, 0, 0);

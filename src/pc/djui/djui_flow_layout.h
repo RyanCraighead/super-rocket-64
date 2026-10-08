@@ -5,6 +5,11 @@ struct DjuiFlowLayout {
     struct DjuiBase base;
     enum DjuiFlowDirection flowDirection;
     struct DjuiScreenValue margin;
+    bool scrollable;
+    bool manualScroll;
+    f32 scrollOffset;
+    f32 contentHeight;
+    f32 viewportHeight;
 };
 
 void djui_flow_layout_set_flow_direction(struct DjuiFlowLayout* layout, enum DjuiFlowDirection flowDirection);
@@ -12,3 +17,7 @@ void djui_flow_layout_set_margin(struct DjuiFlowLayout* layout, f32 margin);
 void djui_flow_layout_set_margin_type(struct DjuiFlowLayout* layout, enum DjuiScreenValueType marginType);
 
 struct DjuiFlowLayout* djui_flow_layout_create(struct DjuiBase* parent);
+
+void djui_flow_layout_reveal(struct DjuiBase* selected);
+bool djui_flow_layout_scroll(struct DjuiBase* hovered, f32 amount);
+struct DjuiBase* djui_flow_layout_wrap(struct DjuiBase* selected, s8 direction);

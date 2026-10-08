@@ -47,11 +47,17 @@ static void djui_button_destroy(struct DjuiBase* base) {
     free(button);
 }
 
+static void djui_button_measure(struct DjuiBase* base, f32 width) {
+    struct DjuiButton* button = (struct DjuiButton*)base;
+    base->height.value = fmaxf(configDjuiThemeCenter ? 50 : 64, djui_text_measure_height(button->text, width - 4) + 8);
+}
+
 struct DjuiButton* djui_button_create(struct DjuiBase* parent, const char* message, enum DjuiButtonStyle style, void (*on_click)(struct DjuiBase*)) {
     struct DjuiButton* button = calloc(1, sizeof(struct DjuiButton));
     struct DjuiBase* base     = &button->base;
 
     djui_base_init(parent, base, NULL, djui_button_destroy);
+    base->measure = djui_button_measure;
     djui_base_set_size(base, 200, configDjuiThemeCenter ? 50 : 64);
     djui_base_set_border_width(base, 2);
     djui_interactable_create(base, djui_button_update_style);

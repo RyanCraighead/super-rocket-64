@@ -9,6 +9,7 @@ struct DjuiText {
     struct DjuiColor dropShadow;
     enum DjuiHAlign textHAlign;
     enum DjuiVAlign textVAlign;
+    f32 minimumHeight;
 };
 
 bool djui_text_parse_color(char *begin, const char *end, bool ignoreAlpha, const struct DjuiColor *baseColor, char **nextChar, struct DjuiColor *parsedColor);
@@ -25,5 +26,7 @@ void djui_text_set_alignment(struct DjuiText* text, enum DjuiHAlign hAlign, enum
 bool djui_text_is_printable(const char *c);
 int djui_text_count_lines(struct DjuiText* text, u16 maxLines);
 f32 djui_text_find_width(struct DjuiText* text, u16 maxLines);
+f32 djui_text_measure_height(struct DjuiText* text, f32 width);
+void djui_text_set_auto_height(struct DjuiText* text, f32 minimumHeight);
 
 struct DjuiText* djui_text_create(struct DjuiBase* parent, const char* message);

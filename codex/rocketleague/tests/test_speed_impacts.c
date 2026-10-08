@@ -17,7 +17,7 @@ static RocketSnapshot dive(float gap,uint64_t ticks,float speed){
 }
 int main(void){
     CHECK(!rocket_speed_valid(0)&&!rocket_speed_valid(49)&&!rocket_speed_valid(101));
-    CHECK(rocket_speed_preference(0)==75&&rocket_speed_preference(100)==100);
+    CHECK(rocket_speed_preference(0)==100&&rocket_speed_preference(100)==100);
     for(unsigned percent=50;percent<=100;percent+=25){
         float scale=rocket_speed_multiplier(percent);
         for(int boundary=-1;boundary<=1;boundary++){

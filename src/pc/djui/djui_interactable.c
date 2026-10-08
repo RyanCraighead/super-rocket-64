@@ -176,6 +176,10 @@ bool djui_interactable_is_binding(void) {
 void djui_interactable_set_binding(struct DjuiBase* base) {
     gInteractableBinding = base;
     djui_cursor_set_visible(base == NULL);
+    if (base != NULL) {
+        // Suppress navigation/back on the first capture frame as well.
+        sIgnoreAllInputsWhenBinding = true;
+    }
     if (base == NULL) {
         sIgnoreInteractableUntilCursorReleased = true;
     }
@@ -348,6 +352,7 @@ void djui_interactable_on_text_editing(char* text, int cursorPos) {
 }
 
 void djui_interactable_on_scroll(float x, float y) {
+    if (!gInteractableFocus && !gInteractableBinding && djui_flow_layout_scroll(gDjuiHovered, y)) { return; }
     if (gInteractableFocus == NULL) { return; }
     if (gInteractableFocus->interactable == NULL) { return; }
     if (gInteractableFocus->interactable->on_scroll == NULL) { return; }
@@ -402,7 +407,7 @@ void djui_interactable_update_pad(void) {
         validPadHold = true;
     }
 
-    if (validPadHold && gInteractableFocus == NULL && !sIgnoreAllInputsWhenBinding) {
+    if (validPadHold && gInteractableFocus == NULL && !gInteractableBinding && !sIgnoreAllInputsWhenBinding) {
         switch (padHoldDirection) {
             case PAD_HOLD_DIR_UP:    djui_cursor_move( 0, -1); break;
             case PAD_HOLD_DIR_DOWN:  djui_cursor_move( 0,  1); break;

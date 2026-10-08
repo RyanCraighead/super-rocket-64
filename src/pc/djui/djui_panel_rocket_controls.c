@@ -17,6 +17,7 @@ static struct DjuiText *note(struct DjuiBase *body, const char *message, float h
     djui_base_set_size_type(&text->base,DJUI_SVT_RELATIVE,DJUI_SVT_ABSOLUTE);
     djui_base_set_size(&text->base,1,height);
     djui_text_set_font_scale(text,text->font->defaultFontScale*.75f);
+    djui_text_set_auto_height(text,height);
     return text;
 }
 static void controller_status(struct DjuiBase *base, UNUSED bool *unused) {

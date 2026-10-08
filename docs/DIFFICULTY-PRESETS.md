@@ -4,13 +4,13 @@ Choose **Options > Octane difficulty**:
 
 | Preset | Speed | Jump height |
 | --- | ---: | ---: |
-| Easy | 100% | 100% |
-| Medium (default) | 75% | 50% |
+| Easy (default) | 100% | 100% |
+| Medium | 75% | 50% |
 | Hard | 50% | 30% |
 
-The speed and jump sliders remain available. **Custom** appears whenever their values do not match one of these pairs. Use the sliders to make a custom setup; selecting Custom itself leaves the current values alone. Difficulty changes only these two settings. It does not change enemies, health, timers, boost/surface modes, gravity, flip timing, swim-up or other characters.
+The speed and jump sliders remain available. **Custom** appears whenever their values do not match one of these pairs. Use the sliders to make a custom setup; preset selection skips the derived Custom entry when cycling in either direction, so controller activation continues from Hard to Easy. Custom slider values remain unchanged until a preset is deliberately selected. Difficulty changes only these two settings. It does not change enemies, health, timers, boost/surface modes, gravity, flip timing, swim-up or other characters.
 
-Existing saved custom values survive upgrades. The label is derived from the two numbers, so there is no separate preset preference that can overwrite them. A missing/invalid individual value falls back to its established default: speed 75%, jump 50%. A new installation therefore starts at Medium. Selecting a preset commits both values in one staged config-file replacement and one host-rule update; a failed save keeps the previous pair and reports the failure in the options panel.
+Existing explicit saved values, including Medium, Hard and custom pairs, survive upgrades. The label is derived from the two numbers, so there is no separate preset preference that can overwrite them. A missing/invalid individual value falls back to 100%. A new installation therefore starts at Easy (100% speed / 100% jump). A partial old configuration preserves its valid field and defaults only the missing or invalid field. Selecting a preset commits both values in one staged config-file replacement and one host-rule update; a failed save keeps the previous pair and reports the failure in the options panel.
 
 Online, the host chooses the shared preset or custom values. Clients see that effective pair and cannot change it. Joining does not overwrite their saved offline choices. Late joins receive both values in the same authenticated rule. All players need the matching `tune2` build: older releases reject heights below 50%, so mixed sessions are rejected at join.
 

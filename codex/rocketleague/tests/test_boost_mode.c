@@ -118,7 +118,7 @@ int main(void){
     configRocketSurfaceMode=255;CHECK(rocket_surface_mode()==1);
     CHECK(strstr(get_version(),"env1")!=NULL);
     /* Speed shares the same authenticated join/session/revision contract. */
-    gNetworkType=NT_NONE;configRocketSpeedPercent=0;CHECK(rocket_speed_percent()==75);
+    gNetworkType=NT_NONE;configRocketSpeedPercent=0;CHECK(rocket_speed_percent()==100);
     CHECK(!rocket_speed_set_percent(0)&&!rocket_speed_set_percent(49)&&!rocket_speed_set_percent(101));
     CHECK(rocket_speed_set_percent(75));oldSaves=saves;CHECK(rocket_speed_set_percent(75));CHECK(saves==oldSaves);
     host();rocket_boost_session_reset();initial=join();u32 firstRule=rocket_rule_revision();
@@ -142,10 +142,10 @@ int main(void){
     accept_join(late);CHECK(rocket_speed_percent()==50&&configRocketSpeedPercent==100);
     host();rocket_boost_session_reset();configRocketSpeedPercent=75;next=join();
     configRocketSpeedPercent=100;accept_join(next);receive(slowSpeed);CHECK(rocket_speed_percent()==75);
-    rocket_boost_session_reset();CHECK(rocket_speed_percent()==75); /* waiting for authenticated join */
+    rocket_boost_session_reset();CHECK(rocket_speed_percent()==100); /* waiting for authenticated join */
     gNetworkType=NT_NONE;CHECK(rocket_speed_percent()==100); /* saved offline choice survived */
     /* Independent jump-height preference, authenticated host rule and late joins. */
-    configRocketJumpPercent=0;CHECK(rocket_jump_percent()==50);
+    configRocketJumpPercent=0;CHECK(rocket_jump_percent()==100);
     CHECK(!rocket_jump_set_percent(0)&&!rocket_jump_set_percent(29)&&!rocket_jump_set_percent(101));
     CHECK(rocket_jump_set_percent(50));oldSaves=saves;CHECK(rocket_jump_set_percent(50));CHECK(saves==oldSaves);
     u32 offlineRule=rocket_rule_revision();CHECK(rocket_jump_set_percent(100));
@@ -191,7 +191,7 @@ int main(void){
     rocket_boost_session_reset();configRocketJumpPercent=75;next=join();
     configRocketJumpPercent=100;accept_join(next);receive(halfJump);CHECK(rocket_jump_percent()==75);
     CHECK(strstr(rocket_jump_scope_label(),"host"));
-    rocket_boost_session_reset();CHECK(rocket_jump_percent()==50&&strstr(rocket_jump_scope_label(),"Waiting"));
+    rocket_boost_session_reset();CHECK(rocket_jump_percent()==100&&strstr(rocket_jump_scope_label(),"Waiting"));
     gNetworkType=NT_NONE;CHECK(rocket_jump_percent()==100&&configRocketJumpPercent==100);
     difficulty_tests();
     printf("boost and surface rules: %d checks passed\n",checks);return 0;

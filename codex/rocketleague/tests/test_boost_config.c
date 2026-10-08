@@ -69,7 +69,7 @@ int main(int argc,char **argv){
     }
     for(unsigned i=0;i<5;i++){char text[80];snprintf(text,sizeof text,"rocket_camera_mode %s\n",invalid[i]);content(text);configRocketCameraMode=0;load();CHECK(configRocketCameraMode==1);}
     content("show_fps true\n");configRocketCameraMode=0;load();CHECK(configRocketCameraMode==1);
-    CHECK(configRocketSpeedPercent==75);
+    CHECK(configRocketSpeedPercent==100);
     for(unsigned percent=50;percent<=100;percent++){
         configRocketSpeedPercent=percent;configfile_save("fixture.cfg");configRocketSpeedPercent=0;
         load();CHECK(configRocketSpeedPercent==percent);
@@ -77,10 +77,10 @@ int main(int argc,char **argv){
     const char *badSpeed[]={"0","49","101","-75","75oops","75 extra","broken","99999999999999999999999999","75.0","+75"};
     for(unsigned i=0;i<sizeof badSpeed/sizeof *badSpeed;i++){
         char text[128];snprintf(text,sizeof text,"rocket_speed_percent %s\n",badSpeed[i]);
-        content(text);configRocketSpeedPercent=100;load();CHECK(configRocketSpeedPercent==75);
+        content(text);configRocketSpeedPercent=75;load();CHECK(configRocketSpeedPercent==100);
     }
-    content("show_fps true\n");configRocketSpeedPercent=100;load();CHECK(configRocketSpeedPercent==75);
-    CHECK(configRocketJumpPercent==50);
+    content("show_fps true\n");configRocketSpeedPercent=75;load();CHECK(configRocketSpeedPercent==100);
+    CHECK(configRocketJumpPercent==100);
     for(unsigned percent=30;percent<=100;percent++){
         configRocketJumpPercent=percent;configRocketSpeedPercent=75;
         configfile_save("fixture.cfg");configRocketJumpPercent=0;configRocketSpeedPercent=100;
@@ -89,10 +89,10 @@ int main(int argc,char **argv){
     const char *badJump[]={"0","29","101","-50","50oops","50 extra","broken","99999999999999999999999999","50.0","+50"};
     for(unsigned i=0;i<sizeof badJump/sizeof *badJump;i++){
         char text[128];snprintf(text,sizeof text,"rocket_jump_height_percent %s\nrocket_speed_percent 100\n",badJump[i]);
-        content(text);configRocketJumpPercent=100;load();CHECK(configRocketJumpPercent==50&&configRocketSpeedPercent==100);
+        content(text);configRocketJumpPercent=50;load();CHECK(configRocketJumpPercent==100&&configRocketSpeedPercent==100);
     }
-    content("rocket_speed_percent 100\nrocket_camera_mode 0\n");configRocketJumpPercent=100;load();
-    CHECK(configRocketJumpPercent==50&&configRocketSpeedPercent==100&&configRocketCameraMode==0);
+    content("rocket_speed_percent 100\nrocket_camera_mode 0\n");configRocketJumpPercent=50;load();
+    CHECK(configRocketJumpPercent==100&&configRocketSpeedPercent==100&&configRocketCameraMode==0);
     /* Derived presets never replace saved custom values, including old files. */
     content("rocket_speed_percent 88\nrocket_jump_height_percent 67\n");load();
     CHECK(rocket_difficulty_for(configRocketSpeedPercent,configRocketJumpPercent)==ROCKET_CUSTOM);
@@ -108,10 +108,10 @@ int main(int argc,char **argv){
     char blocked[2048];snprintf(blocked,sizeof blocked,"%s/fixture.cfg.tmp",directory);CHECK(!mkdir(blocked,0700));
     configRocketSpeedPercent=100;configRocketJumpPercent=100;CHECK(!configfile_save_atomic("fixture.cfg"));
     load();CHECK(configRocketSpeedPercent==50&&configRocketJumpPercent==30);CHECK(!rmdir(blocked));
-    content("show_fps true\n");load();CHECK(rocket_difficulty_for(configRocketSpeedPercent,configRocketJumpPercent)==ROCKET_MEDIUM);
+    content("show_fps true\n");load();CHECK(rocket_difficulty_for(configRocketSpeedPercent,configRocketJumpPercent)==ROCKET_EASY);
     content("rocket_speed_percent 49\nrocket_jump_height_percent 29\n");load();
-    CHECK(rocket_difficulty_for(configRocketSpeedPercent,configRocketJumpPercent)==ROCKET_MEDIUM);
-    content("rocket_speed_percent 88\n");load();CHECK(configRocketSpeedPercent==88&&configRocketJumpPercent==50);
-    content("rocket_jump_height_percent 30\n");load();CHECK(configRocketSpeedPercent==75&&configRocketJumpPercent==30);
+    CHECK(rocket_difficulty_for(configRocketSpeedPercent,configRocketJumpPercent)==ROCKET_EASY);
+    content("rocket_speed_percent 88\n");load();CHECK(configRocketSpeedPercent==88&&configRocketJumpPercent==100);
+    content("rocket_jump_height_percent 30\n");load();CHECK(configRocketSpeedPercent==100&&configRocketJumpPercent==30);
     printf("boost, surface, sound and camera persistence: %d checks passed\n",checks);return 0;
 }

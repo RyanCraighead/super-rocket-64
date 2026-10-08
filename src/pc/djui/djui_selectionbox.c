@@ -99,6 +99,27 @@ static void djui_selectionbox_destroy(struct DjuiBase* base) {
     free(selectionbox);
 }
 
+static void djui_selectionbox_measure(struct DjuiBase* base, f32 width) {
+    struct DjuiSelectionbox* box = (struct DjuiSelectionbox*)base;
+    bool stacked = width < 360;
+    f32 labelHeight = djui_text_measure_height(box->text, width * (stacked ? 1 : 0.50f));
+    f32 valueHeight = 0;
+    // Measure every choice so cycling values does not move the clicked row.
+    struct DjuiText text = *box->rectText;
+    for (int i = 0; i < box->choiceCount; i++) {
+        text.message = box->choices[i];
+        valueHeight = fmaxf(valueHeight, djui_text_measure_height(&text, width * (stacked ? 1 : 0.45f) - 40));
+    }
+    djui_base_set_size_type(&box->text->base, DJUI_SVT_RELATIVE, stacked ? DJUI_SVT_ABSOLUTE : DJUI_SVT_RELATIVE);
+    djui_base_set_size(&box->text->base, stacked ? 1 : 0.50f, stacked ? labelHeight : 1);
+    djui_base_set_alignment(&box->text->base, DJUI_HALIGN_LEFT, stacked ? DJUI_VALIGN_TOP : DJUI_VALIGN_CENTER);
+    djui_base_set_size_type(&box->rect->base, DJUI_SVT_RELATIVE, stacked ? DJUI_SVT_ABSOLUTE : DJUI_SVT_RELATIVE);
+    djui_base_set_size(&box->rect->base, stacked ? 1 : 0.45f, stacked ? valueHeight + 8 : 1);
+    djui_base_set_location(&box->rect->base, 0, stacked ? labelHeight + 8 : 0);
+    djui_base_set_alignment(&box->rect->base, DJUI_HALIGN_RIGHT, stacked ? DJUI_VALIGN_TOP : DJUI_VALIGN_CENTER);
+    base->height.value = stacked ? labelHeight + valueHeight + 16 : fmaxf(32, fmaxf(labelHeight, valueHeight) + 8);
+}
+
 struct DjuiSelectionbox* djui_selectionbox_create(struct DjuiBase* parent, const char* message, char* choices[], u8 choiceCount, unsigned int* value, void (*on_value_change)(struct DjuiBase*)) {
     struct DjuiSelectionbox* selectionbox = calloc(1, sizeof(struct DjuiSelectionbox));
     struct DjuiBase* base = &selectionbox->base;
@@ -117,13 +138,14 @@ struct DjuiSelectionbox* djui_selectionbox_create(struct DjuiBase* parent, const
     selectionbox->choiceCount = choiceCount;
 
     djui_base_init(parent, base, NULL, djui_selectionbox_destroy);
+    base->measure = djui_selectionbox_measure;
     djui_interactable_create(base, djui_selectionbox_update_style);
     djui_interactable_hook_cursor_down(base, djui_selectionbox_on_cursor_down_begin, NULL, NULL);
 
     struct DjuiText* text = djui_text_create(&selectionbox->base, message);
     djui_base_set_alignment(&text->base, DJUI_HALIGN_LEFT, DJUI_VALIGN_CENTER);
     djui_base_set_size_type(&text->base, DJUI_SVT_RELATIVE, DJUI_SVT_RELATIVE);
-    djui_base_set_size(&text->base, 0.6f, 1.0f);
+    djui_base_set_size(&text->base, 0.50f, 1.0f);
     djui_text_set_alignment(text, DJUI_HALIGN_LEFT, DJUI_VALIGN_BOTTOM);
     djui_text_set_drop_shadow(text, 64, 64, 64, 100);
     selectionbox->text = text;
@@ -134,7 +156,7 @@ struct DjuiSelectionbox* djui_selectionbox_create(struct DjuiBase* parent, const
     djui_base_set_size(&rect->base, 0.45f, 1.0f);
     djui_base_set_color(&rect->base, 0, 0, 0, 0);
     djui_base_set_border_width(&rect->base, 2);
-    djui_base_set_padding(&rect->base, 2, 2, 0, 4);
+    djui_base_set_padding(&rect->base, 2, 18, 2, 18);
     selectionbox->rect = rect;
 
     struct DjuiText* rectText = djui_text_create(&rect->base, choices[*value]);
@@ -146,13 +168,13 @@ struct DjuiSelectionbox* djui_selectionbox_create(struct DjuiBase* parent, const
     selectionbox->rectText = rectText;
 
     struct DjuiImage* rectImage = djui_image_create(&rect->base, texture_selectionbox_back_icon, 16, 16, G_IM_FMT_RGBA, G_IM_SIZ_16b);
-    djui_base_set_location(&rectImage->base, 0, 0);
+    djui_base_set_location(&rectImage->base, -16, 0);
     djui_base_set_size(&rectImage->base, 16, 16);
     djui_base_set_alignment(&rectImage->base, DJUI_HALIGN_LEFT, DJUI_VALIGN_CENTER);
     selectionbox->rectImage = rectImage;
 
     struct DjuiImage* rectImage2 = djui_image_create(&rect->base, texture_selectionbox_forward_icon, 16, 16, G_IM_FMT_RGBA, G_IM_SIZ_16b);
-    djui_base_set_location(&rectImage2->base, 0, 0);
+    djui_base_set_location(&rectImage2->base, -16, 0);
     djui_base_set_size(&rectImage2->base, 16, 16);
     djui_base_set_alignment(&rectImage2->base, DJUI_HALIGN_RIGHT, DJUI_VALIGN_CENTER);
     selectionbox->rectImage2 = rectImage2;

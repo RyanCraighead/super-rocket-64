@@ -375,6 +375,25 @@ int djui_text_count_lines(struct DjuiText* text, u16 maxLines) {
     return lineCount;
 }
 
+f32 djui_text_measure_height(struct DjuiText* text, f32 width) {
+    f32 savedWidth = text->base.comp.width;
+    text->base.comp.width = fmaxf(width, 1);
+    f32 height = djui_text_count_lines(text, UINT16_MAX)
+        * fmaxf(text->font->lineHeight, text->font->charHeight) * text->fontScale;
+    text->base.comp.width = savedWidth;
+    return height;
+}
+
+static void djui_text_measure(struct DjuiBase* base, f32 width) {
+    struct DjuiText* text = (struct DjuiText*)base;
+    base->height.value = fmaxf(text->minimumHeight, djui_text_measure_height(text, width));
+}
+
+void djui_text_set_auto_height(struct DjuiText* text, f32 minimumHeight) {
+    text->minimumHeight = minimumHeight;
+    text->base.measure = djui_text_measure;
+}
+
 f32 djui_text_find_width(struct DjuiText* text, u16 maxLines) {
     struct DjuiBaseRect* comp = &text->base.comp;
     char* c = text->message;

@@ -4,6 +4,7 @@
 
 extern f32 gCursorX;
 extern f32 gCursorY;
+struct DjuiBase* djui_cursor_input_controlled_get(void);
 
 void djui_cursor_set_visible(bool visible);
 bool djui_cursor_inside_base(struct DjuiBase* base);

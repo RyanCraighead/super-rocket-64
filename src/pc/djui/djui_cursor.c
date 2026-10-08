@@ -56,8 +56,13 @@ static void djui_cursor_base_hover_location(struct DjuiBase* base, f32* x, f32* 
 void djui_cursor_input_controlled_center(struct DjuiBase* base) {
     if (!sCursorMouseControlled && (!base || (base && base->interactable && base->interactable->enabled))) {
         sInputControlledBase = base;
+        djui_flow_layout_reveal(base);
         djui_cursor_set_visible(base != NULL);
     }
+}
+
+struct DjuiBase* djui_cursor_input_controlled_get(void) {
+    return sCursorMouseControlled ? NULL : sInputControlledBase;
 }
 
 static f32 djui_cursor_base_distance(struct DjuiBase* base, f32 xScale, f32 yScale) {
@@ -70,6 +75,7 @@ static f32 djui_cursor_base_distance(struct DjuiBase* base, f32 xScale, f32 ySca
 
 static void djui_cursor_move_check(s8 xDir, s8 yDir, struct DjuiBase** pick, struct DjuiBase* base) {
     if (!base->visible) { return; }
+    if (!base->enabled) { return; }
 
     if (base->interactable != NULL && base->interactable->enabled) {
         f32 x1, y1, x2, y2;
@@ -112,6 +118,9 @@ void djui_cursor_move(s8 xDir, s8 yDir) {
 
     struct DjuiBase* pick = NULL;
     djui_cursor_move_check(xDir, yDir, &pick, &gDjuiRoot->base);
+    if (pick == NULL && yDir != 0) {
+        pick = djui_flow_layout_wrap(sCursorMouseControlled ? gDjuiHovered : sInputControlledBase, yDir);
+    }
     if (pick != NULL) {
         sCursorMouseControlled = false;
         djui_cursor_input_controlled_center(pick);

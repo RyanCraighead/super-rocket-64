@@ -4,7 +4,7 @@
 /* Height preference is independent of road speed and world gravity. */
 #define ROCKET_JUMP_MIN 30u
 #define ROCKET_JUMP_MAX 100u
-#define ROCKET_JUMP_DEFAULT 50u
+#define ROCKET_JUMP_DEFAULT 100u
 static inline int rocket_jump_valid(unsigned percent) {
     return percent >= ROCKET_JUMP_MIN && percent <= ROCKET_JUMP_MAX;
 }

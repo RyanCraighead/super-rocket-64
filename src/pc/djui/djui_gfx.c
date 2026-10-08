@@ -68,19 +68,23 @@ f32 round_to_multiple_f(f32 value, f32 multiple) {
 }
 
 f32 djui_gfx_get_scale(void) {
+    u32 windowWidth, windowHeight;
+    gfx_get_dimensions(&windowWidth, &windowHeight);
+    f32 scale = 1.0f;
     if (configDjuiScale == 0) { // auto
-        u32 windowWidth, windowHeight;
-        gfx_get_dimensions(&windowWidth, &windowHeight);
-        return clamp(round_to_multiple_f(((f32)windowHeight / (f32)SCREEN_HEIGHT) / 4.0f, 0.5f), 0.5f, 1.5f);
+        scale = clamp(round_to_multiple_f(((f32)windowHeight / (f32)SCREEN_HEIGHT) / 4.0f, 0.5f), 0.5f, 1.5f);
     } else {
         switch (configDjuiScale) {
-            case 1:  return 0.5f;
-            case 2:  return 0.75f;
-            case 3:  return 1.0f;
-            case 4:  return 1.5f;
-            default: return 1.0f;
+            case 1: scale = 0.5f; break;
+            case 2: scale = 0.75f; break;
+            case 3: scale = 1.0f; break;
+            case 4: scale = 1.5f; break;
+            default: break;
         }
     }
+    // A manually enlarged UI must still leave room for a readable menu row.
+    // Keep the existing 0.5 minimum (16px normal text); scrolling handles height.
+    return fminf(scale, fmaxf(0.5f, fminf(windowWidth / 320.0f, windowHeight / 240.0f)));
 }
 
 /////////////////////////////////////////////

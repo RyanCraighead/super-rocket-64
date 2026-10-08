@@ -4,7 +4,7 @@
  * Gravity, jump height, angular control, time and world geometry are independent. */
 #define ROCKET_SPEED_MIN 50u
 #define ROCKET_SPEED_MAX 100u
-#define ROCKET_SPEED_DEFAULT 75u
+#define ROCKET_SPEED_DEFAULT 100u
 static inline int rocket_speed_valid(unsigned percent) {
     return percent >= ROCKET_SPEED_MIN && percent <= ROCKET_SPEED_MAX;
 }

@@ -27,8 +27,8 @@ unsigned rocket_jump_percent(void) {
     return rocket_jump_preference(configRocketJumpPercent);
 }
 const char *rocket_jump_scope_label(void) {
-    if (gNetworkType == NT_CLIENT) return revision ? "Jump height is controlled by the host" : "Waiting for host jump height (50%)";
-    return "30-100%. 50% default. 100% original height. Independent of speed. Boost and swim-up stay unchanged.";
+    if (gNetworkType == NT_CLIENT) return revision ? "Jump height is controlled by the host" : "Waiting for host jump height (100%)";
+    return "30-100%. 100% default and original height. Independent of speed. Boost and swim-up stay unchanged.";
 }
 unsigned rocket_speed_percent(void) {
     if (gNetworkType == NT_CLIENT) return gCLIOpts.characterNet && revision ? sessionSpeed : ROCKET_SPEED_DEFAULT;
@@ -36,8 +36,8 @@ unsigned rocket_speed_percent(void) {
 }
 float rocket_speed_scale(void) { return rocket_speed_multiplier(rocket_speed_percent()); }
 const char *rocket_speed_scope_label(void) {
-    if (gNetworkType == NT_CLIENT) return revision ? "Car speed is controlled by the host" : "Waiting for host car speed (75%)";
-    return "75% default. 100% original speed. Saves for offline play and hosting; attacks adjust with speed.";
+    if (gNetworkType == NT_CLIENT) return revision ? "Car speed is controlled by the host" : "Waiting for host car speed (100%)";
+    return "100% default and original speed. Saves for offline play and hosting; attacks adjust with speed.";
 }
 int rocket_surface_mode(void) {
     if (gNetworkType == NT_CLIENT) return gCLIOpts.characterNet && revision ? sessionSurfaceMode : ROCKET_SURFACES_CAR;
@@ -146,9 +146,9 @@ unsigned rocket_difficulty(void) {
     return rocket_difficulty_for(rocket_speed_percent(),rocket_jump_percent());
 }
 const char *rocket_difficulty_scope_label(void) {
-    if(gNetworkType==NT_CLIENT)return revision ? "Difficulty is controlled by the host; your offline choices are kept." : "Waiting for host difficulty (Medium).";
+    if(gNetworkType==NT_CLIENT)return revision ? "Difficulty is controlled by the host; your offline choices are kept." : "Waiting for host difficulty (Easy).";
     if(difficultySaveFailed)return "Could not save difficulty. Previous settings kept; check the save folder is writable.";
-    return "Speed / jump height only. Medium is the default. Use the sliders below for Custom.";
+    return "Speed / jump height only. Easy is the default. Use the sliders below for Custom.";
 }
 int rocket_difficulty_set(unsigned preset) {
     unsigned speed,jump;

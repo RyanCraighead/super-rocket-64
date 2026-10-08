@@ -49,6 +49,16 @@ static void djui_checkbox_destroy(struct DjuiBase* base) {
     free(checkbox);
 }
 
+static void djui_checkbox_measure(struct DjuiBase* base, f32 width) {
+    struct DjuiCheckbox* checkbox = (struct DjuiCheckbox*)base;
+    f32 textWidth = fmaxf(1, width - 48);
+    djui_base_set_size_type(&checkbox->text->base, DJUI_SVT_ABSOLUTE, DJUI_SVT_RELATIVE);
+    djui_base_set_size(&checkbox->text->base, textWidth, 1);
+    djui_base_set_size_type(&checkbox->rect->base, DJUI_SVT_ABSOLUTE, DJUI_SVT_ABSOLUTE);
+    djui_base_set_size(&checkbox->rect->base, 32, 32);
+    base->height.value = fmaxf(32, djui_text_measure_height(checkbox->text, textWidth) + 8);
+}
+
 struct DjuiCheckbox* djui_checkbox_create(struct DjuiBase* parent, const char* message, bool* value, void (*on_value_change)(struct DjuiBase*)) {
     struct DjuiCheckbox* checkbox = calloc(1, sizeof(struct DjuiCheckbox));
     struct DjuiBase* base = &checkbox->base;
@@ -56,6 +66,7 @@ struct DjuiCheckbox* djui_checkbox_create(struct DjuiBase* parent, const char* m
     checkbox->value = value;
 
     djui_base_init(parent, base, NULL, djui_checkbox_destroy);
+    base->measure = djui_checkbox_measure;
     djui_interactable_create(base, djui_checkbox_update_style);
     djui_interactable_hook_cursor_down(base, djui_checkbox_on_cursor_down_begin, NULL, NULL);
 

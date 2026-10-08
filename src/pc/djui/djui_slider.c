@@ -146,6 +146,20 @@ static void djui_slider_destroy(struct DjuiBase* base) {
     free(slider);
 }
 
+static void djui_slider_measure(struct DjuiBase* base, f32 width) {
+    struct DjuiSlider* slider = (struct DjuiSlider*)base;
+    bool stacked = width < 360;
+    f32 labelHeight = djui_text_measure_height(slider->text, width * (stacked ? 1 : 0.50f));
+    djui_base_set_size_type(&slider->text->base, DJUI_SVT_RELATIVE, stacked ? DJUI_SVT_ABSOLUTE : DJUI_SVT_RELATIVE);
+    djui_base_set_size(&slider->text->base, stacked ? 1 : 0.50f, stacked ? labelHeight : 1);
+    djui_base_set_alignment(&slider->text->base, DJUI_HALIGN_LEFT, stacked ? DJUI_VALIGN_TOP : DJUI_VALIGN_CENTER);
+    djui_base_set_size_type(&slider->rect->base, DJUI_SVT_RELATIVE, stacked ? DJUI_SVT_ABSOLUTE : DJUI_SVT_RELATIVE);
+    djui_base_set_size(&slider->rect->base, stacked ? 1 : 0.45f, stacked ? 36 : 1);
+    djui_base_set_location(&slider->rect->base, 0, stacked ? labelHeight + 8 : 0);
+    djui_base_set_alignment(&slider->rect->base, DJUI_HALIGN_RIGHT, stacked ? DJUI_VALIGN_TOP : DJUI_VALIGN_CENTER);
+    base->height.value = stacked ? labelHeight + 44 : fmaxf(32, labelHeight + 8);
+}
+
 struct DjuiSlider* djui_slider_create(struct DjuiBase* parent, const char* message, unsigned int* value, unsigned int min, unsigned int max, void (*on_value_change)(struct DjuiBase*)) {
     struct DjuiSlider* slider = calloc(1, sizeof(struct DjuiSlider));
     struct DjuiBase* base     = &slider->base;
@@ -157,6 +171,7 @@ struct DjuiSlider* djui_slider_create(struct DjuiBase* parent, const char* messa
     slider->updateRectValueColor = true;
 
     djui_base_init(parent, base, djui_slider_render, djui_slider_destroy);
+    base->measure = djui_slider_measure;
     djui_interactable_create(base, djui_slider_update_style);
     djui_interactable_hook_cursor_down(base, djui_slider_on_cursor_down_begin, NULL, djui_slider_on_cursor_down_end);
     djui_interactable_hook_focus(base, NULL, djui_slider_on_focus, NULL);
@@ -164,7 +179,7 @@ struct DjuiSlider* djui_slider_create(struct DjuiBase* parent, const char* messa
     struct DjuiText* text = djui_text_create(&slider->base, message);
     djui_base_set_alignment(&text->base, DJUI_HALIGN_LEFT, DJUI_VALIGN_CENTER);
     djui_base_set_size_type(&text->base, DJUI_SVT_RELATIVE, DJUI_SVT_RELATIVE);
-    djui_base_set_size(&text->base, 0.6f, 1.0f);
+    djui_base_set_size(&text->base, 0.50f, 1.0f);
     djui_text_set_alignment(text, DJUI_HALIGN_LEFT, DJUI_VALIGN_BOTTOM);
     djui_text_set_drop_shadow(text, 64, 64, 64, 100);
     slider->text = text;

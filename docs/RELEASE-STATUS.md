@@ -1,5 +1,31 @@
 # Verification and limitations
 
+
+## v0.2.14: scrolling settings and controller difficulty
+
+Settings and binding panels scroll to keep keyboard/controller focus visible.
+Navigation wraps, nested binding cells remain reachable, and returning from a
+submenu retains focus and scroll position. Mouse-wheel scrolling, normal-size
+wrapped labels, narrow layouts and live window/UI-scale changes are supported.
+Escape cancels binding capture and retains the prior binding.
+
+Difficulty cycling skips the derived Custom entry, so repeated controller
+activation continues from Hard to Easy. New/missing/invalid preferences use
+Easy (100% speed / 100% jump); valid explicit saved presets and custom values
+remain intact. A partial configuration preserves each valid field.
+
+The public source passed 39,866 production UI/input assertions, 35 UI-scale
+combinations, 230 host-rule checks, 452 persistence checks, six immediate
+native-controls checks, real SDL mappings and handoffs, 9,609 speed-physics,
+191 impact-boundary and 509,233 jump-height checks. Launcher verification passed
+31 headless and 23 updater checks. The shortcut fixture now seeds its own
+isolated installation so a separate running game cannot invalidate the test;
+production active-game guards are unchanged.
+
+These are automated development-machine results. Physical-controller feel,
+full-game visual acceptance and two-PC/WAN gameplay remain unverified and are
+post-release checks. No active game or installed save was used for testing.
+
 ## v0.2.12: Easy, Medium and Hard presets
 
 Options > Octane difficulty selects Easy (100% speed / 100% jump), Medium
