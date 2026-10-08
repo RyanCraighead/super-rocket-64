@@ -11,15 +11,15 @@ namespace SuperRocket64 {
     internal sealed partial class LauncherForm {
         private readonly FlowLayoutPanel locationPage = NewPage(), extrasPage = NewPage(), progressPage = NewPage(), readyPage = NewPage(), failurePage = NewPage();
         private readonly Label progressText = TextBlock(""), sourceStatus = TextBlock(""), readyStatus = TextBlock(""), failureText = TextBlock("");
-        private readonly ProgressBar progress = new ProgressBar { Width = 640, Height = 20 };
+        private readonly ProgressBar progress = new ConceptProgress { Width = 640, Height = 20 };
         private readonly CheckBox[] extraChoices = new CheckBox[5];
         private readonly TextBox[] extraSources = new TextBox[5];
         private readonly FlowLayoutPanel extraInputs = NewPage();
-        private readonly RadioButton extrasNo = new RadioButton { Text = "No, just Mario and Octane", Checked = true, AutoSize = true };
-        private readonly RadioButton extrasYes = new RadioButton { Text = "Yes, choose optional characters", AutoSize = true };
-        private readonly RadioButton readyAuto = new RadioButton { Text = "Keep updated automatically", AutoSize = true };
-        private readonly RadioButton readyManual = new RadioButton { Text = "Manual updates", AutoSize = true };
-        private readonly CheckBox readyDesktop = new CheckBox { Text = "Desktop shortcut", AutoSize = true }, readyMenu = new CheckBox { Text = "Start Menu shortcut", Checked = true, AutoSize = true };
+        private readonly RadioButton extrasNo = new ConceptRadioButton { Text = "No, just Mario and Octane", Checked = true, AutoSize = true };
+        private readonly RadioButton extrasYes = new ConceptRadioButton { Text = "Yes, choose optional characters", AutoSize = true };
+        private readonly RadioButton readyAuto = new ConceptRadioButton { Text = "Keep updated automatically", AutoSize = true };
+        private readonly RadioButton readyManual = new ConceptRadioButton { Text = "Manual updates", AutoSize = true };
+        private readonly CheckBox readyDesktop = new ConceptCheckBox { Text = "Desktop shortcut", AutoSize = true }, readyMenu = new ConceptCheckBox { Text = "Start Menu shortcut", Checked = true, AutoSize = true };
         private Dictionary<string, object> lastReport = new Dictionary<string, object>();
         private readonly Queue<List<string>> setupQueue = new Queue<List<string>>();
         private Action retryAction, skipAction;
@@ -49,7 +49,7 @@ namespace SuperRocket64 {
             extrasPage.Controls.Add(extrasNo); extrasPage.Controls.Add(extrasYes);
             string[] names = { "Link · Ocarina of Time (US 1.2, compressed retail)", "Bomberman 64 (USA 1.0)", "Banjo-Kazooie (USA Rev 1)", "Spider-Man (N64 USA 1.0)", "Tony Hawk's Pro Skater (N64 USA Rev 1)" };
             for (int i = 0; i < 5; i++) {
-                int index = i; var choice = new CheckBox { Text = names[i], AutoSize = true }; extraChoices[i] = choice;
+                int index = i; var choice = new ConceptCheckBox { Text = names[i], AutoSize = true }; extraChoices[i] = choice;
                 extraSources[i] = new TextBox(); extraInputs.Controls.Add(choice);
                 var details = NewPage(); details.Dock = DockStyle.None; details.Visible = false;
                 details.Controls.Add(TextBlock(Commands.OptionalRomFormats(Commands.OptionalCharacters[i])));

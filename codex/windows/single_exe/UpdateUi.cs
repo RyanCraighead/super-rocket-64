@@ -7,8 +7,8 @@ using System.Windows.Forms;
 namespace SuperRocket64 {
     internal sealed partial class LauncherForm {
         private readonly FlowLayoutPanel settingsPage = NewPage(), updatePage = NewPage();
-        private readonly RadioButton automaticUpdates = new RadioButton(), manualUpdates = new RadioButton();
-        private readonly CheckBox desktopShortcut = new CheckBox(), menuShortcut = new CheckBox();
+        private readonly RadioButton automaticUpdates = new ConceptRadioButton(), manualUpdates = new ConceptRadioButton();
+        private readonly CheckBox desktopShortcut = new ConceptCheckBox(), menuShortcut = new ConceptCheckBox();
         private readonly Label updateMessage = TextBlock(""), settingsMessage = TextBlock("");
         private Button installUpdate, rollbackUpdate, useInstalled;
         private CancellationTokenSource updateCancellation;

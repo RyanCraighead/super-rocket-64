@@ -547,14 +547,14 @@ namespace SuperRocket64 {
         private readonly TextBox install = new TextBox(), rom = new TextBox(), game = new TextBox();
         private readonly TextBox host = new TextBox(), player = new TextBox();
         private readonly NumericUpDown port = new NumericUpDown();
-        private readonly ComboBox onlineCharacter = new ComboBox(), shareAddresses = new ComboBox();
-        private readonly Button copyAddress = new Button(), refreshAddresses = new Button(), cancelOperation = new Button();
+        private readonly ComboBox onlineCharacter = new ConceptComboBox(), shareAddresses = new ConceptComboBox();
+        private readonly Button copyAddress = new ConceptButton(), refreshAddresses = new ConceptButton(), cancelOperation = new ConceptButton();
         private readonly Button startHost, joinGame;
-        private readonly Label addressStatus = new Label(), onlineHeading = new Label(), notice = new Label();
+        private readonly Label addressStatus = new ConceptLabel(), onlineHeading = new ConceptLabel(), notice = new ConceptLabel();
         private readonly FlowLayoutPanel homePage = NewPage(), setupPage = NewPage(), onlineChoicePage = NewPage(), onlinePage = NewPage();
         private readonly Panel pageHost = new Panel();
         private readonly FlowLayoutPanel hostAddressRow = Row(), joinAddressRow = Row();
-        private readonly CheckBox mute = new CheckBox();
+        private readonly CheckBox mute = new ConceptCheckBox();
         private bool running, cancellationAvailable;
         private volatile bool cancelRequested;
         private volatile string activeCancelFile;
@@ -591,7 +591,7 @@ namespace SuperRocket64 {
             onlinePage.Controls.Add(TextBlock("Tailscale hosts share a 100.x address; LAN hosts share a reachable private address. Hosting listens on the selected port for other PCs. Share a reachable address listed above, never 0.0.0.0 or a loopback address. Every peer needs a matching Super Rocket 64 build and its own Octane setup; only Mario and Octane are available online."));
             host.Text = ""; host.Width = 260; host.MaxLength = 253; host.AccessibleName = "Friend's host address";
             joinAddressRow.Controls.Add(new Label { Text = "Friend's host address", AutoSize = true, Padding = new Padding(0, 6, 0, 0) }); joinAddressRow.Controls.Add(host);
-            Button paste = new Button { Text = "Paste", AutoSize = true }; paste.Click += delegate { try { if (Clipboard.ContainsText()) { string address = Clipboard.GetText().Trim(); int selectedPort = (int)port.Value; ParseEndpoint(ref address, ref selectedPort); host.Text = address; port.Value = selectedPort; } } catch (Exception error) { notice.Text = PlainFailure(error.Message); } };
+            Button paste = new ConceptButton { Text = "Paste", AutoSize = true }; paste.Click += delegate { try { if (Clipboard.ContainsText()) { string address = Clipboard.GetText().Trim(); int selectedPort = (int)port.Value; ParseEndpoint(ref address, ref selectedPort); host.Text = address; port.Value = selectedPort; } } catch (Exception error) { notice.Text = PlainFailure(error.Message); } };
             joinAddressRow.Controls.Add(paste); onlinePage.Controls.Add(joinAddressRow);
             startHost = AddButton(onlinePage, "Start host", delegate { PlayOnline("host"); });
             joinGame = AddButton(onlinePage, "Join game", delegate { PlayOnline("join"); });
@@ -599,34 +599,34 @@ namespace SuperRocket64 {
 
             pageHost.Dock = DockStyle.Fill; pageHost.AutoScroll = true;
             foreach (Control page in new Control[] { homePage, setupPage, onlineChoicePage, onlinePage }) pageHost.Controls.Add(page);
-            pageHost.SizeChanged += delegate { foreach (Control page in pageHost.Controls) page.Width = Math.Max(300, pageHost.ClientSize.Width - 24); };
             TableLayoutPanel layout = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 3, ColumnCount = 1, Padding = new Padding(20) };
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); layout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             FlowLayoutPanel operations = Row(); cancelOperation.Text = "Cancel setup"; cancelOperation.AutoSize = true; cancelOperation.Visible = false; cancelOperation.Click += delegate { CancelOperation(); }; operations.Controls.Add(cancelOperation);
             notice.AutoSize = true; notice.MaximumSize = new Size(810, 110);
             layout.Controls.Add(pageHost, 0, 0); layout.Controls.Add(operations, 0, 1); layout.Controls.Add(notice, 0, 2);
             Controls.Add(layout);
-            InitializeUpdates(); InitializeWizard();
+            InitializeUpdates(); InitializeWizard(); InitializePresentation();
             ShowPage(locationPage);
             Shown += delegate { StartupUpdates(); };
             FormClosing += delegate(object sender, FormClosingEventArgs e) { if (running) { e.Cancel = true; MessageBox.Show(this, updateCancellation != null ? "Use Cancel update if available, then wait for update verification or restart to finish." : cancellationAvailable ? "Use Cancel setup, then wait for the helper to finish cleaning its private stage." : "Wait for the current operation to finish. The launcher does not cancel gameplay.", Text); } };
         }
         private static FlowLayoutPanel NewPage() { return new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoSize = true, Dock = DockStyle.Top, Padding = new Padding(4) }; }
         private static FlowLayoutPanel Row() { return new FlowLayoutPanel { AutoSize = true, WrapContents = true, Margin = new Padding(0, 3, 0, 3) }; }
-        private static Label TextBlock(string text) { return new Label { Text = text, AutoSize = true, MaximumSize = new Size(820, 0), Padding = new Padding(0, 5, 0, 5) }; }
+        private static Label TextBlock(string text) { return new ConceptLabel { Text = text, AutoSize = true, MaximumSize = new Size(820, 0), Padding = new Padding(0, 5, 0, 5) }; }
         private static void AddPageText(FlowLayoutPanel page, string heading, string description) {
             page.Controls.Add(new Label { Text = heading, AutoSize = true, Font = new Font(SystemFonts.DefaultFont, FontStyle.Bold), Padding = new Padding(0, 6, 0, 0) });
             page.Controls.Add(TextBlock(description));
         }
         private void ShowPage(FlowLayoutPanel page) {
             foreach (Control item in pageHost.Controls) item.Visible = Object.ReferenceEquals(item, page);
-            page.Width = Math.Max(300, pageHost.ClientSize.Width - 24); page.BringToFront();
+            page.BringToFront();
+            SelectConcept(page);
         }
         private void AddPath(FlowLayoutPanel page, string title, TextBox input, bool file) { AddPath(page, title, input, file, null); }
         private void AddPath(FlowLayoutPanel page, string title, TextBox input, bool file, Func<string> fileFilter) {
             FlowLayoutPanel row = Row(); input.Width = 410;
             row.Controls.Add(new Label { Text = title, AutoSize = true, Padding = new Padding(0, 6, 0, 0) }); row.Controls.Add(input);
-            Button browse = new Button { Text = "Browse...", AutoSize = true };
+            Button browse = new ConceptButton { Text = "Browse...", AutoSize = true };
             browse.Click += delegate {
                 if (file) { using (OpenFileDialog dialog = new OpenFileDialog { Title = title, Filter = fileFilter == null ? "N64 ROM or single-ROM ZIP|*.z64;*.v64;*.n64;*.zip|All files|*.*" : fileFilter(), CheckFileExists = true }) if (dialog.ShowDialog(this) == DialogResult.OK) input.Text = dialog.FileName; }
                 else { using (FolderBrowserDialog dialog = new FolderBrowserDialog { Description = title, ShowNewFolderButton = true }) if (dialog.ShowDialog(this) == DialogResult.OK) input.Text = dialog.SelectedPath; }
@@ -634,7 +634,7 @@ namespace SuperRocket64 {
             row.Controls.Add(browse); page.Controls.Add(row);
         }
         private Button AddButton(FlowLayoutPanel page, string label, Action action) {
-            Button button = new Button { Text = label, AutoSize = true, MinimumSize = new Size(210, 32) };
+            Button button = new ConceptButton { Text = label, AutoSize = true, MinimumSize = new Size(210, 32) };
             button.Click += delegate { try { action(); } catch (Exception error) { notice.Text = PlainFailure(error.Message); } };
             page.Controls.Add(button);
             return button;

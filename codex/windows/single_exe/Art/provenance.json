@@ -1,0 +1,30 @@
+{
+  "origin": "Generated launcher artwork approved by the project owner for this presentation.",
+  "files": [
+    {
+      "name": "01-play.png",
+      "sha256": "e38c2557fa863d8387ebfd084223fd8d9bb8e2c963d51f4e2deb59b55cd9792b"
+    },
+    {
+      "name": "02-install-location.png",
+      "sha256": "c368a03fad707f0382485c996e9ce0a4eb9a18f278af3f0ef2027d23527bcd40"
+    },
+    {
+      "name": "03-settings.png",
+      "sha256": "58124d0ae564f831a490ca3794675f1e42f934eda77a224448b9dcfb85f30235"
+    },
+    {
+      "name": "04-online-states.png",
+      "sha256": "c807cd0f76b13dda86b7311db3976f5ca46e36b848b852e7f36d0fd56c447c49"
+    },
+    {
+      "name": "05-optional-characters.png",
+      "sha256": "fd75fdd39da6bb1bb90cd9886e7f31624f59ec7e90abfa211afe88d481559de9"
+    },
+    {
+      "name": "06-operation-states.png",
+      "sha256": "3e503148cf23cc491f722260b946f2e64b861542a46eeb41b1531a022dbb061a"
+    }
+  ],
+  "note": "Approved PNG resources are embedded unchanged. The renderer crops the needed artwork and uses native dynamic controls. Generated lettering has no identified font; dynamic copy uses installed Bahnschrift."
+}

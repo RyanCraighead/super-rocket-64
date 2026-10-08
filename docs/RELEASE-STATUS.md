@@ -1,6 +1,28 @@
 # Verification and limitations
 
 
+## v0.2.17: approved launcher presentation
+
+The launcher uses the approved dark/cyan shell, Home heading and hero artwork,
+and three main action buttons. The Home readiness pill is removed. The shell
+covers install/source/optional-character, online, settings, update and recovery
+pages. Existing actions, explicit update consent, cancellation, asset validation,
+save paths and running-operation guards remain authoritative.
+
+The game engine and runtime payload are retained from verified v0.2.16, including
+the slippery-grip, Bully/lava, penguin and menu/default/controller fixes. No
+unfinished stairs or later gameplay work is included. README media removal is
+preserved. Generated approved art is included; private game inputs are not.
+
+Validation covers 31 headless, 23 updater and 116 isolated-desktop UI assertions,
+including navigation/focus, consent, failures, cancellation, long text, minimum
+size scrolling/clipping and simulated 96/120/144/192-DPI messages. Static Home
+regions use the approved pixels. Dynamic copy uses Bahnschrift and some native
+controls retain Windows styling. Real monitor transitions and live multiplayer
+acceptance remain unperformed. Tests do not activate the input desktop or game.
+
+See [launcher presentation and test scope](../launcher/VISUAL-CANDIDATE.md).
+
 ## v0.2.16: reduced grip and usable controls on slippery slopes
 
 Native slippery/ice slope tags now retain their established half/quarter tire
