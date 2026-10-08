@@ -26,7 +26,32 @@ static void same(const RocketSnapshot &a,const RocketSnapshot &b){
     for(int i=0;i<9;++i)CHECK(a.basis[i]==b.basis[i]);
     CHECK(a.boost==b.boost&&a.grounded==b.grounded);
 }
+static void controlled_slip(){
+    // The native floor class must retain usable but reduced controls on its
+    // threshold-tagged slopes too. Use actual wheel/mesh physics, not a mock
+    // coefficient. Static and dynamic layers must agree without a global tag.
+    for(unsigned material:{1u,2u,5u,6u,14u})for(int layer:{0,1}){
+        Fixture coast,brake,steer,slide,full;
+        for(Fixture *f:{&coast,&brake,&steer,&slide,&full}){
+            f->mesh(material,-.3f,layer);f->mode(f==&full?0:1);
+            float p[]={0,80,0},v[]={0,0,1400};
+            CHECK(rocket_world_reset(f->w.get(),p,v,0));f->step(10);
+        }
+        brake.input.throttle=full.input.throttle=-1;
+        steer.input.steer=slide.input.steer=1;slide.input.powerslide=1;
+        for(Fixture *f:{&coast,&brake,&steer,&slide,&full})f->step(30);
+        auto a=coast.state(),b=brake.state(),c=steer.state(),d=slide.state(),e=full.state();
+        std::printf("slip material=%u layer=%d: coast=%.1f brake=%.1f full=%.1f steerX=%.1f slideX=%.1f\n",
+            material,layer,a.velocity[2],b.velocity[2],e.velocity[2],c.position[0],d.position[0]);
+        CHECK(b.velocity[2]<a.velocity[2]-100.f);
+        CHECK(b.velocity[2]>e.velocity[2]+100.f); // Reduced traction remains perceptible.
+        CHECK(std::fabs(c.position[0])>20.f);
+        CHECK(std::fabs(c.position[0]-d.position[0])>1.f); // Saved powerslide still acts.
+        CHECK(a.boost==b.boost&&b.boost==c.boost&&c.boost==d.boost);
+    }
+}
 int main(){
+    controlled_slip();
     // Exact compatibility: material tags do not alter the default trajectory.
     Fixture normal,tagged,nativeNormal;
     normal.mesh(0);tagged.mesh(ROCKET_MATERIAL_VERY_SLIPPERY|ROCKET_MATERIAL_SLIDING);nativeNormal.mesh(0);nativeNormal.mode(1);
@@ -69,7 +94,7 @@ int main(){
     // grade. Compare identical states/inputs against zero grip and Car grip.
     Fixture raceCoast,raceBrake,raceSteer,zeroBrake,zeroSteer,fullBrake;
     for(Fixture *f:{&raceCoast,&raceBrake,&raceSteer,&zeroBrake,&zeroSteer,&fullBrake}){
-        f->mesh(f==&zeroBrake||f==&zeroSteer?6:14,-.3f);
+        f->mesh(f==&zeroBrake||f==&zeroSteer?4:14,-.3f);
         f->mode(f==&fullBrake?0:1);
         float p[]={0,80,0},v[]={0,0,1400};
         CHECK(rocket_world_reset(f->w.get(),p,v,0));f->step(10);
@@ -91,7 +116,7 @@ int main(){
     scopedCar.mesh(14,-.3f);plainCar.mesh(6,-.3f);
     for(int i=0;i<60;++i){scopedCar.input.throttle=plainCar.input.throttle=1;
         scopedCar.step();plainCar.step();same(scopedCar.state(),plainCar.state());}
-    raceCoast.mesh(6,-.3f);raceCoast.reset();zeroBrake.reset();
+    raceCoast.mesh(4,-.3f);raceCoast.reset();zeroBrake.reset();
     raceCoast.step(30);zeroBrake.step(30);same(raceCoast.state(),zeroBrake.state());
     raceCoast.mesh(14,-.3f);raceCoast.reset();raceBrake.reset();
     raceCoast.step(30);raceBrake.step(30);same(raceCoast.state(),raceBrake.state());

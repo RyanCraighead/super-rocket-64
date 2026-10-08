@@ -1,6 +1,29 @@
 # Verification and limitations
 
 
+## v0.2.16: reduced grip and usable controls on slippery slopes
+
+Native slippery/ice slope tags now retain their established half/quarter tire
+grip instead of erasing tire force. Steering, braking and powerslide remain
+usable with reduced traction. Per-wheel material selection, static/dynamic
+layers, ordinary steep-floor restrictions, explicit Car Grip, CCM race grip,
+jump/boost, currents, saves and networking formats are unchanged.
+
+Automated Windows physics checks cover 8,525 environment cases, including exact
+unchanged Car Grip trajectories, slippery steering/braking/powerslide, mixed
+tires and mode/material transitions. Core, host-math, platform, speed/impact,
+jump-height, water/escape, Whomp-flip and player-bump regressions also pass.
+These are windowless physics fixtures, not rendered gameplay or a claim of
+original Rocket League parity. Physical-controller/full-game/two-PC acceptance
+remains a post-release check. No active game or installed save is used.
+
+This bounded fix preserves all earlier shipped menu/penguin/Bully/lava changes
+and README media removal. It does not include unfinished stairs, new surface
+modes, quicksand, pole or tutorial work. The Rocket League extraction profile
+and its recorded unsupported-current-package limitation remain unchanged.
+
+See [terrain controls and test boundaries](../codex/rocketleague/TERRAIN-CONTROLS.md).
+
 ## v0.2.15: deliberate Bully rams and native lava escape
 
 Forward throttle, genuine forward motion and a closing frontal contact now use

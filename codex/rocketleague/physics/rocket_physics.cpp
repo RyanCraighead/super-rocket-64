@@ -49,13 +49,15 @@ float materialGrip(const Mesh *mesh,int index) {
     if(!mesh||!mesh->surfaceMode||*mesh->surfaceMode!=ROCKET_SURFACES_NATIVE||
        index<0||(size_t)index>=mesh->faces.size())return 1.f;
     unsigned material=mesh->faces[index].material;
-    // Retain the ordinary native ice coefficient on the scoped race slopes.
-    // This restores steer/brake response without full Car-grip traction.
-    if(material&ROCKET_MATERIAL_RACE_SLIDE)return .25f;
-    if(material&ROCKET_MATERIAL_SLIDING)return 0.f;
     // Ratios of native neutral slide losses: .02/.08 (ice), .04/.08
-    // (slippery). These are a car adaptation, not Mario controller parity.
-    return material==ROCKET_MATERIAL_VERY_SLIPPERY?.25f:material==ROCKET_MATERIAL_SLIPPERY?.5f:1.f;
+    // (slippery). Crossing the native slope threshold must not erase these
+    // controls: a sliding car still needs steering/braking, like powerslide.
+    // Retain the old CCM race tag and its identical .25 coefficient. Ordinary
+    // steep floors still lose propulsion; explicit Car grip stays unchanged.
+    unsigned floorClass=material&3u;
+    if(floorClass==ROCKET_MATERIAL_VERY_SLIPPERY)return .25f;
+    if(floorClass==ROCKET_MATERIAL_SLIPPERY)return .5f;
+    return material&ROCKET_MATERIAL_SLIDING?0.f:1.f;
 }
 struct MaterialAtPoint : btTriangleCallback {
     const Mesh *mesh;btVector3 point;float grip=1.f,distance=.02f;
