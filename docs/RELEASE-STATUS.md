@@ -1,5 +1,32 @@
 # Verification and limitations
 
+## v0.2.20: launcher actions, notifications and operation lifecycle
+
+Play keeps its title with direct Offline, Online, Add characters and Setup /
+repair actions, without the hero or slogans. Direct Add characters reuses
+verified core assets and queues only optional selections. Installation artwork,
+shared controls, saved preferences, data and all gameplay remain preserved.
+
+Update notifications default on and respect existing opt-outs. Update now /
+Later appears after a preview-aware check, deferred during gameplay/operations;
+the normal update page has one download-and-restart action. Notification checks
+never install automatically. Progress reports actual phase bytes/files when
+known and is indeterminate otherwise; game running is plain status.
+
+Closing during launch/gameplay leaves the game/helper alive while a lightweight
+session thread drains output and waits for normal cleanup. Setup/update closes
+cancel safely or finish their current atomic step without advancing the queue.
+
+Fresh launcher, synthetic process/close, source-validation, updater and native
+UI tests accompany source/payload audits and upgrade/save-preservation checks.
+The complete game payload is byte-identical to v0.2.19, retaining its verified
+physics/native/menu/network evidence and env3 format. Real gameplay, physical
+controller, two-PC and real monitor transitions remain unperformed. Supported
+source fingerprints and the newer Steam wheel-package limitation are unchanged.
+
+See [launcher lifecycle](../launcher/LIFECYCLE-REFINEMENTS.md).
+
+
 ## v0.2.19: pyramid poles, castle beam and compact launcher
 
 The two native pyramid poles accept local car contact using the full oriented

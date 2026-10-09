@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,9 +11,16 @@ namespace SuperRocket64 {
         private readonly RadioButton automaticUpdates = new ConceptRadioButton(), manualUpdates = new ConceptRadioButton();
         private readonly CheckBox desktopShortcut = new ConceptCheckBox(), menuShortcut = new ConceptCheckBox();
         private readonly Label updateMessage = TextBlock(""), settingsMessage = TextBlock("");
-        private Button installUpdate, rollbackUpdate, useInstalled;
+        private Button installUpdate, rollbackUpdate, useInstalled, retryUpdate;
+        private readonly Button notifyUpdate=new ConceptButton{Text="Update now"},dismissNotification=new ConceptButton{Text="Later"};
+        private readonly Label notificationText=new ConceptLabel();
+        private bool notificationVisible,updateError;
         private CancellationTokenSource updateCancellation;
         private ReleasePlan availableUpdate;
+        private readonly HashSet<string> announcedUpdates=new HashSet<string>();
+        private CancellationTokenSource backgroundUpdateCancellation;
+        private bool checkingUpdates,pendingUpdateNotice;
+        private readonly System.Windows.Forms.Timer updateNoticeTimer=new System.Windows.Forms.Timer{Interval=1000};
         internal Func<bool> UpdateGameActive = UpdateStore.GameActive;
         internal IUpdateTransport UpdateTransport = new OfficialUpdateTransport();
         internal Action<string, bool, bool> UpdateShortcuts = LauncherShortcuts.Apply;
@@ -20,8 +28,8 @@ namespace SuperRocket64 {
         private void InitializeUpdates() {
             Text += " " + UpdateBuild.DisplayVersion;
             AddButton(homePage, "Settings", ShowUpdateSettings);
-            AddPageText(settingsPage, "Updates & shortcuts", "Automatic updates check on startup, download and verify the release, then apply it before play. Manual updates make no startup request. Preview releases are included. You can change your choice here.");
-            automaticUpdates.Text = "Keep updated automatically"; automaticUpdates.AutoSize = true;
+            AddPageText(settingsPage, "Updates & shortcuts", "Update notifications check at startup. Choose Update now or Later. Manual updates make no startup request. Preview releases are included.");
+            automaticUpdates.Text = "Notify me about updates"; automaticUpdates.AutoSize = true;
             manualUpdates.Text = "Manual updates"; manualUpdates.AutoSize = true;
             desktopShortcut.Text = "Desktop shortcut"; desktopShortcut.AutoSize = true;
             menuShortcut.Text = "Start Menu shortcut"; menuShortcut.AutoSize = true;
@@ -34,19 +42,21 @@ namespace SuperRocket64 {
             AddPageText(updatePage, "Launcher update", "Your assets, saves and controller settings stay in the existing data folder. The previous launcher is kept for rollback. A running game is never replaced.");
             updatePage.Controls.Add(updateMessage);
             installUpdate = AddButton(updatePage, "Download update and restart", InstallAvailableUpdate);
-            AddButton(updatePage, "Retry update check", delegate { CheckUpdates(false); });
-            useInstalled = AddButton(updatePage, "Use installed version", delegate { ShowPage(homePage); });
-            AddButton(updatePage, "Settings", ShowUpdateSettings);
+            retryUpdate=AddButton(updatePage, "Retry update check", delegate { CheckUpdates(false); });
+            useInstalled = AddButton(updatePage, "Back", DismissUpdate);
+            notifyUpdate.Click+=delegate{notificationVisible=false;ShowAvailableUpdate();};dismissNotification.Click+=delegate{DismissUpdate();};
             pageHost.Controls.Add(settingsPage); pageHost.Controls.Add(updatePage);
+            updateNoticeTimer.Tick+=delegate{if(pendingUpdateNotice&&!running&&!UpdateGameActive()&&homePage.Visible&&ContainsFocus)PresentUpdate(true);};updateNoticeTimer.Start();
+            FormClosed+=delegate{updateNoticeTimer.Stop();updateNoticeTimer.Dispose();if(backgroundUpdateCancellation!=null)backgroundUpdateCancellation.Cancel();};
         }
         private string UpdateRoot() { string root = Path.GetFullPath(install.Text.Trim()); Installer.Destination(root, PayloadInfo.ZipSha256); return root; }
         private void ShowUpdateSettings() {
             try {
                 string root = UpdateRoot(); UpdatePreferences value = UpdatePreferences.Load(root);
-                automaticUpdates.Checked = value.ModeChosen && value.AutomaticApply; manualUpdates.Checked = value.ModeChosen && !value.AutomaticApply;
+                automaticUpdates.Checked = value.AutomaticChecks; manualUpdates.Checked = !value.AutomaticChecks;
                 desktopShortcut.Checked = value.DesktopShortcut; menuShortcut.Checked = value.StartMenuShortcut;
                 rollbackUpdate.Enabled = UpdateStore.Load(root).previous != null;
-                settingsMessage.Text = value.ModeChosen ? "Version " + UpdateBuild.DisplayVersion + ". Save to apply your choice." : "Choose how to update. Earlier permission to check for updates does not authorize automatic installation. Your old check-only preference stays in effect until you choose.";
+                settingsMessage.Text = "Version " + UpdateBuild.DisplayVersion + ". Updates install only when you choose Update now.";
                 ShowPage(settingsPage);
             } catch (Exception error) { notice.Text = PlainFailure(error.Message); }
         }
@@ -55,13 +65,14 @@ namespace SuperRocket64 {
             using (OperationLease lease = OperationLease.Acquire(root)) {
                 UpdateStore.EnsureCurrent(root); LauncherShortcuts.EnsureStable(root); UpdateShortcuts(root, desktop, menu);
                 UpdatePreferences value = UpdatePreferences.Load(root);
-                value.Configured = value.ModeChosen = true; value.AutomaticChecks = value.AutomaticApply = automatic;
+                value.Configured = value.ModeChosen = true; value.AutomaticChecks = automatic; value.AutomaticApply = false;
                 value.DesktopShortcut = desktop; value.StartMenuShortcut = menu; value.Save(root);
             }
         }
         private void SaveUpdateSettings() {
             Guard.Need(automaticUpdates.Checked || manualUpdates.Checked, "Choose automatic or manual updates first.");
             SavePreferences(automaticUpdates.Checked, desktopShortcut.Checked, menuShortcut.Checked);
+            if(!automaticUpdates.Checked){pendingUpdateNotice=false;notificationVisible=false;if(backgroundUpdateCancellation!=null)backgroundUpdateCancellation.Cancel();}
             notice.Text = "Preferences saved."; ShowPage(installationReady ? homePage : locationPage);
         }
         private void RemoveLauncherShortcuts() {
@@ -84,7 +95,7 @@ namespace SuperRocket64 {
             try {
                 string root = UpdateRoot(); UpdatePreferences value = UpdatePreferences.Load(root);
                 using (OperationLease lease = OperationLease.Acquire(root)) { UpdateStore.EnsureCurrent(root); LauncherShortcuts.EnsureStable(root); }
-                if (value.ModeChosen && value.AutomaticChecks) CheckUpdates(true);
+                if (value.AutomaticChecks) CheckUpdates(true);
             } catch (Exception error) { ShowUpdateFailure("Could not check updates. " + PlainFailure(error.Message)); }
         }
         private void WaitForUpdateCommit() {
@@ -103,14 +114,14 @@ namespace SuperRocket64 {
             }; timer.Start();
         }
         private void ShowUpdateFailure(string text) {
-            updateMessage.Text = text + " Your installed version and data are retained. Retry when online, or use the installed version if it is ready.";
-            installUpdate.Enabled = availableUpdate != null; useInstalled.Visible = installationReady; ShowPage(updatePage);
+            updateError=true;updateMessage.Text = text + " Your installed version and data are retained.";
+            installUpdate.Enabled = availableUpdate != null; useInstalled.Visible = true; ShowPage(updatePage);
         }
         private void RunUpdate(Action<CancellationToken> work, Action completed, bool cancellable) {
             if (running) { notice.Text = "Finish the current operation first."; return; }
-            running = true; cancellationAvailable = false; pageHost.Enabled = false; notice.Text = "";
-            progressText.Text = "Checking and verifying the update..."; progress.Style = ProgressBarStyle.Marquee; ShowPage(progressPage);
-            updateCancellation = new CancellationTokenSource(); CancellationToken token = updateCancellation.Token;
+            running = true;++operationGeneration;cancellationAvailable = false; pageHost.Enabled = false; notice.Text = "";
+            installSteps=false;progressSubtitle="Updating launcher";progressText.Text = "Checking and verifying the update...";progress.Visible=true; progress.Style = ProgressBarStyle.Marquee; ShowPage(progressPage);
+            var cancellation=new CancellationTokenSource();updateCancellation = cancellation; CancellationToken token = cancellation.Token;
             cancelOperation.Text = "Cancel update"; cancelOperation.Visible = cancellable; cancelOperation.Enabled = cancellable;
             Task.Factory.StartNew(delegate {
                 bool success = false; string failure = null;
@@ -118,25 +129,45 @@ namespace SuperRocket64 {
                 catch (OperationCanceledException) { failure = "Update canceled."; }
                 catch (Exception error) { failure = "Update could not finish. " + PlainFailure(error.Message); }
                 finally {
-                    if (!IsDisposed && !Disposing) try { BeginInvoke(new Action(delegate {
-                        updateCancellation.Dispose(); updateCancellation = null; running = false; pageHost.Enabled = true; cancelOperation.Visible = false; cancelOperation.Enabled = false;
+                    OnUi(delegate {
+                        updateCancellation = null;cancellation.Dispose();ClearBusy();if(closeAfterOperation){Close();return;}
                         if (success && completed != null) completed(); else ShowUpdateFailure(failure);
-                    })); } catch (InvalidOperationException) { }
+                    });
                 }
             });
         }
         private void CheckUpdates(bool automatic) {
+            if(checkingUpdates)return;
+            if(automatic){
+                if(!UpdatePreferences.Load(UpdateRoot()).AutomaticChecks)return;
+                checkingUpdates=true;var cancellation=new CancellationTokenSource();backgroundUpdateCancellation=cancellation;CancellationToken token=cancellation.Token;
+                Task.Factory.StartNew(delegate{
+                    ReleaseCheck found=null;try{found=ReleaseUpdates.Check(UpdateTransport,UpdateBuild.Version,token);}catch(Exception){}
+                    if(!IsDisposed&&!Disposing)try{BeginInvoke(new Action(delegate{try{checkingUpdates=false;backgroundUpdateCancellation=null;if(token.IsCancellationRequested||found==null)return;availableUpdate=found.Available;if(availableUpdate!=null)PresentUpdate(true);}finally{cancellation.Dispose();}}));}catch(InvalidOperationException){cancellation.Dispose();}else cancellation.Dispose();
+                });return;
+            }
             ReleaseCheck result = null;
             RunUpdate(delegate(CancellationToken token) { result = ReleaseUpdates.Check(UpdateTransport, UpdateBuild.Version, token); }, delegate {
                 availableUpdate = result.Available;
                 if (availableUpdate != null) {
-                    UpdatePreferences prefs = UpdatePreferences.Load(UpdateRoot());
-                    if (automatic && prefs.ModeChosen && prefs.AutomaticApply && prefs.PausedVersion != availableUpdate.Version) { InstallAvailableUpdate(); return; }
-                    updateMessage.Text = result.Message + " Download: " + ((availableUpdate.Size + 1048575) / 1048576) + " MB." + (prefs.PausedVersion == availableUpdate.Version ? " Automatic retry is paused for this version after a failure or rollback. Retry it manually when ready." : "");
-                    installUpdate.Enabled = true; useInstalled.Visible = installationReady; ShowPage(updatePage);
-                } else { notice.Text = result.Message; if (!UpdatePreferences.Load(UpdateRoot()).ModeChosen) ShowUpdateSettings(); else ShowPage(installationReady ? homePage : locationPage); }
+                    PresentUpdate(false);
+                } else { notice.Text = result.Message; ShowPage(installationReady ? homePage : locationPage); }
             }, true);
         }
+        private void PresentUpdate(bool automatic){
+            if(availableUpdate==null)return;
+            if(automatic&&announcedUpdates.Contains(availableUpdate.Version)){pendingUpdateNotice=false;return;}
+            if(automatic&&(running||UpdateGameActive()||!homePage.Visible)){pendingUpdateNotice=true;notice.Text="Update "+availableUpdate.Version+" available. Review it when you return to Play.";return;}
+            pendingUpdateNotice=false;announcedUpdates.Add(availableUpdate.Version);
+            if(automatic){notificationVisible=true;notice.Text="";notificationText.Text="Super Rocket 64 "+availableUpdate.Version+" is available.";ArrangeConcept();return;}
+            ShowAvailableUpdate();
+        }
+        private void ShowAvailableUpdate(){
+            updateError=false;notificationVisible=false;notice.Text="";
+            updateMessage.Text="Super Rocket 64 "+availableUpdate.Version+(availableUpdate.Preview?" preview":"")+" is available. Download: "+((availableUpdate.Size+1048575)/1048576)+" MB. The launcher will restart after verification.";
+            installUpdate.Enabled=true;useInstalled.Visible=true;ShowPage(updatePage);
+        }
+        private void DismissUpdate(){if(availableUpdate!=null)announcedUpdates.Add(availableUpdate.Version);pendingUpdateNotice=false;notificationVisible=false;notice.Text="";ShowPage(installationReady?homePage:locationPage);}
         private void InstallAvailableUpdate() {
             if (availableUpdate == null) return;
             string root = UpdateRoot(); ReleasePlan plan = availableUpdate;
@@ -146,11 +177,13 @@ namespace SuperRocket64 {
                     UpdateStore.EnsureCurrent(root); LauncherShortcuts.EnsureStable(root);
                     // Persist before starting the child so a crash cannot cause a retry loop.
                     UpdatePreferences prefs = UpdatePreferences.Load(root); prefs.PausedVersion = plan.Version; prefs.Save(root);
-                    string executable = ReleaseUpdates.Download(plan, root, UpdateTransport, token);
+                    int generation=operationGeneration;
+                    string executable = ReleaseUpdates.Download(plan, root, UpdateTransport, token,delegate(long count,long total){MeasuredProgress(generation,"Downloading update...",count,total);});
+                    MeasuredProgress(generation,"Verifying the downloaded update...",0,0);
                     UpdateStore.Probe(executable, root, plan, token); token.ThrowIfCancellationRequested();
                     LauncherVersion next = UpdateStore.Capture(root, executable, plan.Version);
                     Invoke(new Action(delegate { cancelOperation.Enabled = false; })); token.ThrowIfCancellationRequested();
-                    UpdateStore.Activate(root, next, UpdateGameActive, UpdateStore.StartReady);
+                    MeasuredProgress(generation,"Restarting the launcher safely...",0,0);UpdateStore.Activate(root, next, UpdateGameActive, UpdateStore.StartReady);
                 }
             }, delegate { Close(); }, true);
         }

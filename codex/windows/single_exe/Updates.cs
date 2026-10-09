@@ -35,7 +35,8 @@ namespace SuperRocket64 {
         internal static byte[] ReadFile(string path) { Guard.NoRedirect(path); Guard.Need(new FileInfo(path).Length <= 2 * 1024 * 1024, "Update settings are too large"); return File.ReadAllBytes(path); }
     }
     internal sealed class UpdatePreferences {
-        internal bool Configured, AutomaticChecks, DesktopShortcut, ModeChosen, AutomaticApply;
+        internal bool Configured, DesktopShortcut, ModeChosen, AutomaticApply;
+        internal bool AutomaticChecks = true;
         internal string PausedVersion = "";
         internal bool StartMenuShortcut = true;
         internal static string PathFor(string root) { return Path.Combine(Path.GetFullPath(root), "launcher-preferences.json"); }
@@ -61,7 +62,7 @@ namespace SuperRocket64 {
     }
     internal interface IUpdateTransport {
         byte[] Read(Uri uri, int limit, CancellationToken token);
-        void Download(Uri uri, string destination, long size, CancellationToken token);
+        void Download(Uri uri, string destination, long size, CancellationToken token, Action<long,long> progress);
     }
     internal sealed class OfficialUpdateTransport : IUpdateTransport {
         internal static bool Allowed(Uri uri, bool initial) {
@@ -70,7 +71,7 @@ namespace SuperRocket64 {
             if (uri.Host == "github.com") return Regex.IsMatch(uri.AbsolutePath, @"^/RyanCraighead/super-rocket-64/releases/download/v[0-9]+\.[0-9]+\.[0-9]+/Super-Rocket-64(?:-update\.json|-Windows-x64\.exe)$") && uri.Query.Length == 0;
             return !initial && uri.Host == "release-assets.githubusercontent.com";
         }
-        private static void Fetch(Uri initial, long limit, Stream output, CancellationToken token) {
+        private static void Fetch(Uri initial, long limit, Stream output, CancellationToken token, Action<long,long> progress = null) {
             // The standalone launcher targets .NET Framework; opt out of legacy
             // TLS defaults inside this process before creating the first request.
             // Certificate validation and Windows security settings are unchanged.
@@ -95,7 +96,7 @@ namespace SuperRocket64 {
                             }
                             Guard.Need(status == 200 && response.ContentLength <= limit, "Unexpected update response or size");
                             using (Stream input = response.GetResponseStream()) { byte[] buffer = new byte[65536]; long count = 0; int read;
-                                while ((read = input.Read(buffer, 0, buffer.Length)) > 0) { token.ThrowIfCancellationRequested(); count += read; Guard.Need(count <= limit, "Update download exceeds its expected size"); output.Write(buffer, 0, read); }
+                                while ((read = input.Read(buffer, 0, buffer.Length)) > 0) { token.ThrowIfCancellationRequested(); count += read; Guard.Need(count <= limit, "Update download exceeds its expected size"); output.Write(buffer, 0, read);if(progress!=null)progress(count,limit); }
                                 Guard.Need(response.ContentLength < 0 || count == response.ContentLength, "Update download was truncated");
                             }
                             return;
@@ -106,7 +107,7 @@ namespace SuperRocket64 {
             throw new InvalidDataException("Too many update redirects");
         }
         public byte[] Read(Uri uri, int limit, CancellationToken token) { using (MemoryStream output = new MemoryStream()) { Fetch(uri, limit, output, token); return output.ToArray(); } }
-        public void Download(Uri uri, string destination, long size, CancellationToken token) { using (FileStream output = new FileStream(destination, FileMode.CreateNew, FileAccess.Write, FileShare.None)) { Fetch(uri, size, output, token); Guard.Need(output.Length == size, "Update executable length mismatch"); output.Flush(true); } }
+        public void Download(Uri uri, string destination, long size, CancellationToken token, Action<long,long> progress) { using (FileStream output = new FileStream(destination, FileMode.CreateNew, FileAccess.Write, FileShare.None)) { Fetch(uri, size, output, token,progress); Guard.Need(output.Length == size, "Update executable length mismatch"); output.Flush(true); } }
     }
     internal sealed class ReleasePlan {
         internal string Version, Sha256, PayloadSha256;
@@ -169,7 +170,7 @@ namespace SuperRocket64 {
             bool preview = UpdateJson.Bool(release, "prerelease");
             return new ReleaseCheck { Message = "Super Rocket 64 " + version + (preview ? " preview" : "") + " is available.", Available = new ReleasePlan { Version = version, Size = size, Sha256 = sha, PayloadSha256 = UpdateJson.Hash(manifest, "payload_sha256"), Download = new Uri(UpdateJson.Text(executable, "browser_download_url")), Preview = preview } };
         }
-        internal static string Download(ReleasePlan plan, string root, IUpdateTransport transport, CancellationToken token) {
+        internal static string Download(ReleasePlan plan, string root, IUpdateTransport transport, CancellationToken token, Action<long,long> progress = null) {
             UpdateJson.VersionOf(plan.Version);
             Guard.Need(Regex.IsMatch(plan.Sha256 ?? "", "^[0-9a-f]{64}$") && plan.Size > 0 && plan.Size <= MaxExe, "Invalid download plan");
             Guard.Need(plan.Download.AbsoluteUri == "https://github.com/RyanCraighead/super-rocket-64/releases/download/v" + plan.Version + "/Super-Rocket-64-Windows-x64.exe", "Wrong download project/version");
@@ -179,7 +180,7 @@ namespace SuperRocket64 {
             string target = Path.Combine(directory, "Super-Rocket-64.exe");
             if (File.Exists(target)) { UpdateStore.Verify(target, plan.Size, plan.Sha256); return target; }
             string partial = target + ".part-" + Guid.NewGuid().ToString("N");
-            try { transport.Download(plan.Download, partial, plan.Size, token); token.ThrowIfCancellationRequested(); UpdateStore.Verify(partial, plan.Size, plan.Sha256); Guard.NoRedirect(target); File.Move(partial, target); return target; }
+            try { transport.Download(plan.Download, partial, plan.Size, token,progress); token.ThrowIfCancellationRequested(); UpdateStore.Verify(partial, plan.Size, plan.Sha256); Guard.NoRedirect(target); File.Move(partial, target); return target; }
             finally { Guard.NoRedirect(partial); if (File.Exists(partial)) File.Delete(partial); }
         }
     }

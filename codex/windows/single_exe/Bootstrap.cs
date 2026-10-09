@@ -144,18 +144,20 @@ namespace SuperRocket64 {
                 else Guard.Need(relative == "PACKAGE-MANIFEST.json" || files.ContainsKey(relative), "Unexpected file in immutable package: " + relative);
             }
         }
-        private static void VerifyInstalled(string root, Dictionary<string, FileRecord> files, string manifestHash) {
+        private static void VerifyInstalled(string root, Dictionary<string, FileRecord> files, string manifestHash, System.Threading.CancellationToken token = default(System.Threading.CancellationToken), Action<string,long,long> progress = null) {
             Guard.NoRedirect(root);
             Guard.Need(Directory.Exists(root), "Package root is not a directory");
             Guard.Need(Guard.HashFile(Guard.Child(root, "PACKAGE-MANIFEST.json")) == manifestHash, "Installed manifest differs; refusing overwrite");
-            foreach (KeyValuePair<string, FileRecord> item in files) VerifyFile(Guard.Child(root, item.Key), item.Value);
+            int verified=0;foreach (KeyValuePair<string, FileRecord> item in files) {token.ThrowIfCancellationRequested();VerifyFile(Guard.Child(root, item.Key), item.Value);if(progress!=null)progress("Verifying program files...",++verified,files.Count);}
             VerifyTree(root, root, files);
         }
-        internal static string Install(Stream payload, string expectedHash, long expectedSize, string installBase, Action<string> log) {
+        internal static string Install(Stream payload, string expectedHash, long expectedSize, string installBase, Action<string> log, Action<string,long,long> progress = null, System.Threading.CancellationToken token = default(System.Threading.CancellationToken)) {
+            token.ThrowIfCancellationRequested();
             string root = Destination(installBase, expectedHash);
             Guard.Need(payload != null && payload.CanSeek && expectedSize > 0 && expectedSize <= MaxZip && payload.Length == expectedSize, "Embedded ZIP size mismatch");
             payload.Position = 0;
             Guard.Need(Guard.Hash(payload) == expectedHash, "Embedded ZIP hash mismatch");
+            token.ThrowIfCancellationRequested();
             payload.Position = 0;
             using (ZipArchive zip = new ZipArchive(payload, ZipArchiveMode.Read, true)) {
                 Guard.Need(zip.Entries.Count > 0 && zip.Entries.Count <= 6000, "Invalid ZIP entry count");
@@ -190,7 +192,7 @@ namespace SuperRocket64 {
                 Guard.Need(fileCount == files.Count + 1, "Manifest and ZIP file sets differ");
                 foreach (string name in files.Keys) Guard.Need(entries.ContainsKey(name), "Manifested file absent from ZIP");
                 if (File.Exists(root) || Directory.Exists(root)) {
-                    VerifyInstalled(root, files, manifestHash);
+                    VerifyInstalled(root, files, manifestHash,token,progress);
                     log("Existing package verified; private profiles left unchanged.");
                     return root;
                 }
@@ -201,6 +203,7 @@ namespace SuperRocket64 {
                 string stage = Path.Combine(parentRoot, ".stage-" + Guid.NewGuid().ToString("N"));
                 Directory.CreateDirectory(stage);
                 log("Extracting verified program files to " + root);
+                long totalBytes=0,copiedBytes=0;foreach(var record in files.Values)totalBytes+=record.Size;
                 try {
                     foreach (KeyValuePair<string, FileRecord> item in files) {
                         string target = Guard.Child(stage, item.Key);
@@ -210,9 +213,11 @@ namespace SuperRocket64 {
                         using (FileStream destination = new FileStream(target, FileMode.CreateNew, FileAccess.Write, FileShare.None)) {
                             byte[] buffer = new byte[65536]; int count; long copied = 0;
                             while ((count = source.Read(buffer, 0, buffer.Length)) > 0) {
+                                token.ThrowIfCancellationRequested();
                                 copied += count;
                                 Guard.Need(copied <= item.Value.Size, "Expanded file exceeded manifest size");
                                 destination.Write(buffer, 0, count);
+                                copiedBytes+=count;if(progress!=null)progress("Extracting program files...",copiedBytes,totalBytes);
                             }
                             Guard.Need(copied == item.Value.Size, "Truncated payload file");
                         }
@@ -220,10 +225,10 @@ namespace SuperRocket64 {
                     }
                     using (FileStream destination = new FileStream(Guard.Child(stage, "PACKAGE-MANIFEST.json"), FileMode.CreateNew, FileAccess.Write, FileShare.None))
                         destination.Write(manifestBytes, 0, manifestBytes.Length);
-                    VerifyInstalled(stage, files, manifestHash);
+                    VerifyInstalled(stage, files, manifestHash,token,progress);
                     Guard.NoRedirect(root);
                     Guard.Need(!File.Exists(root) && !Directory.Exists(root), "Installation appeared during extraction; refusing overwrite");
-                    Directory.Move(stage, root);
+                    token.ThrowIfCancellationRequested();Directory.Move(stage, root);
                 } finally {
                     // Only this newly generated stage is ours. No recursive deletion follows redirects.
                     if (Directory.Exists(stage)) RemoveStage(stage);
@@ -241,14 +246,14 @@ namespace SuperRocket64 {
             Directory.Delete(directory);
         }
         internal static void RepairEmbedded(string installBase, Action<string> log) { RepairEmbedded(installBase, log, UpdateStore.GameActive); }
-        internal static void RepairEmbedded(string installBase, Action<string> log, Func<bool> gameActive) {
+        internal static void RepairEmbedded(string installBase, Action<string> log, Func<bool> gameActive, Action<string,long,long> progress = null) {
             Guard.Need(!gameActive(), "Close the game normally before repairing program files.");
             string root = Destination(installBase, PayloadInfo.ZipSha256);
             string stagingBase = Path.Combine(Path.GetFullPath(installBase), ".repair-" + Guid.NewGuid().ToString("N").Substring(0, 8));
             string replacement = null, backup = root + ".backup-" + Guid.NewGuid().ToString("N").Substring(0, 8);
             bool movedOld = false, movedRuntime = false;
             try {
-                replacement = Embedded(stagingBase, log);
+                replacement = Embedded(stagingBase, log,progress,System.Threading.CancellationToken.None);
                 Guard.Need(!gameActive(), "Close the game normally before repairing program files.");
                 Guard.NoRedirect(root); Guard.NoRedirect(backup);
                 if (Directory.Exists(root)) { Directory.Move(root, backup); movedOld = true; }
@@ -271,8 +276,11 @@ namespace SuperRocket64 {
             }
         }
         internal static string Embedded(string installBase, Action<string> log) {
+            return Embedded(installBase,log,null,System.Threading.CancellationToken.None);
+        }
+        internal static string Embedded(string installBase,Action<string> log,Action<string,long,long> progress,System.Threading.CancellationToken token) {
             using (Stream payload = Assembly.GetExecutingAssembly().GetManifestResourceStream("Payload"))
-                return Install(payload, PayloadInfo.ZipSha256, PayloadInfo.ZipSize, installBase, log);
+                return Install(payload, PayloadInfo.ZipSha256, PayloadInfo.ZipSize, installBase, log,progress,token);
         }
     }
 
@@ -556,6 +564,16 @@ namespace SuperRocket64 {
         private readonly FlowLayoutPanel hostAddressRow = Row(), joinAddressRow = Row();
         private readonly CheckBox mute = new ConceptCheckBox();
         private bool running, cancellationAvailable;
+        private bool gameLaunchPending, gameSessionActive, closeAfterOperation;
+        private int operationGeneration;
+        private readonly object measuredLock=new object();
+        private long lastMeasuredTicks;
+        private string lastMeasuredPhase;
+        private int lastMeasuredGeneration;
+        internal Func<string, Action<string>, string> PrepareProgramFiles = null;
+        private System.Threading.CancellationTokenSource programCancellation;
+        internal Func<string, string, string, List<string>, ProcessStartInfo> OperationStartInfo = Commands.StartInfo;
+        internal Func<string, DateTime, bool> GameStarted = InstalledGameStarted;
         private volatile bool cancelRequested;
         private volatile string activeCancelFile;
         private string onlineMode;
@@ -567,7 +585,8 @@ namespace SuperRocket64 {
             AddPageText(homePage, "Super Rocket 64", "Jump, boost and fly through the Mushroom Kingdom.");
             AddButton(homePage, "Play Offline", PlayOffline);
             AddButton(homePage, "Online", delegate { ShowPage(onlineChoicePage); });
-            AddButton(homePage, "Setup / repair / add characters", ShowSetupPage);
+            AddButton(homePage, "Setup / repair", ShowSetupPage);
+            AddButton(homePage, "Add characters", ShowAddCharacters);
             mute.Text = "Mute this game session"; mute.AutoSize = true; homePage.Controls.Add(mute);
 
             AddPageText(onlineChoicePage, "Online", "Play over a reachable LAN or an existing Tailscale connection. Configure Tailscale yourself before playing; this launcher does not change network or firewall settings. Choose Host or Join.");
@@ -608,7 +627,13 @@ namespace SuperRocket64 {
             InitializeUpdates(); InitializeWizard(); InitializePresentation();
             ShowPage(locationPage);
             Shown += delegate { StartupUpdates(); };
-            FormClosing += delegate(object sender, FormClosingEventArgs e) { if (running) { e.Cancel = true; MessageBox.Show(this, updateCancellation != null ? "Use Cancel update if available, then wait for update verification or restart to finish." : cancellationAvailable ? "Use Cancel setup, then wait for the helper to finish cleaning its private stage." : "Wait for the current operation to finish. The launcher does not cancel gameplay.", Text); } };
+            FormClosing += delegate(object sender, FormClosingEventArgs e) {
+                if (!running || gameLaunchPending) return;
+                e.Cancel = true; closeAfterOperation = true;
+                if (cancelOperation.Enabled && (cancellationAvailable || updateCancellation != null)) CancelOperation();
+                else if(updateCancellation==null&&programCancellation!=null){cancelRequested=true;programCancellation.Cancel();}
+                notice.Text = cancelRequested || (updateCancellation != null && updateCancellation.IsCancellationRequested) ? "Stopping safely, then closing..." : "Finishing this step safely, then closing...";
+            };
         }
         private static FlowLayoutPanel NewPage() { return new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoSize = true, Dock = DockStyle.Top, Padding = new Padding(4) }; }
         private static FlowLayoutPanel Row() { return new FlowLayoutPanel { AutoSize = true, WrapContents = true, Margin = new Padding(0, 3, 0, 3) }; }
@@ -642,7 +667,7 @@ namespace SuperRocket64 {
             return button;
         }
         private string SelectedOnlineCharacter() { return onlineCharacter.SelectedIndex == 1 ? "mario" : "octane"; }
-        private void ShowSetupPage() { ShowPage(locationPage); }
+        private void ShowSetupPage() { addingCharacters=false; ShowPage(locationPage); }
         private void SetOnlineMode(string mode) {
             onlineMode = mode; onlineHeading.Text = mode == "host" ? "Host a game" : "Join a game";
             startHost.Visible = mode == "host"; joinGame.Visible = mode == "join";
@@ -671,22 +696,54 @@ namespace SuperRocket64 {
             if (InvokeRequired) { try { BeginInvoke(new Action<string>(Log), value); } catch (InvalidOperationException) { } return; }
             // Worker output is not a UI log. Only known stages reach the screen.
             string stage = FriendlyStage(value);
-            if (stage != null) progressText.Text = stage;
+            if (running && stage != null && !cancelRequested) progressText.Text = stage;
+        }
+        private void OnUi(Action action) {
+            if(IsDisposed || Disposing || !IsHandleCreated)return;
+            try { BeginInvoke(new Action(delegate { if(!IsDisposed && !Disposing)action(); })); } catch(InvalidOperationException) { }
+        }
+        private void ClearBusy() {
+            running=false;cancellationAvailable=false;gameLaunchPending=false;cancelRequested=false;pageHost.Enabled=true;
+            cancelOperation.Visible=false;cancelOperation.Enabled=false;progress.Visible=false;progress.Value=progress.Minimum;progressText.Text="";notice.Text="";
+        }
+        private void MeasuredProgress(int generation,string phase,long count,long total) {
+            lock(measuredLock){long now=DateTime.UtcNow.Ticks;if(generation==lastMeasuredGeneration&&phase==lastMeasuredPhase&&count!=total&&now-lastMeasuredTicks<TimeSpan.TicksPerMillisecond*60)return;lastMeasuredTicks=now;lastMeasuredPhase=phase;lastMeasuredGeneration=generation;}
+            OnUi(delegate{if(generation!=operationGeneration||!running||cancelRequested||(updateCancellation!=null&&updateCancellation.IsCancellationRequested))return;
+                progress.Visible=true;progressText.Text=phase;
+                if(total>0){progress.Style=ProgressBarStyle.Continuous;progress.Maximum=1000;progress.Value=(int)Math.Max(0,Math.Min(1000,count*1000.0/total));}else{progress.Value=0;progress.Style=ProgressBarStyle.Marquee;}
+                progress.Invalidate();
+            });
+        }
+        private static bool InstalledGameStarted(string root, DateTime started) {
+            string executable=Path.GetFullPath(Path.Combine(root,"sm64coopdx.exe"));
+            foreach(Process process in Process.GetProcessesByName("sm64coopdx"))using(process)try {
+                if(process.StartTime.ToUniversalTime()>=started.AddSeconds(-1) && String.Equals(process.MainModule.FileName,executable,StringComparison.OrdinalIgnoreCase))return true;
+            } catch(System.ComponentModel.Win32Exception) { } catch(InvalidOperationException) { }
+            return false;
         }
         private void BeginOperation(List<string> args, bool allowCancellation, Action completed) {
             Guard.Need(!running, "Finish the current operation first."); string basePath = install.Text.Trim();
+            bool isPlay=args[0]=="play", isSetup=args[0]=="setup";
+            Guard.Need((!isPlay && !isSetup) || (!gameSessionActive && !UpdateGameActive()), "Close the game normally before starting another game or changing its assets.");
             Installer.Destination(basePath, PayloadInfo.ZipSha256); running = true; cancelRequested = false; activeCancelFile = null;
+            gameLaunchPending=isPlay;int generation=++operationGeneration;
+            var programCancel=new System.Threading.CancellationTokenSource();programCancellation=programCancel;
+            Action<string> operationLog=delegate(string line){OnUi(delegate{if(generation==operationGeneration)Log(line);});};
             cancellationAvailable = allowCancellation && args.Count > 0 && args[0] == "setup";
             cancelOperation.Text = "Cancel setup"; pageHost.Enabled = false;
             cancelOperation.Visible = cancellationAvailable; cancelOperation.Enabled = cancellationAvailable;
-            progressText.Text = args[0] == "play" ? "Opening your game..." : "Checking your installation...";
-            progress.Style = ProgressBarStyle.Marquee; ShowPage(progressPage); notice.Text = "";
-            Task.Factory.StartNew(delegate {
-                bool succeeded = false; string cancelFile = null, errorText = null;
+            progress.Visible=isSetup;progress.Style = ProgressBarStyle.Marquee;progress.Value=progress.Minimum;
+            installSteps=isSetup&&!addingCharacters;progressSubtitle=installSteps?"4 of 5  -  Installing":addingCharacters?"Adding characters":"Working";
+            progressText.Text = "Preparing selected assets...";notice.Text = isPlay ? "Starting game..." : "Checking your installation...";
+            if(isSetup){ShowPage(progressPage);notice.Text="";}
+            Action work=delegate {
+                bool succeeded = false, gameConfirmed=false; string cancelFile = null, errorText = null;
                 Dictionary<string, object> report = null;
+                OperationLease lease=null;
                 try {
-                    using (OperationLease lease = OperationLease.Acquire(basePath)) {
-                        string root = Installer.Embedded(basePath, Log);
+                    lease=OperationLease.Acquire(basePath);
+                    {
+                        string root = PrepareProgramFiles!=null?PrepareProgramFiles(basePath,operationLog):Installer.Embedded(basePath,operationLog,isSetup?(Action<string,long,long>)delegate(string phase,long count,long total){MeasuredProgress(generation,phase,count,total);}:null,programCancel.Token);
                         if (cancelRequested) throw new OperationCanceledException();
                         string dataDirectory = Commands.DataDirectory(basePath);
                         if (cancellationAvailable) {
@@ -695,13 +752,21 @@ namespace SuperRocket64 {
                             cancelFile = Commands.CancelPath(dataDirectory, Guid.NewGuid()); activeCancelFile = cancelFile;
                             if (cancelRequested) WriteCancelMarker(cancelFile);
                         }
+                        if(isSetup)MeasuredProgress(generation,"Preparing selected assets...",0,0);
                         StringBuilder stdout = new StringBuilder(), stderr = new StringBuilder();
-                        using (Process process = new Process { StartInfo = Commands.StartInfo(root, dataDirectory, cancelFile, args) }) {
-                            process.OutputDataReceived += delegate(object sender, DataReceivedEventArgs e) { if (e.Data != null) { if (stdout.Length < 1048576) stdout.AppendLine(e.Data); Log(e.Data); } };
+                        using (Process process = new Process { StartInfo = OperationStartInfo(root, dataDirectory, cancelFile, args) }) {
+                            process.OutputDataReceived += delegate(object sender, DataReceivedEventArgs e) { if (e.Data != null) { if (stdout.Length < 1048576) stdout.AppendLine(e.Data); operationLog(e.Data); } };
                             process.ErrorDataReceived += delegate(object sender, DataReceivedEventArgs e) { if (e.Data != null && stderr.Length < 65536) stderr.AppendLine(e.Data); };
-                            Guard.Need(process.Start(), "Could not start setup. Repair the program files and retry."); process.StandardInput.Close();
+                            DateTime started=DateTime.UtcNow;Guard.Need(process.Start(), "Could not start this action. Repair the program files and retry."); process.StandardInput.Close();
                             if (cancelRequested && cancelFile != null) WriteCancelMarker(cancelFile);
-                            process.BeginOutputReadLine(); process.BeginErrorReadLine(); process.WaitForExit();
+                            process.BeginOutputReadLine(); process.BeginErrorReadLine();
+                            while(!process.WaitForExit(150)) {
+                                if(isPlay && !gameConfirmed && GameStarted(root,started)) {
+                                    gameConfirmed=true;lease.Dispose();lease=null;
+                                    OnUi(delegate{if(generation!=operationGeneration)return;ClearBusy();gameSessionActive=true;notice.Text="Game running";ShowPage(homePage);});
+                                }
+                            }
+                            process.WaitForExit(); // Drain redirected helper output before releasing its lifetime.
                             if (process.ExitCode == 130) throw new OperationCanceledException();
                             Guard.Need(process.ExitCode == 0, PlainFailure(stderr.ToString()));
                             if (args[0] == "wizard-status" || args[0] == "preflight") {
@@ -715,15 +780,28 @@ namespace SuperRocket64 {
                 } catch (OperationCanceledException) { errorText = "Setup paused. Completed characters, saves and controls are safe. Resume to reuse verified work."; }
                 catch (Exception error) { errorText = PlainFailure(error.Message); }
                 finally {
+                    if(lease!=null)lease.Dispose();
                     activeCancelFile = null;
                     if (cancelFile != null) try { Guard.NoRedirect(cancelFile); if (File.Exists(cancelFile)) File.Delete(cancelFile); } catch (IOException) { } catch (UnauthorizedAccessException) { }
-                    if (!IsDisposed && !Disposing) try { BeginInvoke(new Action(delegate {
-                        running = false; cancellationAvailable = false; pageHost.Enabled = true; cancelOperation.Enabled = false; cancelOperation.Visible = false;
+                    Action finish=delegate {
+                        try {
+                        if(Object.ReferenceEquals(programCancellation,programCancel))programCancellation=null;
+                        if(isPlay)gameSessionActive=false;
+                        if(generation!=operationGeneration)return;
+                        ClearBusy();if(closeAfterOperation){Close();return;}
+                        if(isPlay && gameConfirmed && succeeded){notice.Text="Game closed";return;}
                         if (succeeded) { if (report != null) lastReport = report; try { if (completed != null) completed(); else ShowPage(homePage); } catch (Exception problem) { ShowFailure(PlainFailure(problem.Message), delegate { BeginOperation(args, allowCancellation, completed); }, null); } }
-                        else ShowFailure(errorText, delegate { BeginOperation(args, allowCancellation, completed); }, args[0] == "setup" && args.Contains("--character") && args[args.IndexOf("--character") + 1] != "octane" ? completed : null, args[0] == "play" && args.Contains("--mode") && (args[args.IndexOf("--mode") + 1] == "host" || args[args.IndexOf("--mode") + 1] == "join") ? onlinePage : setupPage);
-                    })); } catch (InvalidOperationException) { }
+                        else ShowFailure(errorText, delegate { BeginOperation(args, allowCancellation, completed); }, args[0] == "setup" && args.Contains("--character") && args[args.IndexOf("--character") + 1] != "octane" ? completed : null, args[0] == "play" && args.Contains("--mode") && (args[args.IndexOf("--mode") + 1] == "host" || args[args.IndexOf("--mode") + 1] == "join") ? onlinePage : addingCharacters ? extrasPage : setupPage);
+                        } finally {programCancel.Dispose();}
+                    };
+                    if(IsDisposed||Disposing||!IsHandleCreated)programCancel.Dispose();
+                    else try{BeginInvoke(new Action(delegate{if(IsDisposed||Disposing){programCancel.Dispose();return;}finish();}));}catch(InvalidOperationException){programCancel.Dispose();}
                 }
-            });
+            };
+            // Keep draining the launch helper and its cleanup even after the
+            // window closes. The helper owns the game's locks and child lifetime.
+            if(isPlay){var worker=new System.Threading.Thread(new System.Threading.ThreadStart(work)){IsBackground=false,Name="Game session"};worker.Start();}
+            else Task.Factory.StartNew(work);
         }
         private static void WriteCancelMarker(string path) {
             Guard.NoRedirect(Path.GetDirectoryName(path));
@@ -731,12 +809,13 @@ namespace SuperRocket64 {
             catch (IOException) { if (!File.Exists(path)) throw; }
         }
         private void CancelOperation() {
-            if (updateCancellation != null) { updateCancellation.Cancel(); cancelOperation.Enabled = false; Log("Cancel requested; waiting for the update operation to stop."); return; }
+            if (updateCancellation != null) { if(!cancelOperation.Enabled)return;updateCancellation.Cancel(); cancelOperation.Enabled = false; progressText.Text="Stopping the update safely...";return; }
             if (!running || !cancellationAvailable) return;
             cancelRequested = true; cancelOperation.Enabled = false;
+            if(programCancellation!=null)programCancellation.Cancel();
             string marker = activeCancelFile;
             try {
-                if (marker != null) { WriteCancelMarker(marker); Log("Cancel requested. Waiting for setup to stop its own converter and clean its private stage."); }
+                if (marker != null) { WriteCancelMarker(marker); progressText.Text="Stopping setup safely..."; }
                 else progressText.Text = "Cancel requested. Finishing the current verification safely...";
             } catch (Exception error) { cancelOperation.Enabled = true; Log("Could not create setup cancel marker: " + error.Message); }
         }
@@ -771,7 +850,7 @@ namespace SuperRocket64 {
                 return 0;
             } catch (Exception error) {
                 if (headless) Console.Error.WriteLine("Verification failed: " + error.Message);
-                else MessageBox.Show(error.Message, "Super Rocket 64 — stopped", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                else MessageBox.Show(error.Message, "Super Rocket 64 â€” stopped", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return 2;
             }
         }

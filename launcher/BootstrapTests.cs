@@ -61,6 +61,15 @@ namespace SuperRocket64 {
                 File.WriteAllText(Path.Combine(save, "sentinel.txt"), "USER DATA");
                 Install(good, "good"); Check(File.ReadAllText(Path.Combine(save, "sentinel.txt")) == "USER DATA", "Private file changed");
             });
+            Test("measured extraction cancels before atomic commit and resumes", delegate {
+                string folder=Path.Combine(testRoot,"cancel-measured"),destination=Installer.Destination(folder,Sha(good));bool canceled=false;long extracted=0,expected=0;
+                using(var token=new System.Threading.CancellationTokenSource())using(var stream=new MemoryStream(good))try{
+                    Installer.Install(stream,Sha(good),good.Length,folder,delegate{},delegate(string phase,long count,long total){if(phase.StartsWith("Extracting")){Check(count>0&&count<=total,"Invalid measured extraction");token.Cancel();}},token.Token);
+                }catch(OperationCanceledException){canceled=true;}
+                Check(canceled&&!Directory.Exists(destination)&&Directory.GetDirectories(folder).Length==0,"Canceled extraction committed or leaked its stage");
+                using(var stream=new MemoryStream(good))Installer.Install(stream,Sha(good),good.Length,folder,delegate{},delegate(string phase,long count,long total){if(phase.StartsWith("Extracting")){Check(count>=extracted&&count<=total,"Progress not monotonic");extracted=count;expected=total;}});
+                Check(extracted>0&&extracted==expected&&Directory.Exists(destination),"Resumed extraction did not finish measured bytes");
+            });
             Test("changed installed binary refuses overwrite", delegate {
                 string root = Install(good, "changed"); string file = Path.Combine(root, "sm64coopdx.exe"); File.WriteAllText(file, "CHANGED");
                 Reject(delegate { Install(good, "changed"); }); Check(File.ReadAllText(file) == "CHANGED", "Changed file overwritten");

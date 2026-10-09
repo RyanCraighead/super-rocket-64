@@ -52,7 +52,7 @@ namespace SuperRocket64 {
         static void Call(LauncherForm form,string name,params object[] args) {typeof(LauncherForm).GetMethod(name,BindingFlags.Instance|BindingFlags.NonPublic).Invoke(form,args);Application.DoEvents();}
         static Button Button(Control parent,string text) {foreach(Control c in parent.Controls){Button b=c as Button;if(b!=null&&b.Text==text)return b;if(c.HasChildren){b=Button(c,text);if(b!=null)return b;}}return null;}
         static void Click(Control page,string text) {Button b=Button(page,text);Need(b!=null&&b.Visible&&b.Enabled,"Missing usable button: "+text);b.PerformClick();Application.DoEvents();}
-        static void Page(LauncherForm form,string name) {Need(Field<Control>(form,name).Visible,"Wrong page: "+name+"; notice="+Field<Label>(form,"notice").Text);}
+        static void Page(LauncherForm form,string name) {Need(Field<Control>(form,name).Visible,"Wrong page: "+name+"; notice="+Field<Label>(form,"notice").Text+"; failure="+Field<Label>(form,"failureText").Text);}
         // DrawToBitmap composites transparent children differently and hid the
         // reported black radio/checkbox bars. Capture the native window instead.
         static void Snapshot(LauncherForm form,string output,string name) {WindowSnapshot(form,output,name);}
@@ -65,7 +65,7 @@ namespace SuperRocket64 {
         static void ChoicePaint(LauncherForm form,string output,string name){
             Field<Label>(form,"notice").Text="";Call(form,"ShowUpdateSettings");
             var auto=Field<RadioButton>(form,"automaticUpdates");var manual=Field<RadioButton>(form,"manualUpdates");
-            Control autoHelp=TextControl(auto.Parent,"Check at startup, verify and apply before play."),manualHelp=TextControl(auto.Parent,"No startup update checks. Check when you choose.");
+            Control autoHelp=TextControl(auto.Parent,"Check at startup. Choose Update now or Later."),manualHelp=TextControl(auto.Parent,"No startup update checks. Check when you choose.");
             Need(auto.Bottom<autoHelp.Top&&autoHelp.Bottom<manual.Top&&manual.Bottom<manualHelp.Top,"Update choices overlap their descriptions");
             foreach(bool selected in new[]{false,true}){
                 auto.Checked=selected;manual.Checked=!selected;auto.Focus();form.Refresh();Application.DoEvents();
@@ -93,12 +93,12 @@ namespace SuperRocket64 {
             Set(form,"lastReport",Report(true,true,"octane"));Call(form,"CompleteInspection",true);Page(form,"homePage");Need(File.ReadAllText(preferences)==before&&Field<TextBox>(form,"install").Text==root&&transport.Reads==reads,"Configured migration changed preferences/path or made a manual update request");
             WindowSnapshot(form,output,"startup-configured-play");
             saved.AutomaticChecks=true;saved.AutomaticApply=true;saved.Save(root);before=File.ReadAllText(preferences);
-            Call(form,"CompleteInspection",true);WaitUpdate(form);Page(form,"updatePage");Need(transport.Reads>reads&&File.ReadAllText(preferences)==before,"Configured automatic startup or paused-version preservation failed");
+            Call(form,"CompleteInspection",true);WaitUpdate(form);Page(form,"homePage");Need(transport.Reads>reads&&File.ReadAllText(preferences)==before,"Notification startup changed legacy preferences");
             // Legacy check-only consent must never become automatic install consent.
             File.WriteAllText(preferences,"{\"schema\":1,\"configured\":true,\"automatic_checks\":true,\"desktop_shortcut\":true,\"start_menu_shortcut\":false}");before=File.ReadAllText(preferences);reads=transport.Reads;
-            Call(form,"CompleteInspection",true);Page(form,"homePage");Need(!UpdatePreferences.Load(root).AutomaticApply,"Legacy consent was inferred");Need(File.ReadAllText(preferences)==before&&transport.Reads==reads,"Migration changed preferences or made an unchosen update request");
+            Call(form,"CompleteInspection",true);WaitUpdate(form);Page(form,"homePage");Need(!UpdatePreferences.Load(root).AutomaticApply,"Legacy consent was inferred");Need(File.ReadAllText(preferences)==before&&transport.Reads>reads,"Legacy notification preference was not respected");
             WindowSnapshot(form,output,"startup-legacy-play");
-            File.Delete(preferences);Call(form,"CompleteInspection",true);Page(form,"homePage");Need(!File.Exists(preferences)&&transport.Reads==reads,"Verified startup wrote preferences or checked updates");WindowSnapshot(form,output,"startup-verified-play");
+            reads=transport.Reads;File.Delete(preferences);Call(form,"CompleteInspection",true);WaitUpdate(form);Page(form,"homePage");Need(!File.Exists(preferences)&&transport.Reads>reads,"Default notifications wrote preferences or did not check");reads=transport.Reads;WindowSnapshot(form,output,"startup-verified-play");
             Call(form,"ShowReadyPage");Page(form,"readyPage");
             Field<RadioButton>(form,"readyManual").Checked=true;Click(Field<Control>(form,"readyPage"),"Open launcher");Page(form,"homePage");Need(UpdatePreferences.Load(root).ModeChosen,"Setup completion did not persist explicit choice");Call(form,"CompleteInspection",true);Page(form,"homePage");
             // Existing but interrupted data must run inspection, not infer readiness.
@@ -147,7 +147,7 @@ namespace SuperRocket64 {
             }
         }
         static void WaitUpdate(LauncherForm form) {
-            Stopwatch timer=Stopwatch.StartNew();while(Field<bool>(form,"running")&&timer.ElapsedMilliseconds<15000){Application.DoEvents();Thread.Sleep(20);}
+            Stopwatch timer=Stopwatch.StartNew();while((Field<bool>(form,"running")||Field<bool>(form,"checkingUpdates"))&&timer.ElapsedMilliseconds<15000){Application.DoEvents();Thread.Sleep(20);}
             Need(!Field<bool>(form,"running")&&Field<Control>(form,"pageHost").Enabled,"Update did not finish/re-enable UI");
         }
         static int Child(string expected,string output) {
@@ -161,6 +161,9 @@ namespace SuperRocket64 {
                     form.UpdateTransport = transport;
                     // Seed only this synthetic root so real running games need not be stopped.
                     string fixtureRoot=Field<TextBox>(form,"install").Text;
+                    // This deliberately incomplete version directory exercises
+                    // verification/recovery without depending on global disk space.
+                    Directory.CreateDirectory(Installer.Destination(fixtureRoot,PayloadInfo.ZipSha256));
                     UpdateStore.Save(fixtureRoot,new LauncherState{active=UpdateStore.Capture(fixtureRoot,UpdateStore.CurrentExe,UpdateBuild.Version)});
                     string desktopFolder = Path.Combine(output,"shortcut-Desktop"), programsFolder = Path.Combine(output,"shortcut-Programs");
                     Directory.CreateDirectory(desktopFolder); Directory.CreateDirectory(programsFolder);
@@ -186,7 +189,8 @@ namespace SuperRocket64 {
                     choices[0].Checked=choices[3].Checked=true;sources[0].Text="separate source A";sources[3].Text="separate source B";
                     Need(sources[0].Text!=sources[3].Text,"Optional choices share input");Snapshot(form,output,"03-extras");
                     Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"readyPage"));
-                    Need(!Field<RadioButton>(form,"readyAuto").Checked&&!Field<RadioButton>(form,"readyManual").Checked,"Update install consent inferred");
+                    Need(Field<RadioButton>(form,"readyAuto").Checked&&!Field<RadioButton>(form,"readyManual").Checked,"Notifications are not enabled by default");
+                    Field<RadioButton>(form,"readyAuto").Checked=false;
                     Click(Field<Control>(form,"readyPage"),"Open launcher");Page(form,"readyPage");
                     Need(Field<Label>(form,"notice").Text.Contains("Choose"),"No update choice validation");
                     Snapshot(form,output,"05-ready");
@@ -199,16 +203,20 @@ namespace SuperRocket64 {
                     Call(form,"ShowUpdateSettings");Click(Field<Control>(form,"settingsPage"),"Check for updates");WaitUpdate(form);Page(form,"updatePage");
                     Need(Field<Label>(form,"updateMessage").Text.Contains("0.3.0"),"Available release missing");
                     Snapshot(form,output,"update");
-                    Need(!Field<Button>(form,"useInstalled").Visible,"Incomplete install offered Play");
-                    transport.Offline=true;Click(Field<Control>(form,"updatePage"),"Retry update check");WaitUpdate(form);Page(form,"updatePage");
+                    Need(!Field<Button>(form,"useInstalled").Visible&&!Field<Button>(form,"retryUpdate").Visible,"Normal update page has extra buttons");
+                    transport.Offline=true;Call(form,"CheckUpdates",false);WaitUpdate(form);Page(form,"updatePage");
                     Need(Field<Label>(form,"updateMessage").Text.Contains("retained"),"Offline fallback missing");transport.Offline=false;
                     Call(form,"ShowUpdateSettings");Field<RadioButton>(form,"automaticUpdates").Checked=true;Click(Field<Control>(form,"settingsPage"),"Save preferences");
-                    prefs=UpdatePreferences.Load(installRoot);Need(prefs.ModeChosen&&prefs.AutomaticApply&&prefs.AutomaticChecks,"Automatic mode not persisted");
+                    prefs=UpdatePreferences.Load(installRoot);Need(prefs.ModeChosen&&!prefs.AutomaticApply&&prefs.AutomaticChecks,"Notification preference not persisted");
                     transport.Corrupt=true;form.UpdateGameActive=delegate{return false;};
-                    Call(form,"CheckUpdates",true);WaitUpdate(form);Page(form,"updatePage");
-                    Need(transport.Downloads==1&&UpdatePreferences.Load(installRoot).PausedVersion=="0.3.0","Automatic mode did not download/verify/pause corrupt release");transport.Corrupt=false;
-                    prefs.PausedVersion="0.3.0";prefs.Save(installRoot);Call(form,"CheckUpdates",true);WaitUpdate(form);Page(form,"updatePage");
-                    Need(Field<Label>(form,"updateMessage").Text.Contains("paused"),"Failed version retry loop");
+                    Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"homePage"));Field<HashSet<string>>(form,"announcedUpdates").Clear();Call(form,"CheckUpdates",true);WaitUpdate(form);Page(form,"homePage");Need(Field<bool>(form,"notificationVisible"),"Missing update notification");Field<Button>(form,"notifyUpdate").PerformClick();Page(form,"updatePage");
+                    Need(transport.Downloads==0,"Notification installed without Update now");Snapshot(form,output,"update-notification");
+                    Click(Field<Control>(form,"updatePage"),"Download update and restart");WaitUpdate(form);Page(form,"updatePage");
+                    Need(transport.Downloads==1&&UpdatePreferences.Load(installRoot).PausedVersion=="0.3.0","Explicit update did not verify/pause corrupt release");transport.Corrupt=false;
+                    Click(Field<Control>(form,"updatePage"),"Back");Page(form,"locationPage");Set(form,"installationReady",true);
+                    Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"homePage"));Call(form,"CheckUpdates",true);WaitUpdate(form);Page(form,"homePage");
+                    Need(transport.Downloads==1,"Dismissed update repeated or auto-installed");
+                    Call(form,"CheckUpdates",false);WaitUpdate(form);Page(form,"updatePage");Need(form.CancelButton==null,"Normal update page added an alternate action");Call(form,"DismissUpdate");Page(form,"homePage");
                     Field<Label>(form,"notice").Text="";
                     Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"homePage"));Snapshot(form,output,"home");Click(Field<Control>(form,"homePage"),"Online");Snapshot(form,output,"online-choice");
                     Click(Field<Control>(form,"onlineChoicePage"),"Host");Page(form,"onlinePage");
@@ -220,7 +228,7 @@ namespace SuperRocket64 {
                     Need(LauncherForm.FriendlyStage("private raw converter diagnostics")==null,"Raw output reached UI");
                     Escape(form);Page(form,"onlineChoicePage");Escape(form);Page(form,"homePage");
                     Button homePlay=Button(Field<Control>(form,"homePage"),"Play Offline");Reach(form,homePlay);Need(form.SelectNextControl(homePlay,true,true,true,true),"Tab navigation failed");Snapshot(form,output,"home-keyboard-focus");
-                    foreach(int dpi in new[]{96,120,144,192}){Dpi(form,dpi);Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"homePage"));Snapshot(form,output,"home-dpi-"+dpi);Reach(form,Button(Field<Control>(form,"homePage"),"Setup / repair / add characters"));}
+                    foreach(int dpi in new[]{96,120,144,192}){Dpi(form,dpi);Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"homePage"));Snapshot(form,output,"home-dpi-"+dpi);Reach(form,Button(Field<Control>(form,"homePage"),"Setup / repair"));}
                     Dpi(form,96);form.ClientSize=new Size(1536,1024);
                     Field<Label>(form,"readyStatus").Text="Mario + Octane: ready\nOffline extras: none selected\nCar sounds: game audio fallback";
                     Field<Label>(form,"notice").Text="";Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"readyPage"));Snapshot(form,output,"ready");
@@ -242,23 +250,121 @@ namespace SuperRocket64 {
                     Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"setupPage"));Need(!Field<Button>(form,"sourceNext").Enabled,"Blank sources enabled Next");Reach(form,Button(Field<Control>(form,"setupPage"),"Back"));Escape(form);Page(form,"locationPage");
                     string longFailure=String.Join(" ",new string[12]).Replace(" ","This source needs repair. Check the original file and available disk space before trying again. ");
                     Field<Label>(form,"failureText").Text=LauncherForm.PlainFailure(longFailure);Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"failurePage"));Need(Field<Label>(form,"failureText").Height>164*960/1536,"Long recovery copy did not expand");Snapshot(form,output,"recovery-long-minimum");Reach(form,Button(Field<Control>(form,"failurePage"),"Retry / resume"));
-                    form.ClientSize=new Size(1280,720);Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"homePage"));Reach(form,Button(Field<Control>(form,"homePage"),"Setup / repair / add characters"));Snapshot(form,output,"home-wide-short");
+                    form.ClientSize=new Size(1280,720);Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"homePage"));Reach(form,Button(Field<Control>(form,"homePage"),"Setup / repair"));Snapshot(form,output,"home-wide-short");
                     Dpi(form,96);form.ClientSize=new Size(1152,768);ChoicePaint(form,output,"settings-native-default");
                     foreach(int dpi in new[]{96,120,144,192}){Dpi(form,dpi);ChoicePaint(form,output,"settings-native-dpi-"+dpi);}
                     Dpi(form,96);form.ClientSize=new Size(960,640);ChoicePaint(form,output,"settings-native-minimum");
                     form.ClientSize=new Size(1536,1024);StartupRoutes(form,output,transport);
                     SourceSelection(form,output);
+                    AddCharacters(form,output);
                     foreach(int dpi in new[]{96,120,144,192}){Dpi(form,dpi);AllPagesFit(form,output,"dpi-"+dpi);}
                     Dpi(form,96);form.ClientSize=new Size(960,640);AllPagesFit(form,output,"minimum");
                     form.ClientSize=new Size(1280,720);AllPagesFit(form,output,"wide");
                     AssertSeparate(expected);form.Close();
                 }
+                Lifecycle(output);
                 File.WriteAllText(Path.Combine(output,"ui-result.json"),new JavaScriptSerializer().Serialize(new{passed=true,checks=checks,separate_desktop=expected,input_desktop=InputDesktop(),game_started=false,helper_started=
                     false
-                ,address_detection_used=false,dpi_message_scales=new[]{96,120,144,192},real_monitor_switch_tested=false}));return 0;
+                ,synthetic_operation_children_started=true,address_detection_used=false,dpi_message_scales=new[]{96,120,144,192},real_monitor_switch_tested=false}));return 0;
             } catch(Exception e){File.WriteAllText(Path.Combine(output,"ui-error.txt"),e.ToString());return 1;}
         }
+
+        static void PumpUntil(Func<bool> condition,string message){var watch=Stopwatch.StartNew();while(!condition()&&watch.ElapsedMilliseconds<12000){Application.DoEvents();Thread.Sleep(20);}Need(condition(),message);Application.DoEvents();}
+        static int OperationFixture(string root,string mode,string cancel){
+            Directory.CreateDirectory(root);File.WriteAllText(Path.Combine(root,"started-"+mode),Process.GetCurrentProcess().Id.ToString());
+            if(mode=="play"){
+                if(File.Exists(Path.Combine(root,"fail")))return 9;
+                File.WriteAllText(Path.Combine(root,"game-running"),"ready");
+                try{var watch=Stopwatch.StartNew();while(!File.Exists(Path.Combine(root,"stop"))&&watch.ElapsedMilliseconds<30000)Thread.Sleep(20);}
+                finally{File.Delete(Path.Combine(root,"game-running"));}
+            }else if(mode=="setup"){
+                var watch=Stopwatch.StartNew();while(!File.Exists(Path.Combine(root,"finish"))&&watch.ElapsedMilliseconds<12000){if(File.Exists(cancel))return 130;Thread.Sleep(20);}
+                if(File.Exists(Path.Combine(root,"fail")))return 8;
+            }else if(mode=="preflight")Console.WriteLine("{\"valid\":true,\"message\":\"Ready\"}");
+            else if(mode=="wizard-status")Console.WriteLine("{\"playable\":true,\"engine\":true,\"ready\":[\"octane\",\"link\"],\"errors\":{},\"detected\":[]}");
+            return 0;
+        }
+        static LauncherForm OperationForm(string root,List<List<string>> commands){
+            var form=new LauncherForm(root);form.UpdateGameActive=delegate{return File.Exists(Path.Combine(root,"game-running"));};
+            form.UpdateTransport=FakeUpdateTransport.New("0.3.0",new byte[]{1,2,3});
+            form.PrepareProgramFiles=delegate(string path,Action<string> log){return root;};
+            form.GameStarted=delegate(string path,DateTime started){return File.Exists(Path.Combine(root,"game-running"));};
+            form.OperationStartInfo=delegate(string path,string data,string cancel,List<string> args){commands.Add(new List<string>(args));return new ProcessStartInfo{FileName=Assembly.GetExecutingAssembly().Location,Arguments="--operation-fixture "+Commands.Quote(root)+" "+Commands.Quote(args[0])+" "+Commands.Quote(cancel??"none"),UseShellExecute=false,CreateNoWindow=true,RedirectStandardInput=true,RedirectStandardOutput=true,RedirectStandardError=true};};
+            form.Show();Application.DoEvents();Set(form,"installationReady",true);Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"homePage"));return form;
+        }
+        static void AddCharacters(LauncherForm form,string output){
+            Set(form,"installationReady",true);Field<HashSet<string>>(form,"readyCharacters").Clear();Field<HashSet<string>>(form,"readyCharacters").Add("octane");
+            foreach(var choice in Field<CheckBox[]>(form,"extraChoices"))choice.Checked=false;
+            foreach(var source in Field<TextBox[]>(form,"extraSources"))source.Text="";
+            Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"homePage"));Click(Field<Control>(form,"homePage"),"Add characters");Page(form,"extrasPage");
+            Need(Field<bool>(form,"addingCharacters")&&!Field<RadioButton>(form,"extrasNo").Visible,"Add characters still uses base wizard");
+            Click(Field<Control>(form,"extrasPage"),"Install / resume");Need(Field<Label>(form,"notice").Text.Contains("Choose at least"),"No selection validation");
+            Field<CheckBox[]>(form,"extraChoices")[0].Checked=true;Click(Field<Control>(form,"extrasPage"),"Install / resume");Page(form,"extrasPage");Need(!Field<bool>(form,"running")&&Field<Label>(form,"notice").Text.Contains("original ROM"),"Missing optional source rerouted base setup");
+            Field<HashSet<string>>(form,"readyCharacters").Add("link");Call(form,"BuildSetupQueue");var queue=Field<Queue<List<string>>>(form,"setupQueue");Need(queue.Count==1&&queue.Peek().Contains("link")&&!queue.Peek().Contains("--sm64")&&!queue.Peek().Contains("octane"),"Add-only queue reinstalled core assets");queue.Clear();
+            Dpi(form,96);form.ClientSize=new Size(1536,1024);Snapshot(form,output,"add-characters");form.ClientSize=new Size(960,640);Need(form.ClientSize==new Size(960,640),"Add-character minimum fixture was not 960x640");ControlsFit(Field<Control>(form,"extrasPage"),Field<Panel>(form,"pageHost"));Snapshot(form,output,"add-characters-minimum");Escape(form);Page(form,"homePage");Need(!Field<bool>(form,"addingCharacters"),"Back did not end add-only flow");
+            Set(form,"installationReady",false);Call(form,"ShowAddCharacters");Page(form,"locationPage");
+        }
+        static void Lifecycle(string output){
+            string adding=Path.Combine(output,"add-flow");Directory.CreateDirectory(adding);File.WriteAllText(Path.Combine(adding,"finish"),"done");
+            var addCommands=new List<List<string>>();using(var form=OperationForm(adding,addCommands)){
+                var prefs=new UpdatePreferences{AutomaticChecks=false,Configured=true};prefs.Save(adding);string before=File.ReadAllText(UpdatePreferences.PathFor(adding));
+                Field<HashSet<string>>(form,"readyCharacters").Add("octane");Field<HashSet<string>>(form,"readyCharacters").Add("link");Call(form,"ShowAddCharacters");Field<CheckBox[]>(form,"extraChoices")[0].Checked=true;
+                Click(Field<Control>(form,"extrasPage"),"Install / resume");WaitUpdate(form);Page(form,"homePage");Need(Field<Label>(form,"notice").Text=="Characters added."&&!Field<bool>(form,"addingCharacters"),"Direct add did not finish on Play");
+                Need(addCommands.Count==3&&addCommands[0][0]=="preflight"&&addCommands[1].Contains("link")&&addCommands[2][0]=="wizard-status","Direct add operation sequence changed");foreach(var command in addCommands)Need(!command.Contains("--sm64")&&!command.Contains("octane"),"Direct add requested base sources");Need(File.ReadAllText(UpdatePreferences.PathFor(adding))==before,"Direct add rewrote preferences");form.Close();
+            }
+            string notifying=Path.Combine(output,"notification");using(var form=OperationForm(notifying,new List<List<string>>())){
+                var transport=(FakeUpdateTransport)form.UpdateTransport;transport.WaitForCancel=true;Call(form,"CheckUpdates",true);
+                Need(!Field<bool>(form,"running")&&!Field<Control>(form,"progressPage").Visible&&Field<Panel>(form,"pageHost").Enabled,"Background update check blocked Play");
+                form.UpdateGameActive=delegate{return true;};transport.WaitForCancel=false;WaitUpdate(form);Need(Field<bool>(form,"pendingUpdateNotice")&&!Field<bool>(form,"notificationVisible"),"Update notification interrupted running game");
+                form.UpdateGameActive=delegate{return false;};Call(form,"PresentUpdate",true);Need(Field<bool>(form,"notificationVisible"),"Deferred notification lost");Snapshot(form,output,"play-update-notification");
+                Field<Button>(form,"dismissNotification").PerformClick();Call(form,"CheckUpdates",true);WaitUpdate(form);Need(!Field<bool>(form,"notificationVisible")&&transport.Downloads==0,"Later repeated notification or installed update");
+                new UpdatePreferences{AutomaticChecks=false}.Save(notifying);int reads=transport.Reads;Call(form,"CheckUpdates",true);Need(transport.Reads==reads,"Opt-out made a background request");form.Close();
+            }
+            string pending=Path.Combine(output,"close-launch");Directory.CreateDirectory(pending);using(var gate=new ManualResetEvent(false))using(var entered=new ManualResetEvent(false))using(var form=OperationForm(pending,new List<List<string>>())){
+                form.PrepareProgramFiles=delegate(string path,Action<string> log){entered.Set();gate.WaitOne(10000);return pending;};
+                Click(Field<Control>(form,"homePage"),"Play Offline");PumpUntil(delegate{return entered.WaitOne(0);},"Pending launch never began");form.Close();Need(form.IsDisposed,"Pending game launch blocked window close");gate.Set();
+                PumpUntil(delegate{return File.Exists(Path.Combine(pending,"game-running"));},"Closing launcher canceled pending game");File.WriteAllText(Path.Combine(pending,"stop"),"stop");PumpUntil(delegate{return !File.Exists(Path.Combine(pending,"game-running"));},"Pending fake game did not clean up");
+            }
+            string root=Path.Combine(output,"lifecycle");var commands=new List<List<string>>();Directory.CreateDirectory(root);
+            using(var form=OperationForm(root,commands)){
+                Click(Field<Control>(form,"homePage"),"Play Offline");Need(!Field<Control>(form,"progressPage").Visible,"Game launch displayed a loading page");
+                PumpUntil(delegate{return Field<bool>(form,"gameSessionActive");},"Game never entered running state");
+                Need(!Field<bool>(form,"running")&&!Field<ProgressBar>(form,"progress").Visible&&Field<Label>(form,"notice").Text=="Game running","Game retained busy state");
+                Click(Field<Control>(form,"homePage"),"Play Offline");Need(commands.Count==1,"Repeated click launched a second game");Field<Label>(form,"notice").Text="Game running";Snapshot(form,output,"game-running-fixture");
+                using(OperationLease lease=OperationLease.Acquire(root)){} // Released after actual child signal.
+                form.Close();Application.DoEvents();Need(form.IsDisposed&&File.Exists(Path.Combine(root,"game-running")),"Close killed the launched game");
+                using(var reopened=OperationForm(root,new List<List<string>>())){Need(File.Exists(Path.Combine(root,"game-running")),"Reopen interrupted game");reopened.Close();}
+                File.WriteAllText(Path.Combine(root,"stop"),"stop");PumpUntil(delegate{return !File.Exists(Path.Combine(root,"game-running"));},"Owned fake game did not exit");
+            }
+            string failed=Path.Combine(output,"launch-failure");Directory.CreateDirectory(failed);File.WriteAllText(Path.Combine(failed,"fail"),"fail");
+            using(var form=OperationForm(failed,new List<List<string>>())){Click(Field<Control>(form,"homePage"),"Play Offline");WaitUpdate(form);Page(form,"failurePage");Need(!Field<ProgressBar>(form,"progress").Visible,"Failed launch left progress");form.Close();}
+            foreach(bool close in new[]{false,true}){
+                string setup=Path.Combine(output,close?"setup-close":"setup-cancel");Directory.CreateDirectory(setup);bool completed=false;
+                using(var form=OperationForm(setup,new List<List<string>>())){
+                    Call(form,"BeginOperation",new List<string>{"setup","--character","octane"},true,(Action)delegate{completed=true;});
+                    PumpUntil(delegate{return File.Exists(Path.Combine(setup,"started-setup"));},"Setup fixture failed to start");
+                    Need(Field<ProgressBar>(form,"progress").Style==ProgressBarStyle.Marquee,"Unknown helper work used fake determinate progress");
+                    if(close){form.Close();Need(!form.IsDisposed&&Field<Label>(form,"notice").Text.Contains("safely"),"Close did not wait nonmodally");PumpUntil(delegate{return form.IsDisposed;},"Safe close did not finish");}
+                    else{Escape(form);WaitUpdate(form);Page(form,"failurePage");Need(!Field<ProgressBar>(form,"progress").Visible,"Cancel left progress visible");form.Close();}
+                    Need(!completed,"Canceled setup continued its queue");
+                }
+            }
+            foreach(bool fail in new[]{false,true}){
+                string setup=Path.Combine(output,fail?"setup-failure":"setup-success");Directory.CreateDirectory(setup);File.WriteAllText(Path.Combine(setup,"finish"),"done");if(fail)File.WriteAllText(Path.Combine(setup,"fail"),"fail");bool completed=false;
+                using(var form=OperationForm(setup,new List<List<string>>())){Call(form,"BeginOperation",new List<string>{"setup","--character","octane"},true,(Action)delegate{completed=true;Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"homePage"));});WaitUpdate(form);Need(completed!=fail&&!Field<ProgressBar>(form,"progress").Visible,"Setup success/failure completion is stale");Page(form,fail?"failurePage":"homePage");form.Close();}
+            }
+            string updating=Path.Combine(output,"update-close");using(var form=OperationForm(updating,new List<List<string>>())){
+                var transport=(FakeUpdateTransport)form.UpdateTransport;transport.WaitForCancel=true;Call(form,"CheckUpdates",false);form.Close();PumpUntil(delegate{return form.IsDisposed;},"Update close did not cancel safely");Need(transport.Downloads==0,"Canceled check downloaded update");
+            }
+            string measured=Path.Combine(output,"measured");using(var form=OperationForm(measured,new List<List<string>>())){
+                Set(form,"running",true);Set(form,"operationGeneration",40);Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"progressPage"));Call(form,"MeasuredProgress",40,"Measured fixture",25L,100L);
+                var bar=Field<ProgressBar>(form,"progress");Need(bar.Style==ProgressBarStyle.Continuous&&bar.Value==250,"Measured 25/100 did not produce 25%");Snapshot(form,output,"measured-progress-fixture");
+                Call(form,"MeasuredProgress",39,"Stale",99L,100L);Need(bar.Value==250,"Stale progress changed current operation");Call(form,"MeasuredProgress",40,"Unknown phase",0L,0L);Need(bar.Style==ProgressBarStyle.Marquee,"Unknown phase retained percentage");Call(form,"ClearBusy");Need(!bar.Visible&&bar.Value==0,"Completion retained progress");form.Close();
+            }
+        }
+
         [STAThread] static int Main(string[] args) {
+            if(args.Length==4&&args[0]=="--operation-fixture")return OperationFixture(args[1],args[2],args[3]);
             if(args.Length==3&&args[0]=="--child")return Child(args[1],args[2]);
             if(args.Length!=1)return 2;string output=Path.GetFullPath(args[0]);Directory.CreateDirectory(output);
             string input=InputDesktop(),name="SR64LauncherQA_"+Guid.NewGuid().ToString("N");IntPtr desktop=CreateDesktop(name,IntPtr.Zero,IntPtr.Zero,0,0x01ff,IntPtr.Zero);

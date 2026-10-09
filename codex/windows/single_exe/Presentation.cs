@@ -164,7 +164,7 @@ namespace SuperRocket64 {
             string[] titles={"PLAY","ONLINE","SETUP","SETTINGS"};string[] icons={"play","online","setup","settings"};
             Action[] actions={delegate{ShowPage(installationReady?homePage:locationPage);},delegate{ShowPage(onlineChoicePage);},ShowSetupPage,ShowUpdateSettings};
             for(int i=0;i<4;i++){int j=i;var b=new ConceptButton{Text=titles[i],IconName=icons[i],AccessibleName=titles[i],Caption=true,Navigation=true};b.Click+=delegate{if(!running)actions[j]();};navigation[i]=b;chrome.Controls.Add(b);}
-            minimizeCaption=new ConceptButton{Text="—",Caption=true,AccessibleName="Minimize window"};maximizeCaption=new ConceptButton{Text="□",Caption=true,AccessibleName="Maximize or restore window"};closeCaption=new ConceptButton{Text="×",Caption=true,AccessibleName="Close launcher"};
+            minimizeCaption=new ConceptButton{Text="â€”",Caption=true,AccessibleName="Minimize window"};maximizeCaption=new ConceptButton{Text="â–¡",Caption=true,AccessibleName="Maximize or restore window"};closeCaption=new ConceptButton{Text="Ã—",Caption=true,AccessibleName="Close launcher"};
             minimizeCaption.Click+=delegate{WindowState=FormWindowState.Minimized;};maximizeCaption.Click+=delegate{WindowState=WindowState==FormWindowState.Maximized?FormWindowState.Normal:FormWindowState.Maximized;};closeCaption.Click+=delegate{Close();};
             Skin(minimizeCaption,"01-play",new Rectangle(1350,3,58,47));Skin(maximizeCaption,"01-play",new Rectangle(1410,3,58,47));Skin(closeCaption,"01-play",new Rectangle(1470,3,58,47));
             chrome.Controls.Add(minimizeCaption);chrome.Controls.Add(maximizeCaption);chrome.Controls.Add(closeCaption);
@@ -182,7 +182,7 @@ namespace SuperRocket64 {
             g.DrawImage(ConceptTheme.Art("01-play"),new RectangleF(0,602,261,Math.Max(1,height-644)),new RectangleF(0,602,261,339),GraphicsUnit.Pixel);
             using(var p=new Pen(ConceptTheme.Border)){g.DrawLine(p,0,52,width,52);g.DrawLine(p,261,52,261,height-42);g.DrawLine(p,0,height-42,width,height-42);g.DrawRectangle(p,0,0,width-1,height-1);}
             ConceptTheme.Text(g,"WINDOWS LAUNCHER",42,height-73,15,ConceptTheme.Muted,false);
-            ConceptTheme.Text(g,"SUPER ROCKET 64  ·  "+UpdateBuild.DisplayVersion,23,height-28,14,ConceptTheme.Muted,false);
+            ConceptTheme.Text(g,"SUPER ROCKET 64  Â·  "+UpdateBuild.DisplayVersion,23,height-28,14,ConceptTheme.Muted,false);
         }
         private void ArrangeConcept() {
             if(chrome==null||arrangingConcept||ClientSize.Width<1)return;arrangingConcept=true;
@@ -208,7 +208,7 @@ namespace SuperRocket64 {
         private void SelectConcept(FlowLayoutPanel page) {
             if(chrome==null)return;int selected=page==homePage?0:(page==onlinePage||page==onlineChoicePage)?1:(page==settingsPage||page==updatePage)?3:2;
             for(int i=0;i<4;i++){var b=navigation[i];b.Selected=i==selected;b.Skin=(i==0&&b.Selected)||(i>0&&!b.Selected)?"01-play":null;b.Source=new Rectangle(11,345+i*66,243,59);b.Invalidate();}
-            CancelButton=page==progressPage?cancelOperation:FindButton(page,"Back")??FindButton(page,"Cancel")??(page==failurePage?failureBack:null);
+            CancelButton=page==progressPage?cancelOperation:page==updatePage?(updateError?useInstalled:null):FindButton(page,"Back")??FindButton(page,"Cancel")??(page==failurePage?failureBack:null);
             ArrangeConcept();pageHost.AutoScrollPosition=Point.Empty;if(IsHandleCreated)BeginInvoke(new Action(delegate{if(!IsDisposed&&page.Visible)page.SelectNextControl(null,true,true,true,false);}));
         }
         [StructLayout(LayoutKind.Sequential)] private struct DpiBounds { internal int Left,Top,Right,Bottom; }
@@ -219,22 +219,16 @@ namespace SuperRocket64 {
         }
         protected override void Dispose(bool disposing){if(disposing){foreach(Font f in conceptFonts)f.Dispose();conceptFonts.Clear();}base.Dispose(disposing);}
         private void BuildHomeConcept() {
-            Button play=FindButton(homePage,"Play Offline"),online=FindButton(homePage,"Online"),setup=FindButton(homePage,"Setup / repair / add characters");
-            var canvas=Canvas(homePage);Header(canvas,"Ready for liftoff.","Your next run starts here.","01-play",new Rectangle(300,86,555,73),555,73);
-            canvas.Controls[0].Visible=false;canvas.Controls[1].Visible=false;
+            Button play=FindButton(homePage,"Play Offline"),online=FindButton(homePage,"Online"),setup=FindButton(homePage,"Setup / repair"),characters=FindButton(homePage,"Add characters");
+            var canvas=Canvas(homePage);var title=CopyLabel("SUPER ROCKET 64",true);
             mute.Visible=false;mute.Checked=false;
-            var hero=new ConceptArt("01-play",new Rectangle(300,213,1198,445),"Super Rocket 64 - cyan Octane boosting over floating tracks");
-            Skin(play,"01-play",new Rectangle(300,678,597,82));Skin(online,"01-play",new Rectangle(916,678,582,82));Skin(setup,"01-play",new Rectangle(302,881,1196,70));
-            canvas.PaintDesign=delegate(Graphics g){
-                var state=g.Save();g.ExcludeClip(new Rectangle(985,18,213,67));g.DrawImage(ConceptTheme.Art("01-play"),new Rectangle(0,0,1198,118),new Rectangle(300,86,1198,118),GraphicsUnit.Pixel);g.Restore(state);
-                // The one requested removal: reconstruct only the empty background beneath the readiness pill.
-                g.DrawImage(ConceptTheme.Art("01-play"),new Rectangle(985,18,213,67),new Rectangle(1065,104,213,67),GraphicsUnit.Pixel);
-            };
-            AddLayout(canvas,delegate{PageHeight(canvas,800);Place(hero,canvas,0,127,1198,445,20);Place(play,canvas,0,592,597,82,32);Place(online,canvas,616,592,582,82,32);Place(setup,canvas,2,700,1196,70,25);});
+            Primary(play);((ConceptButton)play).IconName="play";((ConceptButton)online).IconName="online";((ConceptButton)setup).IconName="setup";
+            Primary(notifyUpdate);notificationText.BackColor=ConceptTheme.Background;notificationText.ForeColor=ConceptTheme.White;
+            AddLayout(canvas,delegate{PageHeight(canvas,660);Place(title,canvas,0,45,1198,92,64);Place(play,canvas,0,214,583,96,33);Place(online,canvas,615,214,583,96,33);Place(characters,canvas,0,340,583,80,28);Place(setup,canvas,615,340,583,80,28);Place(notificationText,canvas,0,490,1198,50,27);Place(notifyUpdate,canvas,0,557,330,66,27);Place(dismissNotification,canvas,350,557,220,66,27);notificationText.Visible=notifyUpdate.Visible=dismissNotification.Visible=notificationVisible;});
         }
         private void BuildLocationConcept() {
             Button browse=FindButton(install.Parent,"Browse..."),next=FindButton(locationPage,"Next"),cancel=FindButton(locationPage,"Cancel");var field=new ConceptField(install);var canvas=Canvas(locationPage);
-            Header(canvas,"Choose where to install","1 of 5  ·  Installation folder","02-install-location",new Rectangle(300,86,810,73),810,73);
+            Header(canvas,"Choose where to install","1 of 5  Â·  Installation folder","02-install-location",new Rectangle(300,86,810,73),810,73);
             var folderArt=new ConceptArt("02-install-location",new Rectangle(1070,331,422,302),"Folder with cyan car and floating island");var label=CopyLabel("Installation folder",true);
             Primary(next);canvas.PaintDesign=delegate(Graphics g){Stepper(g,1);ConceptTheme.Card(g,new RectangleF(0,220,1198,330),ConceptTheme.Border);};
             AddLayout(canvas,delegate{PageHeight(canvas,720);Place(folderArt,canvas,770,230,422,302,20);Place(label,canvas,32,276,710,42,31);Place(field,canvas,32,335,519,68,28);Place(browse,canvas,564,335,174,68,28);Place(cancel,canvas,2,586,226,70,28);Place(next,canvas,909,586,289,70,28);});
@@ -244,7 +238,7 @@ namespace SuperRocket64 {
             Button save=FindButton(settingsPage,"Save preferences"),check=FindButton(settingsPage,"Check for updates"),remove=FindButton(settingsPage,"Remove launcher shortcuts"),back=FindButton(settingsPage,"Back");var canvas=Canvas(settingsPage);
             Header(canvas,"Make it yours.","Updates & shortcuts.","03-settings",new Rectangle(300,86,495,67),495,67);
             var updateTitle=new ConceptArt("03-settings",new Rectangle(336,229,394,39),"Launcher updates");var shortcutTitle=new ConceptArt("03-settings",new Rectangle(338,592,254,36),"Shortcuts");
-            var autoHelp=CopyLabel("Check at startup, verify and apply before play.",false);var manualHelp=CopyLabel("No startup update checks. Check when you choose.",false);var previews=CopyLabel("Preview releases are included.",false);var safe=CopyLabel("Assets, saves and controller settings stay in the data folder.",false);
+            var autoHelp=CopyLabel("Check at startup. Choose Update now or Later.",false);var manualHelp=CopyLabel("No startup update checks. Check when you choose.",false);var previews=CopyLabel("Preview releases are included.",false);var safe=CopyLabel("Assets, saves and controller settings stay in the data folder.",false);
             settingsMessage.BackColor=ConceptTheme.Background;settingsMessage.ForeColor=ConceptTheme.Muted;Primary(save);
             canvas.PaintDesign=delegate(Graphics g){ConceptTheme.Card(g,new RectangleF(0,124,1198,352),ConceptTheme.Border);ConceptTheme.Card(g,new RectangleF(0,494,1198,175),ConceptTheme.Border);};
             AddLayout(canvas,delegate{bool detailed=settingsMessage.Text.Length>120;float extra=detailed?80:0;PageHeight(canvas,895+extra);Place(updateTitle,canvas,36,143,394,39,40);Place(automaticUpdates,canvas,36,193,1100,40,28);Place(autoHelp,canvas,99,239,1000,32,24);Place(manualUpdates,canvas,36,283,1100,40,28);Place(manualHelp,canvas,99,329,1040,32,24);Place(previews,canvas,91,367,980,27,21);Place(check,canvas,39,405,345,57,26);Place(shortcutTitle,canvas,38,520,254,36,38);Place(desktopShortcut,canvas,36,565,1000,46,27);Place(menuShortcut,canvas,36,614,1000,46,27);Place(rollbackUpdate,canvas,1,687,573,70,24);Place(remove,canvas,592,687,606,70,24);Place(safe,canvas,46,764,1140,33,20);Place(settingsMessage,canvas,46,795,1140,28+extra,17);Place(back,canvas,2,824+extra,226,67,27);Place(save,canvas,909,824+extra,289,67,27);});
