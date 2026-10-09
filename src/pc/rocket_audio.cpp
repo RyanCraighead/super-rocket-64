@@ -11,6 +11,8 @@
 #include <vector>
 
 namespace {
+// One attenuation for the complete car-effects bus, after the user's SFX gain.
+constexpr float CAR_EFFECT_GAIN=.5f;
 struct Clip { const char *name; size_t size; const char *sha; };
 const Clip profile[] = {
     {"jump",432044,"9fcb49f53fe36641796f93963d8ebd96cf7052456597c1d6863a40c82221d065"},
@@ -100,7 +102,7 @@ extern "C" void rocket_audio_update(const RocketSnapshot *s,unsigned style,int a
 extern "C" void rocket_audio_mix(int16_t *out,size_t frames,float gain) {
     if(!out)return;
     if(!std::isfinite(gain))gain=0;
-    gain=std::max(0.f,std::min(1.f,gain));
+    gain=std::max(0.f,std::min(1.f,gain))*CAR_EFFECT_GAIN;
     std::lock_guard<std::mutex> lock(mutex);
     for(size_t i=0;i<frames*2;i++) {
         int sample=0;

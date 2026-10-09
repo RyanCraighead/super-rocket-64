@@ -138,4 +138,5 @@ int main(int argc,char **argv) {
     for(unsigned speed=50;speed<=100;++speed)climb(51,102,speed,0,0,1,true);
     invariants();
     std::printf("stair physics: %d checks passed\n",checks);
+    return 0;
 }

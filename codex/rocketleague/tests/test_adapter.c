@@ -131,6 +131,34 @@ static void fresh(void){
     nodes[2].surface=&surfaces[1];gDynamicSurfacePartition[0][0][0].next=&nodes[2];
 }
 static void step(void){++gGlobalTimer;assert(rocket_adapter_update(&mario)==1);}
+static void test_wing_handoff(void){
+    const u32 flight[]={ACT_FLYING,ACT_FLYING_TRIPLE_JUMP};
+    for(unsigned a=0;a<2;a++)for(int cap=0;cap<2;cap++){
+        fresh();mario.action=flight[a];mario.actionArg=2;
+        mario.flags=cap?(MARIO_CAP_ON_HEAD|MARIO_WING_CAP):MARIO_CAP_ON_HEAD;mario.capTimer=cap?90:0;
+        const u32 flags=mario.flags;const u16 timer=mario.capTimer;
+        mario.vel[0]=7;mario.vel[1]=-3;mario.vel[2]=19;
+        step();assert(resets==1&&steps==1&&mario.action==ACT_IDLE);
+        assert(pose.velocity[0]==210&&pose.velocity[1]==-90&&pose.velocity[2]==570);
+        assert(mario.flags==flags&&mario.capTimer==timer);
+        pose.grounded=0;pose.boost=17;pose.basis[3]=pose.basis[7]=-1;pose.flipping=1;
+        mario.action=flight[a];step();
+        assert(resets==1&&mario.action==ACT_FREEFALL&&pose.boost==17&&pose.flipping);
+        assert(pose.basis[3]==-1&&pose.basis[7]==-1&&mario.capTimer==timer);
+        /* Selected-car gating, native actor ownership, pause and health stay
+         * authoritative. Ordinary Mario and remote actors keep native flight. */
+        fresh();mario.action=flight[a];rocket_adapter_set_selected(0);
+        assert(!rocket_adapter_update(&mario)&&mario.action==flight[a]&&!resets);
+        fresh();mario.action=flight[a];mario.playerIndex=1;
+        assert(!rocket_adapter_update(&mario)&&mario.action==flight[a]&&!resets);
+        fresh();mario.action=flight[a];enabled=0;
+        assert(!rocket_adapter_update(&mario)&&mario.action==flight[a]&&!resets);
+        fresh();mario.action=flight[a];mario.freeze=1;
+        assert(!rocket_adapter_update(&mario)&&mario.action==flight[a]&&!resets);
+        fresh();mario.action=flight[a];mario.health=0xff;
+        assert(!rocket_adapter_update(&mario)&&mario.action==flight[a]&&!resets);
+    }
+}
 static struct Object door;
 static void door_setup(void){
     fresh();step();controller.rawStickY=80;
@@ -520,7 +548,7 @@ int main(int argc,char **argv){
     surfaces[0].type=SURFACE_DEFAULT;step();assert(meshCalls[0]==count+2);
     count=environmentCalls;sCurrPlayMode=PLAY_MODE_PAUSED;assert(rocket_adapter_update(&mario)==1&&environmentCalls==count);
     sCurrPlayMode=0;step();assert(environmentCalls==count+1);
-    test_doors();
+    test_wing_handoff();test_doors();
     test_interaction_snapshot();
     test_body_snapshot();
     test_current_controls();

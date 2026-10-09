@@ -58,8 +58,8 @@ def check_extra(target, character):
         require(isinstance(record, dict) and not any(c in name for c in ('\\', ':')) and
                 (name == 'save/baserom.us.z64' or name.startswith(folder + '/')), 'Unexpected local asset path or record')
         path = old.private_path(target, name)
-        if character == 'octane' and name.startswith('octane-model/audio/'):
-            continue  # Optional sounds validate separately; never disable the car.
+        if character == 'octane' and name.startswith(('octane-model/audio/', 'octane-model/materials/')):
+            continue  # Optional sounds/materials validate separately; never disable the car.
         require(path.is_file() and path.stat().st_size == record['size'] and old.sha256(path) == record['sha256'],
                 'Local asset missing or changed: ' + name)
     old.validate_sm64(old.private_path(target, 'save/baserom.us.z64'))
@@ -149,6 +149,35 @@ def run_worker(command, root):
             process.wait(timeout=30)
 
 
+def prepare_car_materials(args, target, root=ROOT):
+    if (args.character or 'octane') != 'octane':
+        return
+    import rocket_material_setup
+    directory = old.private_path(target, 'octane-model/materials')
+    try:
+        rocket_material_setup.validate(directory)
+        return
+    except (ValueError, OSError, KeyError, TypeError):
+        pass
+    if not args.game:
+        return  # Existing cached models remain playable without re-extraction.
+    try:
+        runtime = old.private_path(DATA_ROOT or root, '.runtime')
+        require(not any(runtime.glob('**/.launch-lock')), 'Close the running game before adding car materials.')
+        # Check the supported inputs before provisioning the existing pinned tool.
+        cooked = args.game / 'TAGame/CookedPCConsole'
+        rocket_material_setup.verified(cooked / 'Body_Octane_SF.upk', rocket_material_setup.BODY_SHA, 64 * 1024 * 1024)
+        rocket_material_setup.verified(cooked / 'Startup.upk', rocket_material_setup.PROFILE['startup_package_sha256'], 64 * 1024 * 1024)
+        viewer = old.private_path(DATA_ROOT or root, '.runtime/tools/ueviewer-a0bfb468')
+        from download_ueviewer import download
+        download(viewer, consent=True, cancel_check=cancel_check)
+        print(rocket_material_setup.prepare(args.game, directory, viewer, cancel_check), flush=True)
+    except InterruptedError:
+        raise
+    except (ValueError, OSError, KeyError, TypeError, subprocess.SubprocessError) as error:
+        print('Car materials unavailable: ' + str(error) + ' Existing geometry remains playable; select Rocket League in Setup to retry.', flush=True)
+
+
 def prepare_car_audio(args, target, root=ROOT):
     if (args.character or 'octane') != 'octane':
         return
@@ -179,6 +208,7 @@ def setup(args, root=ROOT):
         else:
             prepare_engine(root, target)
             prepare_car_audio(args, target, root)
+            prepare_car_materials(args, target, root)
             print('Existing ' + character + ' assets and shared game data verified. Saves and controls preserved.')
             return
     source = args.sm64
@@ -266,6 +296,7 @@ def setup(args, root=ROOT):
         lock.rmdir()
     prepare_engine(root, target)
     prepare_car_audio(args, target, root)
+    prepare_car_materials(args, target, root)
     print('Setup complete: ' + character + ' assets extracted and verified. Ready to play. Original inputs unchanged.')
 
 

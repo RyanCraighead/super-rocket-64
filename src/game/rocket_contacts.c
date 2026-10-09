@@ -1,6 +1,7 @@
 #include "rocket_contacts.h"
 #include "rocket_enemy.h"
 #include "rocket_bobomb.h"
+#include "rocket_bully.h"
 #include "sm64.h"
 #include "area.h"
 #include "display.h"
@@ -25,6 +26,7 @@ static struct StagedBump *bump_slot(struct Object *object) {
     return &bumps[(address-base)/sizeof(struct Object)];
 }
 void rocket_contacts_forget(struct Object *object) {
+    rocket_bully_forget(object);
     struct StagedBump *bump=bump_slot(object);
     if(bump)memset(bump,0,sizeof(*bump));
 }
@@ -42,6 +44,7 @@ void rocket_contacts_prepare(void) {
     if(!gCLIOpts.rocketCar&&!gCLIOpts.characterNet)return;
     if(prepared&&preparedFrame==gGlobalTimer&&preparedLevel==gCurrLevelNum&&preparedArea==gCurrentArea)return;
     prepared=1;preparedFrame=gGlobalTimer;preparedLevel=gCurrLevelNum;preparedArea=gCurrentArea;
+    rocket_bully_prepare();
     memset(bumps,0,sizeof bumps);
     struct Object *saved=gCurrentObject;
     for(unsigned i=0;i<OBJECT_POOL_CAPACITY;i++) {

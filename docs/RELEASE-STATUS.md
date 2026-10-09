@@ -1,5 +1,32 @@
 # Verification and limitations
 
+## v0.2.21: cumulative gameplay and visual refinements
+
+Wing Cap keeps the car in its own physics and positions the cap on its roof.
+Proven connected stairs gain bounded downhill support while walls, gaps,
+obstacles and existing ascent remain authoritative. Car effect audio uses half
+gain after the user's setting. Repeated Bully overlap produces one consequence
+until real separation, retaining native injury, ownership and rewards.
+
+Optional verified local material extraction restores body UVs and original
+textures with approximate host lighting; old caches retain flat-color fallback.
+The native-style boost HUD anchors at bottom right, and two rear exhaust flames
+follow actual thrust, including remote presentation, without a packet change.
+No proprietary material, texture, sound or geometry is distributed.
+
+The repeatable updater audit covers install/download/probe/activation/rollback
+with synthetic state; it found no production persistence defect. Public launcher
+protections, saved choices, COOPNET=0 and env3 remain preserved.
+
+Combined native/physics/renderer/source/package acceptance is recorded with the
+release. Physical-controller feel, live gameplay, listening and two-PC delivery
+remain unperformed. The old Linux compatibility/wall-grip ascent fixture has a
+documented unchanged 50%-speed tilt threshold failure; supported Windows suites
+pass. Lighting/exhaust remain host approximations. Unsupported newer wheel
+packages retain their extraction limit; optional materials can upgrade a verified
+existing mesh independently. No save slot or installed game is changed.
+
+
 ## v0.2.20: camera controls, tutorials and launcher lifecycle
 
 Play keeps its title with direct Offline, Online, Add characters and repair

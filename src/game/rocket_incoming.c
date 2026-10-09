@@ -30,6 +30,8 @@ int rocket_incoming_overlap(struct Object *a, struct Object *b, int hurtbox) {
      * update catches up. Live enemies and independent explosions keep intake. */
     if(b->behavior==bhvGoomba&&(b->oAction==OBJ_ACT_HORIZONTAL_KNOCKBACK||
        b->oAction==OBJ_ACT_VERTICAL_KNOCKBACK||b->oAction==OBJ_ACT_SQUISHED))return 0;
+    if(b->oInteractType==INTERACT_BULLY&&(b->oAction==BULLY_ACT_LAVA_DEATH||
+       b->oAction==BULLY_ACT_DEATH_PLANE_DEATH||b->oSyncDeath))return 0;
     /* Mario's activeAreaIndex is the persistent-object sentinel (-1), not
      * his location. Native area entry/change updates areaIndex instead. */
     if (!(b->activeFlags&ACTIVE_FLAG_ACTIVE)||a->oIntangibleTimer||b->oIntangibleTimer||

@@ -3,7 +3,7 @@ using System.Reflection;
 [assembly: AssemblyFileVersion("0.2.20.0")]
 namespace SuperRocket64 {
     internal static class UpdateBuild {
-        internal const string Version = "0.2.20";
+        internal const string Version = "0.2.21";
         internal const string DisplayVersion = "0.2.20 preview";
     }
 }

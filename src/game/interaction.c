@@ -1783,6 +1783,8 @@ u32 interact_clam_or_bubba(struct MarioState *m, UNUSED u32 interactType, struct
 
 u32 interact_bully(struct MarioState *m, UNUSED u32 interactType, struct Object *o) {
     if (!m || !o) { return FALSE; }
+    // A consumed contact must not hide a different native hazard this frame.
+    if (rocket_bully_repeat(m,o)) { rocket_bully_response(m,o); return FALSE; }
     UNUSED u32 unused;
 
     u32 interaction;
@@ -1795,12 +1797,15 @@ u32 interact_bully(struct MarioState *m, UNUSED u32 interactType, struct Object 
     m->interactObj = o;
 
     if (interaction & INT_ATTACK_NOT_FROM_BELOW) {
+        int carContact=rocket_bully_car_contact(m,o);
+        rocket_bully_record(m,o,1);
         queue_rumble_data_mario(m, 5, 80);
-        push_mario_out_of_object(m, o, 5.0f);
+        if(!carContact)push_mario_out_of_object(m, o, 5.0f);
 
-        m->forwardVel = -16.0f;
+        if(!carContact)m->forwardVel = -16.0f;
         o->oMoveAngleYaw = m->faceAngle[1];
         o->oForwardVel = 3392.0f / o->hitboxRadius;
+        rocket_bully_response(m,o);
 
         attack_object(m, o, interaction);
         bounce_back_from_attack(m, interaction);
@@ -1809,6 +1814,7 @@ u32 interact_bully(struct MarioState *m, UNUSED u32 interactType, struct Object 
 
     else if (!gInteractionInvulnerable && !(m->flags & MARIO_VANISH_CAP)
              && !(o->oInteractionSubtype & INT_SUBTYPE_DELAY_INVINCIBILITY)) {
+        rocket_bully_record(m,o,0);
         o->oInteractStatus = INT_STATUS_INTERACTED;
         m->invincTimer = 2;
 

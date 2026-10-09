@@ -6,6 +6,7 @@
 #define histories ordinaryHistories
 #include "../../../src/game/rocket_bobomb.c"
 #undef histories
+#include "../../../src/game/rocket_bully.c"
 #include "../../../src/game/rocket_contacts.c"
 #include "../../../src/game/object_collision.c"
 #include "../../../src/game/rocket_incoming.c"
@@ -18,6 +19,8 @@ struct Object *gMarioObject;
 struct ObjectNode *gObjectLists;
 static struct ObjectNode lists[NUM_OBJ_LISTS];
 int codex_panel_gl_is_focused(void){return 0;}
+int rocket_adapter_car_selected(void){return localActive;}
+int character_presentation_car_snapshot(RocketSnapshot *car){(void)car;return 0;}
 bool sync_object_is_owned_locally(u32 id){return sync_object_should_own(id);}
 int rocket_adapter_body_snapshot(struct Object *object,RocketSnapshot *car){
     if(object!=&players[0]||!localActive)return 0;
@@ -67,6 +70,18 @@ int main(void){
     bumps[0].valid=1;ordinaryHistories[0].object=&enemy;ordinaryHistories[0].contact[0].valid=1;
     assert(allocate_object(&lists[OBJ_LIST_GENACTOR])==&enemy);
     assert(!histories[0].object&&!bumps[0].valid&&!ordinaryHistories[0].object);
+    // The actual prepass and allocator own Bully contact lifetime too.
+    gMarioStates[0].area=&areaFixture;enemy.oInteractType=INTERACT_BULLY;
+    enemy.oIntangibleTimer=0;enemy.activeFlags=ACTIVE_FLAG_ACTIVE;enemy.header.gfx.activeAreaIndex=1;
+    enemy.hitboxRadius=73;enemy.hitboxHeight=123;
+    localCar=pose(0,120);enemy.oPosX=100;enemy.oPosY=0;
+    rocket_bully_record(&gMarioStates[0],&enemy,1);assert(history(&enemy));
+    assert(allocate_object(&lists[OBJ_LIST_GENACTOR])==&enemy);assert(!history(&enemy));
+    enemy.oInteractType=INTERACT_BULLY;enemy.oIntangibleTimer=0;enemy.activeFlags=ACTIVE_FLAG_ACTIVE;
+    enemy.header.gfx.activeAreaIndex=1;enemy.hitboxRadius=73;enemy.hitboxHeight=123;
+    rocket_bully_record(&gMarioStates[0],&enemy,1);assert(history(&enemy));
+    localCar.position[0]=-1000;gGlobalTimer++;detect_object_collisions();assert(!history(&enemy));
+    enemy.oPosX=0;enemy.oPosY=0;enemy.oInteractType=INTERACT_BOUNCE_TOP;
     enemy.behavior=bhvGoomba;enemy.oSyncID=1;enemy.oIntangibleTimer=0;
     enemy.hitboxRadius=40;enemy.hitboxHeight=75;
     localCar=pose(-400,200);++gGlobalTimer;rocket_contacts_prepare();assert(!enemy.oInteractStatus);

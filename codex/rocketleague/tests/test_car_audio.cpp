@@ -26,9 +26,9 @@ int main(int argc,char **argv) {
     for(auto &v:voices)v.samples={10000,-10000,10000,-10000};
     s={};s.ticks=4;s.boosting=1;rocket_audio_update(&s,1,1);
     CHECK(voices[BOOST_START].playing&&voices[BOOST_LOOP].playing&&marioBoostFrames==0);
-    int16_t out[8]={};rocket_audio_mix(out,2,.25f);CHECK(out[0]==5000&&out[1]==-5000);
+    int16_t out[8]={};rocket_audio_mix(out,2,.25f);CHECK(out[0]==2500&&out[1]==-2500);
     CHECK(!voices[BOOST_START].playing&&voices[BOOST_LOOP].playing);
-    rocket_audio_mix(out,2,0);CHECK(out[0]==5000); // SFX mute adds nothing.
+    rocket_audio_mix(out,2,0);CHECK(out[0]==2500); // SFX mute adds nothing.
     s.ticks=8;rocket_audio_update(&s,1,1);CHECK(!voices[BOOST_START].playing); // Held boost does not restart.
     s.ticks=12;s.boosting=0;rocket_audio_update(&s,1,1);
     CHECK(!voices[BOOST_LOOP].playing&&!voices[BOOST_START].playing&&voices[BOOST_END].playing);
@@ -40,6 +40,18 @@ int main(int argc,char **argv) {
     s.ticks=36;rocket_audio_update(&s,1,0);CHECK(quiet()); // Warp/pause/despawn/blocked use this stop path.
     start(JUMP);out[0]=32000;out[1]=-32000;rocket_audio_mix(out,1,1);
     CHECK(out[0]==32767&&out[1]==-32768);rocket_audio_shutdown();CHECK(quiet()&&!ready);
+    // Every decoded effect gets the same single 0.5 mix attenuation. Preserve
+    // the existing music/native-audio bus and all user SFX gain/mute choices.
+    const struct {float userGain;int added;} levels[]={
+        {0,0},{.25f,1500},{.5f,3000},{1,6000},{2,6000},{-1,0},
+        {std::numeric_limits<float>::quiet_NaN(),0}};
+    for(unsigned effect=0;effect<COUNT;effect++)for(auto level:levels){
+        silence();voices[effect].samples={12000,-12000};start(effect);
+        int16_t bus[]={1234,-2345};rocket_audio_mix(bus,1,level.userGain);
+        CHECK(bus[0]==1234+level.added);CHECK(bus[1]==-2345-level.added);
+    }
+    silence();int16_t nativeBus[]={2468,-1357};rocket_audio_mix(nativeBus,1,1);
+    CHECK(nativeBus[0]==2468&&nativeBus[1]==-1357);rocket_audio_shutdown();
     // Real physics transitions: jump/flip have one edge despite held/repeated ticks;
     // actual fuel exhaustion ends thrust even while the input remains held.
     RocketWorld *w=rocket_world_create();CHECK(w);

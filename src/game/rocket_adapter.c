@@ -269,6 +269,10 @@ static int supported(u32 action) {
     switch(action) {
         case ACT_IDLE:case ACT_WALKING:case ACT_DECELERATING:case ACT_BRAKING:case ACT_BRAKING_STOP:
         case ACT_TURNING_AROUND:case ACT_FINISH_TURNING_AROUND:case ACT_FREEFALL:case ACT_FREEFALL_LAND:return 1;
+        /* Native Wing Cap course entry/cannon/triple-jump transitions must
+         * return to Octane physics, never lend the visible car Mario flight.
+         * This whitelist is reached only for the selected local car. */
+        case ACT_FLYING:case ACT_FLYING_TRIPLE_JUMP:return 1;
         case ACT_WATER_IDLE:case ACT_WATER_PLUNGE:case ACT_WATER_ACTION_END:
         case ACT_BREASTSTROKE:case ACT_SWIMMING_END:case ACT_FLUTTER_KICK:
         case ACT_METAL_WATER_STANDING:case ACT_METAL_WATER_WALKING:case ACT_METAL_WATER_FALLING:
@@ -618,7 +622,8 @@ int rocket_adapter_update(struct MarioState *m) {
         float p[3]={m->pos[0],m->pos[1]+40.f,m->pos[2]},v[3]={0,0,0};
         phaseActive=!!(m->flags&MARIO_VANISH_CAP);
         if(m->pos[1]<m->waterLevel-100.f)p[1]=m->pos[1];
-        if(m->action==ACT_FREEFALL||metalEntry||(m->action&ACT_FLAG_METAL_WATER))for(int i=0;i<3;++i)v[i]=m->vel[i]*30.f;
+        if(m->action==ACT_FREEFALL||m->action==ACT_FLYING||m->action==ACT_FLYING_TRIPLE_JUMP||
+           metalEntry||(m->action&ACT_FLAG_METAL_WATER))for(int i=0;i<3;++i)v[i]=m->vel[i]*30.f;
         if(!sync_mesh(m,0)||!sync_mesh(m,1)||!(releasing?rocket_runtime_pole_release(&poleRelease,poleJump):rocket_runtime_reset(p,v,(float)(u16)m->faceAngle[1]*(6.28318530718f/65536.f)))) {
             rocket_adapter_suspend();return 0;
         }

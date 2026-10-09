@@ -17,6 +17,9 @@ extern "C" {
 #include "utils/json.hpp"
 #include "utils/oot_asset_path.h"
 #include "utils/rocket_sha256.h"
+#include "rocket_materials.h"
+#include "rocket_material_shader.h"
+#include "rocket_boost_visual.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -33,11 +36,12 @@ extern const unsigned char mario_texture_metal_shade[],mario_texture_metal_light
 }
 namespace {
 struct Vertex {float p[3],n[3],color[4];};
-struct DrawVertex {float p[3],uv[2],color[4];};
+using DrawVertex=rocket_boost_visual::Vertex;
 static_assert(sizeof(Vertex)==40,"Unexpected mesh vertex layout");
 using Matrix=std::array<float,16>;
 std::unique_ptr<RocketWorld,decltype(&rocket_world_destroy)> world(nullptr,rocket_world_destroy);
 std::vector<Vertex> body,wheel;
+rocket_materials::Data materials;
 std::vector<DrawVertex> stream;
 RocketSnapshot current={};
 RocketGamepad gamepad={};
@@ -45,7 +49,8 @@ RocketInput lastInput={};
 GLFunctions gl;
 SDL_GLContext context=nullptr;
 GLuint program=0,vbo=0,vao=0,metalTexture=0;
-GLint uMVP=-1,uMetal=-1,uMetalTexture=-1;
+GLuint materialTextures[2]={};
+GLint uMVP=-1,uMetal=-1,uMetalTexture=-1,uMaterial=-1;
 GLint uCaps=-1;
 bool drawable=false;
 uint32_t epoch=0;
@@ -55,7 +60,8 @@ std::string status="Rocket car disabled";
 bool finite(const float *values,size_t count){if(!values)return false;for(size_t i=0;i<count;++i)if(!std::isfinite(values[i]))return false;return true;}
 Matrix multiply(const Matrix &a,const Matrix &b){Matrix out={};for(int c=0;c<4;++c)for(int r=0;r<4;++r)for(int k=0;k<4;++k)out[c*4+r]+=a[k*4+r]*b[c*4+k];return out;}
 void releaseGL(){
-    if(context&&SDL_GL_GetCurrentContext()==context){if(program)gl.DeleteProgram(program);if(vbo)gl.DeleteBuffers(1,&vbo);if(vao)gl.DeleteVertexArrays(1,&vao);if(metalTexture)gl.DeleteTextures(1,&metalTexture);}
+    if(context&&SDL_GL_GetCurrentContext()==context){if(program)gl.DeleteProgram(program);if(vbo)gl.DeleteBuffers(1,&vbo);if(vao)gl.DeleteVertexArrays(1,&vao);if(metalTexture)gl.DeleteTextures(1,&metalTexture);gl.DeleteTextures(2,materialTextures);}
+    materialTextures[0]=materialTextures[1]=0;
     program=vbo=vao=metalTexture=0;context=nullptr;
 }
 GLuint shader(GLenum type,const std::string &source){
@@ -68,20 +74,14 @@ void initGL(){
     if(context)throw std::runtime_error("Rocket renderer context changed");
     if(!gl.load())throw std::runtime_error("Rocket OpenGL functions unavailable");
     GLState saved(gl);context=SDL_GL_GetCurrentContext();
-    std::string prefix=gl.es?"#version 100\nprecision mediump float;\n":gl.modern?"#version 130\n":"#version 120\n";
-    std::string vs=prefix+(gl.modern?"in vec3 aPosition;in vec2 aUV;in vec4 aColor;out vec4 vColor;out vec2 vUV;":"attribute vec3 aPosition;attribute vec2 aUV;attribute vec4 aColor;varying vec4 vColor;varying vec2 vUV;");
-    vs+="uniform mat4 uMVP;void main(){gl_Position=uMVP*vec4(aPosition,1.0);vColor=aColor;vUV=aUV;}";
-    std::string fs=prefix+(gl.modern?"in vec4 vColor;in vec2 vUV;out vec4 outputColor;":"varying vec4 vColor;varying vec2 vUV;");
-    fs+="uniform vec4 uCaps;uniform bool uMetal;uniform sampler2D uMetalTexture;void main(){if(uCaps.x>0.5 && mod(floor(gl_FragCoord.x)+floor(gl_FragCoord.y),2.0)>0.5)discard;vec4 color=vColor;if(uMetal){vec2 uv=clamp(vUV,0.0,1.0);uv=vec2((uv.x*63.0+0.5)/64.0,(uv.y*31.0+0.5)/64.0);vec3 shade=";
-    fs+=(gl.modern?"texture":"texture2D");fs+="(uMetalTexture,uv).rgb;vec3 light=";
-    fs+=(gl.modern?"texture":"texture2D");fs+="(uMetalTexture,uv+vec2(0.0,0.5)).rgb;color.rgb=clamp(shade*0.5+light,0.0,1.0);}";
-    fs+=(gl.modern?"outputColor=color;}":"gl_FragColor=color;}");
-    GLuint v=shader(GL_VERTEX_SHADER,vs),f=0;
-    try{f=shader(GL_FRAGMENT_SHADER,fs);}catch(...){gl.DeleteShader(v);throw;}
+    auto sources=rocket_material_shader(gl.es,gl.modern);
+    GLuint v=shader(GL_VERTEX_SHADER,sources.first),f=0;
+    try{f=shader(GL_FRAGMENT_SHADER,sources.second);}catch(...){gl.DeleteShader(v);throw;}
     program=gl.CreateProgram();gl.AttachShader(program,v);gl.AttachShader(program,f);gl.BindAttribLocation(program,0,"aPosition");gl.BindAttribLocation(program,1,"aUV");gl.BindAttribLocation(program,2,"aColor");gl.LinkProgram(program);gl.DeleteShader(v);gl.DeleteShader(f);
     GLint ok=0;gl.GetProgramiv(program,GL_LINK_STATUS,&ok);if(!ok)throw std::runtime_error("Rocket shader link failed");
     uMVP=gl.GetUniformLocation(program,"uMVP");uCaps=gl.GetUniformLocation(program,"uCaps");gl.GenBuffers(1,&vbo);if(gl.vaoSupported)gl.GenVertexArrays(1,&vao);
     uMetal=gl.GetUniformLocation(program,"uMetal");uMetalTexture=gl.GetUniformLocation(program,"uMetalTexture");
+    uMaterial=gl.GetUniformLocation(program,"uMaterial");
     /* Reuse the native Mario 64x32 environment textures, packed vertically to
      * keep both lookups on unit 0 covered by the existing GL state guard.
      * Native metal combines TEXEL0 * SHADE + TEXEL1 (silver ambient = 0.5).
@@ -102,6 +102,15 @@ void initGL(){
     gl.TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);gl.TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
     gl.TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);gl.TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
     gl.TexImage2D(GL_TEXTURE_2D,0,GL_RGBA,64,64,0,GL_RGBA,GL_UNSIGNED_BYTE,pixels);
+    if(materials.ready()) {
+        gl.GenTextures(2,materialTextures);
+        for(int i=0;i<2;++i) {
+            gl.BindTexture(GL_TEXTURE_2D,materialTextures[i]);
+            gl.TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);gl.TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+            gl.TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);gl.TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
+            gl.TexImage2D(GL_TEXTURE_2D,0,GL_RGBA,rocket_materials::TEXTURE_SIZE,rocket_materials::TEXTURE_SIZE,0,GL_RGBA,GL_UNSIGNED_BYTE,materials.rgba[i].data());
+        }
+    }
 }
 std::vector<Vertex> loadPart(const std::string &base,const nlohmann::json &part,const char *name){
     if(part.at("name")!=name||!part.at("vertices").is_number_unsigned())throw std::runtime_error("Invalid Octane part");
@@ -121,6 +130,7 @@ std::vector<Vertex> loadPart(const std::string &base,const nlohmann::json &part,
 }
 void append(const std::vector<Vertex> &vertices,const float position[3],const float basis[9],float scale,const float *view,const float pivot[3],const float squish[3],int which=-1){
     float roll=which<0?0:spin[which],c=std::cos(roll),s=std::sin(roll);
+    const bool textured=&vertices==&body&&materials.ready();size_t vertexIndex=0;
     for(const Vertex &v:vertices){
         float p[3]={v.p[0],v.p[1],v.p[2]},n[3]={v.n[0],v.n[1],v.n[2]};
         if(which>=0){ // Visual tire spin only; contact/steering/centers come from the physics backend.
@@ -131,10 +141,12 @@ void append(const std::vector<Vertex> &vertices,const float position[3],const fl
         rocket_squish_vertex(out.p,normal,pivot,squish);
         for(int k=0;k<3;k++)dot+=normal[k]*light[k];
         /* Native G_TEXTURE_GEN uses view-space normal Y for S and X for T. */
-        out.uv[0]=.5f+.5f*(view[1]*normal[0]+view[5]*normal[1]+view[9]*normal[2]);
-        out.uv[1]=.5f+.5f*(view[0]*normal[0]+view[4]*normal[1]+view[8]*normal[2]);
-        float brightness=.40f+.60f*std::max(0.f,dot);for(int k=0;k<3;++k)out.color[k]=v.color[k]*brightness;out.color[3]=1;
+        out.uv[2]=.5f+.5f*(view[1]*normal[0]+view[5]*normal[1]+view[9]*normal[2]);
+        out.uv[3]=.5f+.5f*(view[0]*normal[0]+view[4]*normal[1]+view[8]*normal[2]);
+        if(textured){out.uv[0]=materials.uv[vertexIndex][0];out.uv[1]=materials.uv[vertexIndex][1];}
+        float brightness=.40f+.60f*std::max(0.f,dot);for(int k=0;k<3;++k)out.color[k]=(textured?1.f:v.color[k])*brightness;out.color[3]=1;
         stream.push_back(out);
+        ++vertexIndex;
     }
 }
 }
@@ -146,14 +158,16 @@ extern "C" int rocket_runtime_init(void){
         auto j=nlohmann::json::parse(bytes.begin(),bytes.end(),[](int depth,nlohmann::json::parse_event_t,nlohmann::json &){if(depth>16)throw std::runtime_error("Octane JSON depth");return true;});
         if(j.at("schema")!="octane-host-mesh-v1"||j.at("body_sha256")!="bedf7fc0d64ab2c6d4f2620a946bb88e600f779c3e924fb80ab96c431d67f7e6"||j.at("wheel_sha256")!="9b2582f69e6bf2fd06272b9b545dfd33cfc931f31d373b63a1078a747d902560"||j.at("parts").size()!=2)throw std::runtime_error("Unsupported original Octane profile");
         body=loadPart(base,j.at("parts")[0],"body");wheel=loadPart(base,j.at("parts")[1],"wheel");
+        try {materials=rocket_materials::load(base);}
+        catch(const std::exception &e){materials={};std::fprintf(stderr,"Optional car materials unavailable: %s\n",e.what());}
         if(gCLIOpts.rocketCar||(gCLIOpts.characterNet&&gCLIOpts.characterWheel)){
             world.reset(rocket_world_create());if(!world)throw std::runtime_error(rocket_world_error());
         }
         if(!gCLIOpts.headless)rocket_audio_load(base.c_str());
-        status="Original Octane geometry; approximate RocketSim physics and host materials";std::fprintf(stderr,"%s\n",status.c_str());return 1;
+        status=materials.ready()?"Original Octane geometry, UVs and diffuse textures; approximate host lighting/physics":"Original Octane geometry; approximate RocketSim physics and host materials";std::fprintf(stderr,"%s\n",status.c_str());return 1;
     }catch(const std::exception &e){std::string why=e.what();rocket_runtime_shutdown();status="Rocket car disabled: "+why;return 0;}
 }
-extern "C" void rocket_runtime_shutdown(void){rocket_audio_shutdown();releaseGL();world.reset();body.clear();wheel.clear();stream.clear();drawable=false;capVisuals=0;current={};gamepad={};lastInput={};status="Rocket car disabled";}
+extern "C" void rocket_runtime_shutdown(void){rocket_audio_shutdown();releaseGL();world.reset();body.clear();wheel.clear();materials={};stream.clear();drawable=false;capVisuals=0;current={};gamepad={};lastInput={};status="Rocket car disabled";}
 extern "C" int rocket_runtime_enabled(void){return world?1:0;}
 extern "C" int rocket_runtime_boost_mode(void){return rocket_wing_boost_mode();}
 extern "C" int rocket_runtime_set_boost_mode(int mode){
@@ -174,6 +188,7 @@ extern "C" int rocket_runtime_rule_ready(void){
 extern "C" uint32_t rocket_runtime_epoch(void){return epoch;}
 extern "C" void rocket_runtime_selection_changed(void){
     rocket_audio_stop();
+    rocket_world_set_temporary_boost(world.get(),0);
     if(++epoch==0)++epoch;
     rocket_world_interrupt(world.get());
 }
@@ -194,7 +209,7 @@ extern "C" int rocket_runtime_read_input(const RocketInput *keyboard,RocketInput
     if(!drawable){if(input)*input={};return 0;}
     return rocket_runtime_read_selected_input(keyboard,input);
 }
-extern "C" void rocket_runtime_suspend(void){rocket_audio_stop();drawable=false;capVisuals=0;rocket_world_set_environment(world.get(),nullptr);rocket_world_set_water_query(world.get(),nullptr);rocket_world_set_water(world.get(),0,0,0);rocket_world_interrupt(world.get());}
+extern "C" void rocket_runtime_suspend(void){rocket_audio_stop();drawable=false;capVisuals=0;rocket_world_set_temporary_boost(world.get(),0);rocket_world_set_environment(world.get(),nullptr);rocket_world_set_water_query(world.get(),nullptr);rocket_world_set_water(world.get(),0,0,0);rocket_world_interrupt(world.get());}
 extern "C" void rocket_runtime_set_cap_visuals(uint32_t flags){capVisuals=flags&MARIO_SPECIAL_CAPS;}
 extern "C" int rocket_runtime_set_environment(const RocketEnvironment *environment){return rocket_world_set_environment(world.get(),environment);}
 extern "C" void rocket_runtime_set_metal_water(int active){rocket_world_set_metal_water(world.get(),active);}
@@ -258,7 +273,7 @@ static int drawSnapshot(const RocketSnapshot *snapshot,uint32_t nativeFlags,cons
     RocketSnapshot pose=*snapshot;rocket_quicksand_visual_pose(&pose);
     if(body.empty()||wheel.empty()||!finite(view,16)||!finite(projection,16)||!viewport||viewport[2]<=0||viewport[3]<=0)return 0;
     try{
-        initGL();GLState saved(gl);stream.clear();stream.reserve(body.size()+wheel.size()*4);
+        initGL();GLState saved(gl);stream.clear();stream.reserve(body.size()+wheel.size()*4+rocket_boost_visual::VERTICES);
         const float pivot[3]={pose.position[0],pose.position[1]-40.f,pose.position[2]};
         append(body,pose.position,pose.basis,ROCKET_HOST_SCALE,view,pivot,squish);
         for(int i=0;i<4;++i){
@@ -267,6 +282,9 @@ static int drawSnapshot(const RocketSnapshot *snapshot,uint32_t nativeFlags,cons
             for(int k=0;k<3;++k){basis[k]=pose.basis[k]*c+pose.basis[3+k]*s;basis[3+k]=-pose.basis[k]*s+pose.basis[3+k]*c;}
             append(wheel,pose.wheel_position[i],basis,pose.wheel_radius[i]/16.f,view,pivot,squish,snapshot==&current?i:-1);
         }
+        const size_t meshCount=stream.size();
+        rocket_boost_visual::append(stream,pose);
+        for(size_t i=meshCount;i<stream.size();++i){float normal[3]={0,1,0};rocket_squish_vertex(stream[i].p,normal,pivot,squish);}
         Matrix v,p;std::copy(view,view+16,v.begin());std::copy(projection,projection+16,p.begin());Matrix mvp=multiply(p,v);
         gl.UseProgram(program);gl.UniformMatrix4fv(uMVP,1,GL_FALSE,mvp.data());if(gl.vaoSupported)gl.BindVertexArray(vao);
         const float caps[4]={nativeFlags&MARIO_VANISH_CAP?1.f:0.f,0,0,0};gl.Uniform4fv(uCaps,1,caps);
@@ -274,12 +292,28 @@ static int drawSnapshot(const RocketSnapshot *snapshot,uint32_t nativeFlags,cons
         gl.ActiveTexture(GL_TEXTURE0);if(gl.samplers)gl.BindSampler(0,0);gl.BindTexture(GL_TEXTURE_2D,metalTexture);
         gl.BindBuffer(GL_ARRAY_BUFFER,vbo);gl.BufferData(GL_ARRAY_BUFFER,stream.size()*sizeof(DrawVertex),stream.data(),GL_STREAM_DRAW);
         gl.EnableVertexAttribArray(0);gl.EnableVertexAttribArray(1);gl.EnableVertexAttribArray(2);
-        gl.VertexAttribPointer(1,2,GL_FLOAT,GL_FALSE,sizeof(DrawVertex),(void*)offsetof(DrawVertex,uv));
+        gl.VertexAttribPointer(1,4,GL_FLOAT,GL_FALSE,sizeof(DrawVertex),(void*)offsetof(DrawVertex,uv));
         gl.VertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,sizeof(DrawVertex),(void*)offsetof(DrawVertex,p));gl.VertexAttribPointer(2,4,GL_FLOAT,GL_FALSE,sizeof(DrawVertex),(void*)offsetof(DrawVertex,color));
         gl.Viewport(viewport[0],viewport[1],viewport[2],viewport[3]);gl.DepthFunc(GL_LEQUAL);gl.DepthMask(GL_TRUE);gl.ColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
         if(gl.es)gl.DepthRangef(0,1);else gl.DepthRange(0,1);
         for(GLenum cap:CAPABILITIES){if(cap==GL_DEPTH_TEST)gl.Enable(cap);else gl.Disable(cap);}if(gl.raster)gl.Disable(GL_RASTERIZER_DISCARD);if(!gl.es)gl.PolygonMode(GL_FRONT_AND_BACK,GL_FILL);
-        gl.DrawArrays(GL_TRIANGLES,0,(GLsizei)stream.size());return 1;
+        if(materials.ready()&&!(nativeFlags&MARIO_METAL_CAP)) {
+            gl.Uniform1i(uMaterial,1);gl.BindTexture(GL_TEXTURE_2D,materialTextures[0]);
+            gl.DrawArrays(GL_TRIANGLES,0,(GLsizei)rocket_materials::CHASSIS_VERTICES);
+            gl.Uniform1i(uMaterial,2);gl.BindTexture(GL_TEXTURE_2D,materialTextures[1]);
+            gl.DrawArrays(GL_TRIANGLES,(GLint)rocket_materials::CHASSIS_VERTICES,(GLsizei)(body.size()-rocket_materials::CHASSIS_VERTICES));
+            gl.Uniform1i(uMaterial,0);gl.DrawArrays(GL_TRIANGLES,(GLint)body.size(),(GLsizei)(meshCount-body.size()));
+        } else {
+            gl.Uniform1i(uMaterial,0);gl.DrawArrays(GL_TRIANGLES,0,(GLsizei)meshCount);
+        }
+        if(stream.size()>meshCount) {
+            gl.Uniform1i(uMetal,0);gl.Uniform1i(uMaterial,-1);
+            gl.DepthMask(GL_FALSE);gl.Enable(GL_BLEND);
+            gl.BlendEquationSeparate(GL_FUNC_ADD,GL_FUNC_ADD);
+            gl.BlendFuncSeparate(GL_SRC_ALPHA,GL_ONE,GL_ONE,GL_ONE_MINUS_SRC_ALPHA);
+            gl.DrawArrays(GL_TRIANGLES,(GLint)meshCount,(GLsizei)(stream.size()-meshCount));
+        }
+        return 1;
     }catch(const std::exception &e){status="Rocket draw failed: "+std::string(e.what());std::fprintf(stderr,"%s\n",status.c_str());rocket_runtime_shutdown();status="Rocket draw failed: "+std::string(e.what());return 0;}
 }
 extern "C" int rocket_runtime_draw_snapshot_player(const RocketSnapshot *snapshot,unsigned index,uint32_t flags,const float *view,const float *projection,const int *viewport){

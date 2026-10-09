@@ -91,6 +91,19 @@ class WizardTests(unittest.TestCase):
         self.assertIn('SM64', result['message'])
         self.assertNotIn('Traceback', output.getvalue())
 
+    def test_cached_car_optional_upgrade_does_not_require_supported_wheel(self):
+        game = self.root / 'Games/rocketleague'
+        (game / 'TAGame/CookedPCConsole').mkdir(parents=True)
+        (game / 'TAGame/CookedPCConsole/wheel_sport80_SF.upk').write_bytes(b'new wheel version')
+        with patch.object(wizard, 'status', return_value=dict(sm64=True, ready=['octane'])):
+            with patch('codex.rocketleague.tools.export_octane.check_game', side_effect=AssertionError('cached geometry must not re-extract')):
+                result = wizard.preflight(self.args(game=game), api)
+                self.assertTrue(result['valid'])
+                self.assertIn('Optional sounds and materials', result['message'])
+            with self.assertRaisesRegex(ValueError, 'Rocket League installation folder'):
+                wizard.preflight(self.args(game=self.root / 'missing'), api)
+        self.assertFalse(api.DATA_ROOT.exists())
+
     def test_epic_discovery_reads_local_manifest_only(self):
         game = self.root / 'Games/rocketleague'
         (game / 'TAGame/CookedPCConsole').mkdir(parents=True)

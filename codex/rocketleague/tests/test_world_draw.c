@@ -30,6 +30,7 @@ static struct Area area;
 static char order[128];
 static unsigned events,checks,localDraws,presentationDraws,remoteDraws,otherDraws,flushes;
 static int pendingWorld,presentationAvailable,otherPresentation,worldHasCamera=1;
+static int runtimeSuspended;
 static GfxCodexWorldDraw sCodexWorldDraw;
 static bool sCodexWorldDrawn,sCodexCameraValid,sCodexInterpolatedViewValid;
 static bool sCodexWorldEnvironmentValid,sCodexWorldEnvironmentActive;
@@ -51,6 +52,8 @@ static void camera_matches(const float *v,const float *p,const int *viewport){
     assert(!pendingWorld&&sCodexWorldEnvironmentValid);
 }
 int rocket_runtime_draw(const float v[16],const float p[16],const int viewport[4]){camera_matches(v,p,viewport);localDraws++;event('L');return 1;}
+/* Explicit control-ownership fixture for the production world dispatcher. */
+int rocket_runtime_owns_controls(void){return gCLIOpts.rocketCar&&!runtimeSuspended;}
 int character_presentation_car_snapshot(RocketSnapshot *out){(void)out;return presentationAvailable;}
 void character_presentation_draw(const float *v,const float *p,const int *viewport){
     if(presentationAvailable){camera_matches(v,p,viewport);presentationDraws++;event('P');}
@@ -101,7 +104,7 @@ static void fresh(void){
     gDisplayListHead=commands;gCurrentArea=&area;gDjuiDisabled=gDjuiInMainMenu=false;gWarpTransDelay=0;
     gViewportOverride=gViewportClip=NULL;
     events=localDraws=presentationDraws=remoteDraws=otherDraws=flushes=0;order[0]=0;
-    pendingWorld=presentationAvailable=otherPresentation=0;worldHasCamera=1;ctx=currentContext=(void*)1;
+    pendingWorld=presentationAvailable=otherPresentation=runtimeSuspended=0;worldHasCamera=1;ctx=currentContext=(void*)1;
     sCodexInterpolatedViewValid=false;
     for(int i=0;i<16;i++){(&sCodexView[0][0])[i]=i+.25f;(&sCodexProjection[0][0])[i]=i+40.f;(&sCodexInterpolatedView[0][0])[i]=i+80.f;}
     sCodexViewport[0]=15;sCodexViewport[1]=20;sCodexViewport[2]=1280;sCodexViewport[3]=720;
@@ -123,6 +126,9 @@ int main(void){
     CHECK(localDraws==0&&presentationDraws==1&&remoteDraws==1);
     fresh();gCLIOpts.characterNet=true;render_game();replay();CHECK(!strcmp(order,"WRBHTD"));CHECK(remoteDraws==1&&localDraws==0);
     fresh();render_game();replay();CHECK(!strcmp(order,"WBHTD"));CHECK(localDraws+remoteDraws+presentationDraws==0);
+    fresh();gCLIOpts.rocketCar=true;runtimeSuspended=1;render_game();replay();CHECK(localDraws==0);
+    presentationAvailable=1;gfx_codex_world_frame_begin();gDisplayListHead=commands;events=0;order[0]=0;
+    render_game();replay();CHECK(localDraws==0&&presentationDraws==1);
     /* Null backend hook (dummy/DX), wrong context, camera and viewport gates. */
     fresh();gCLIOpts.rocketCar=true;gfx_codex_set_world_draw(NULL);render_game();replay();CHECK(!strcmp(order,"WBHTD"));CHECK(localDraws==0);
     fresh();gCLIOpts.rocketCar=true;currentContext=(void*)2;render_game();replay();CHECK(localDraws==0);

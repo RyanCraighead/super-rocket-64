@@ -19,7 +19,9 @@ static int actions,sends;
 #ifdef ROCKET_BULLY_REAL_TEST
 static RocketSnapshot bullyCar;
 static int bullyCarActive=1,bullyRingFloor;
-static struct Surface lavaFloor;
+static int bullyFloorMode,bullySideWall;
+static float bullyWallZ;
+static struct Surface lavaFloor,bullyWall;
 #endif
 /* This fixture exercises ordinary damage/grabs; real boss ownership has its own suite. */
 int boss_net_managed(const struct Object *object){(void)object;return 0;}
@@ -53,10 +55,27 @@ void network_send_object(struct Object *object){(void)object;sends++;}
 void network_send_object_reliability(struct Object *object,bool reliable){(void)object;(void)reliable;sends++;}
 void stop_shell_music(void){}
 void obj_set_held_state(struct Object *object,const BehaviorScript *behavior){(void)object;(void)behavior;assert(0);}
-s32 f32_find_wall_collision(f32 *x,f32 *y,f32 *z,f32 offset,f32 radius){(void)x;(void)y;(void)z;(void)offset;(void)radius;return 0;}
+#ifdef ROCKET_BULLY_REAL_TEST
+s32 find_wall_collisions(struct WallCollisionData *data){
+    if(data->z<=bullyWallZ)return 0;
+    data->z=bullyWallZ;data->walls[0]=&bullyWall;data->numWalls=1;
+    if(bullySideWall)data->x+=1000; // Reject an excessive corner projection.
+    return 1;
+}
+#endif
+s32 f32_find_wall_collision(f32 *x,f32 *y,f32 *z,f32 offset,f32 radius){
+#ifdef ROCKET_BULLY_REAL_TEST
+    struct WallCollisionData data={.x=*x,.y=*y,.z=*z,.offsetY=offset,.radius=radius};
+    int hit=find_wall_collisions(&data);*x=data.x;*y=data.y;*z=data.z;return hit;
+#else
+    (void)x;(void)y;(void)z;(void)offset;(void)radius;return 0;
+#endif
+}
 f32 find_floor(f32 x,f32 y,f32 z,struct Surface **floor){
     (void)x;(void)y;(void)z;
 #ifdef ROCKET_BULLY_REAL_TEST
+    if(bullyFloorMode==1){*floor=NULL;return -11000;}
+    if(bullyFloorMode==2){*floor=&floorObject;return 100;}
     if(bullyRingFloor&&z>=200){*floor=&lavaFloor;return 0;}
 #endif
     *floor=&floorObject;return 0;

@@ -20,6 +20,8 @@ static struct SyncObject boxSync;
 static unsigned collected, sounds, stopped, boxSent;
 static u64 session=1234;
 static int ordinaryMode;
+u32 gGlobalTimer;
+u8 sSquishScaleOverTime[16]={46,71,85,95,100,98,91,80,66,50,34,20,9,2,0,0};
 static u32 attack=INT_HIT_FROM_BELOW;
 static int localPickupKind,blockedContact,boxContact=1;
 static u32 contactCaps;
@@ -253,9 +255,45 @@ int main(void){
     sourceSnapshot=&pose;rocket_wing_topper_update();CHECK(visual[0].activeFlags&ACTIVE_FLAG_ACTIVE);
     CHECK(visual[0].oInteractType==0&&visual[0].oIntangibleTimer==-1);
     CHECK(visual[0].transform[0][0]==1&&visual[0].transform[1][1]==1&&visual[0].transform[2][2]==1);
-    CHECK(visual[0].oPosX==100&&visual[0].oPosY==200+38*ROCKET_HOST_SCALE&&visual[0].oPosZ==300+16*ROCKET_HOST_SCALE);
+    CHECK(visual[0].oPosX==100&&visual[0].oPosY==266&&visual[0].oPosZ==300);
     pose.basis[3]=-1;pose.basis[7]=-1;rocket_wing_topper_update();
     CHECK(visual[0].transform[0][0]==-1&&visual[0].transform[1][1]==-1&&visual[0].oPosY<200);
+    /* Independent rigid-point checks: arbitrary yaw/pitch/roll and all points
+     * of the native cap bottom stay in a single roof-local plane. */
+    for(int angle=0;angle<72;angle++){
+        Mat4 rotation;Vec3f origin={0,0,0};Vec3s euler={angle*911,angle*2053,angle*1297};
+        mtxf_rotate_zxy_and_translate(rotation,origin,euler);
+        for(int k=0;k<3;k++){
+            pose.basis[k]=rotation[2][k];pose.basis[3+k]=rotation[0][k];pose.basis[6+k]=rotation[1][k];
+        }
+        ++gGlobalTimer;rocket_wing_topper_update();
+        CHECK(visual[0].header.gfx.skipInterpolationTimestamp==gGlobalTimer);
+        const float capPoints[][3]={{0,0,0},{-101,0,-118},{103,0,109},{0,144,0}};
+        for(unsigned p=0;p<4;p++){
+            float world[3];
+            for(int k=0;k<3;k++){
+                world[k]=visual[0].transform[3][k];
+                for(int a=0;a<3;a++)world[k]+=capPoints[p][a]*.25f*visual[0].header.gfx.scale[a]*visual[0].transform[a][k];
+            }
+            const float local[]={capPoints[p][2]*.3375f,capPoints[p][0]*.3375f,66+capPoints[p][1]*.3375f};
+            for(int a=0;a<3;a++){
+                float dot=0;for(int k=0;k<3;k++)dot+=(world[k]-pose.position[k])*pose.basis[a*3+k];
+                CHECK(fabsf(dot-local[a])<.002f);
+            }
+        }
+        CHECK(gMarioStates[0].capTimer==90); /* rendering never consumes a cap */
+    }
+    memset(pose.basis,0,sizeof pose.basis);pose.basis[2]=pose.basis[3]=pose.basis[7]=1;
+    pose.quicksand_depth=30;rocket_wing_topper_update();CHECK(visual[0].oPosY==236);
+    gMarioStates[0].action=ACT_SQUISHED;gMarioStates[0].squishTimer=20;
+    objects[0].header.gfx.scale[0]=objects[0].header.gfx.scale[2]=1.4f;objects[0].header.gfx.scale[1]=.4f;
+    rocket_wing_topper_update();CHECK(fabsf(visual[0].oPosY-172.4f)<.001f);
+    CHECK(visual[0].transform[0][0]==1.4f&&visual[0].transform[1][1]==.4f);
+    gMarioStates[0].action=ACT_IDLE;gMarioStates[0].squishTimer=0;pose.quicksand_depth=0;
+    /* Same priority as the actual world renderer, even if a stale runtime pose
+     * is available during a native cutscene presentation handoff. */
+    RocketSnapshot nativePose=pose;nativePose.position[0]=600;presentationSnapshot=&nativePose;
+    rocket_wing_topper_update();CHECK(visual[0].oPosX==600);presentationSnapshot=NULL;
     sourceSnapshot=NULL;rocket_wing_topper_update();CHECK(visual[0].activeFlags==ACTIVE_FLAG_DEACTIVATED);
     CHECK(gMarioStates[0].capTimer==90); /* switching does not restart a native timer */
     gMarioStates[0].capTimer=0;CHECK(!rocket_wing_active(0)&&rocket_wing_boost_mode()==0);
@@ -265,9 +303,13 @@ int main(void){
     remote.car.basis[2]=remote.car.basis[3]=remote.car.basis[7]=1;
     for(int k=0;k<4;k++)remote.car.wheel_radius[k]=32;
     CHECK(character_net_accept(1,&remote));rocket_wing_topper_update();CHECK(visual[1].activeFlags&ACTIVE_FLAG_ACTIVE);
-    CHECK(visual[1].header.gfx.throwMatrix==&visual[1].transform&&visual[1].oPosY==38*ROCKET_HOST_SCALE);
+    CHECK(visual[1].header.gfx.throwMatrix==&visual[1].transform&&visual[1].oPosY==66);
+    remote.car.basis[3]=remote.car.basis[7]=-1;remote.epoch++;remote.sequence++;
+    CHECK(character_net_accept(1,&remote));rocket_wing_topper_update();
+    CHECK(visual[1].oPosY==-66&&visual[1].transform[0][0]==-1&&visual[1].transform[1][1]==-1);
     remote.active=0;remote.interaction=0;remote.sequence++;CHECK(character_net_accept(1,&remote));rocket_wing_topper_update();
     CHECK(visual[1].activeFlags==ACTIVE_FLAG_DEACTIVATED&&gMarioStates[1].capTimer==90);
+    remote.car.basis[3]=remote.car.basis[7]=1; /* later pickup scenarios are upright */
     /* Host native pause is replicated; a lost host cannot freeze a client indefinitely. */
     fresh();grant=pickup();as_client();grant.buffer[26]=1;receive(grant);
     rocket_caps_update();CHECK(gMarioStates[0].capTimer==90);fixtureNow+=1.1;rocket_caps_update();CHECK(gMarioStates[0].capTimer==89);

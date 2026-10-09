@@ -20,7 +20,7 @@ def child(root, name):
         raise ValueError('Asset path escapes export')
     return p
 
-def geometry(path):
+def geometry(path, include_uv=False):
     j = json.loads(path.read_text())
     if j['asset']['version'] != '2.0' or len(j['buffers']) != 1 or len(j['meshes']) != 1:
         raise ValueError('Unsupported glTF structure')
@@ -34,7 +34,7 @@ def geometry(path):
         v = j['bufferViews'][a['bufferView']]
         if v['buffer'] != 0:
             raise ValueError('Unsupported buffer index')
-        fmt = {5123:'H', 5125:'I', 5126:'f'}[component] * {'SCALAR':1, 'VEC3':3}[kind]
+        fmt = {5123:'H', 5125:'I', 5126:'f'}[component] * {'SCALAR':1, 'VEC2':2, 'VEC3':3}[kind]
         size = struct.calcsize('<'+fmt)
         stride = v.get('byteStride', size)
         start = v.get('byteOffset',0) + a.get('byteOffset',0)
@@ -48,9 +48,10 @@ def geometry(path):
             raise ValueError('Only triangles supported')
         attr = primitive['attributes']
         positions, normals = access(attr['POSITION'],'VEC3',5126), access(attr['NORMAL'],'VEC3',5126)
+        uv = access(attr['TEXCOORD_0'],'VEC2',5126) if include_uv else None
         idx = primitive['indices']
         indices = access(idx, 'SCALAR', j['accessors'][idx]['componentType'])
-        if len(positions) != len(normals) or len(indices)%3:
+        if len(positions) != len(normals) or len(indices)%3 or (uv is not None and len(uv) != len(positions)):
             raise ValueError('Invalid triangle stream')
         stream = []
         for (index,) in indices:
@@ -60,7 +61,12 @@ def geometry(path):
             if not all(math.isfinite(f) and abs(f) < 100 for f in p+n):
                 raise ValueError('Invalid vertex')
             # Inverse of pinned ExportGltf.cpp TransformPosition/Direction.
-            stream.append((p[0]*100,p[2]*100,p[1]*100,n[0],n[2],n[1]))
+            vertex = (p[0]*100,p[2]*100,p[1]*100,n[0],n[2],n[1])
+            if uv is not None:
+                if not all(math.isfinite(f) and abs(f) < 16 for f in uv[index]):
+                    raise ValueError('Invalid material UV')
+                vertex += uv[index]
+            stream.append(vertex)
         result.append(stream)
     return result
 

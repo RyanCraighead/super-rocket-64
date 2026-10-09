@@ -93,6 +93,7 @@ void character_presentation_finish(struct MarioState *m,int source_owns_action) 
                     frameStartAction==ACT_WARP_DOOR_SPAWN||frameStartAction==ACT_ENTERING_STAR_DOOR)
                 yaw=m->faceAngle[1];
             RocketSnapshot old=pose.car;
+            pose.car.boosting=0; // Native locomotion has no backend thrust/exhaust.
             pose.car.quicksand_depth=0; // Native graphics position already includes sinking.
             memset(pose.car.basis,0,sizeof pose.car.basis);
             pose.car.basis[0]=sins(yaw);pose.car.basis[2]=coss(yaw);

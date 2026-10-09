@@ -25,6 +25,8 @@
 #include "pc/character_wheel.h"
 #include "pc/rocket_runtime.h"
 #include "rocket_penguin.h"
+#include "rocket_adapter.h"
+#include "character_presentation.h"
 #include "pc/rocket_bindings.h"
 #include "pc/controller/controller_api.h"
 #include "pc/controller/controller_sdl.h"
@@ -560,13 +562,21 @@ void set_hud_camera_status(s16 status) {
  * Renders camera HUD glyphs using a table list, depending of
  * the camera status called, a defined glyph is rendered.
  */
+static int rocket_boost_hud_snapshot(RocketSnapshot *car) {
+    if(character_wheel_is_open())return 0;
+    return (rocket_runtime_owns_controls()&&rocket_runtime_snapshot(car))||
+        (rocket_adapter_car_selected()&&character_presentation_car_snapshot(car));
+}
+
 void render_hud_camera_status(void) {
     u8 *(*cameraLUT)[6];
     s32 x;
     s32 y;
 
     cameraLUT = segmented_to_virtual(&main_hud_camera_lut);
-    x = GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(54);
+    RocketSnapshot car;
+    int boostHud = rocket_boost_hud_snapshot(&car);
+    x = GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(boostHud ? 124 : 54);
     y = 205;
 
     if (sCameraHUD.status == CAM_STATUS_NONE) {
@@ -581,7 +591,7 @@ void render_hud_camera_status(void) {
             render_hud_tex_lut(x + 16, y, (*cameraLUT)[(gMarioStates[0].character) ? gMarioStates[0].character->cameraHudHead : GLYPH_CAM_MARIO_HEAD]);
             break;
         case CAM_STATUS_LAKITU:
-            render_hud_tex_lut(x + 16, y, (*cameraLUT)[GLYPH_CAM_LAKITU_HEAD]);
+            if(!boostHud)render_hud_tex_lut(x + 16, y, (*cameraLUT)[GLYPH_CAM_LAKITU_HEAD]);
             break;
         case CAM_STATUS_FIXED:
             render_hud_tex_lut(x + 16, y, (*cameraLUT)[GLYPH_CAM_FIXED]);
@@ -636,28 +646,28 @@ static void boost_meter_rect(s32 x,s32 y,s32 w,s32 h,u16 color) {
 }
 static void render_rocket_boost_hud(void) {
     RocketSnapshot car;
-    if(character_wheel_is_open()||!rocket_runtime_owns_controls()||!rocket_runtime_snapshot(&car))return;
-    s32 percent=(s32)ceilf(fmaxf(0.f,fminf(100.f,car.boost)));
+    if(!rocket_boost_hud_snapshot(&car))return;
+    s32 percent=isfinite(car.boost)?(s32)ceilf(fmaxf(0.f,fminf(100.f,car.boost))):0;
     int jet=car.water_mode==ROCKET_WATER_JET;
     if(jet||rocket_runtime_boost_mode()==ROCKET_BOOST_INFINITE)percent=100;
-    s32 segments=(percent+4)/5, x=SCREEN_WIDTH/2-60, y=SCREEN_HEIGHT-27;
+    s32 segments=(percent+4)/5, x=GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(96), y=SCREEN_HEIGHT-16;
     gDPPipeSync(gDisplayListHead++);
     gDPSetCycleType(gDisplayListHead++, G_CYC_FILL);
     gDPSetRenderMode(gDisplayListHead++, G_RM_NOOP, G_RM_NOOP2);
-    boost_meter_rect(x-3,y-3,126,13,GPACK_RGBA5551(16,24,40,1));
-    boost_meter_rect(x-2,y-2,124,11,GPACK_RGBA5551(224,224,208,1));
-    boost_meter_rect(x-1,y-1,122,9,GPACK_RGBA5551(16,24,40,1));
+    boost_meter_rect(x-3,y-3,86,11,GPACK_RGBA5551(16,24,40,1));
+    boost_meter_rect(x-2,y-2,84,9,GPACK_RGBA5551(224,224,208,1));
+    boost_meter_rect(x-1,y-1,82,7,GPACK_RGBA5551(16,24,40,1));
     for(int i=0;i<20;i++){
         u16 color=i<segments ? (percent<=20?GPACK_RGBA5551(248,88,40,1):GPACK_RGBA5551(248,192,48,1)) : GPACK_RGBA5551(56,64,72,1);
         if(jet)color=GPACK_RGBA5551(40,152,248,1);
-        boost_meter_rect(x+i*6,y,5,7,color);
+        boost_meter_rect(x+i*4,y,3,5,color);
     }
     gDPPipeSync(gDisplayListHead++);
     gDPSetCycleType(gDisplayListHead++, G_CYC_1CYCLE);
     gDPSetRenderMode(gDisplayListHead++, G_RM_AA_ZB_OPA_SURF, G_RM_AA_ZB_OPA_SURF2);
-    if(jet)print_text_centered(SCREEN_WIDTH/2,36,"JET MODE");
-    else if(rocket_runtime_boost_mode()==ROCKET_BOOST_INFINITE)print_text_centered(SCREEN_WIDTH/2,36,"BOOST MAX");
-    else {char label[16];snprintf(label,sizeof label,"BOOST %d%%",percent);print_text_centered(SCREEN_WIDTH/2,36,label);}
+    print_text_centered(x+40,40,jet?"JET":"BOOST");
+    if(jet||rocket_runtime_boost_mode()==ROCKET_BOOST_INFINITE)print_text_centered(x+40,22,"MAX");
+    else {char label[16];snprintf(label,sizeof label,"+%d%%",percent);print_text_centered(x+40,22,label);} // Native coin glyph.
     int hint=rocket_penguin_hint();
     if(hint==3) {
         print_text_centered(SCREEN_WIDTH/2,64,"FLIPS DROP PENGUIN");

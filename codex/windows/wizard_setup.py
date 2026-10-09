@@ -96,9 +96,14 @@ def preflight(args, api):
     elif not current['sm64']:
         raise ValueError('Choose your original SM64 US ROM: .z64, .v64, .n64, or a ZIP containing only that ROM.')
     if character == 'octane':
-        if args.game:
+        if args.game and character not in current['ready']:
             from codex.rocketleague.tools.export_octane import check_game
             check_game(args.game)
+        elif args.game:
+            # A verified cached mesh needs no wheel re-extraction. Optional
+            # audio/material profiles perform their own source/hash checks.
+            if not (Path(args.game) / 'TAGame/CookedPCConsole').is_dir():
+                raise ValueError('Choose the Rocket League installation folder containing TAGame (Epic or Steam).')
         elif character not in current['ready']:
             raise ValueError('Choose the Rocket League installation folder containing TAGame (Epic or Steam).')
     elif character not in current['ready'] or args.rom:
@@ -119,7 +124,9 @@ def preflight(args, api):
     if free < needed:
         raise ValueError('Free at least ' + str(needed // 1048576) + ' MB on the installation drive for setup and temporary files.')
     return dict(valid=True, character=character, free_bytes=free, reserve_bytes=needed,
-                message='Sources verified. Existing completed assets will be checked and reused.')
+                message=('Existing car geometry verified. Optional sounds and materials will be checked separately.'
+                         if character == 'octane' and character in current['ready'] else
+                         'Sources verified. Existing completed assets will be checked and reused.'))
 
 
 def run(args, api):

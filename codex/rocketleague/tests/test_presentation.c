@@ -60,7 +60,7 @@ static void fresh(enum CharacterSwitchId id){
  playerObject.header.gfx.node.flags=GRAPH_RENDER_ACTIVE;
  playerObject.header.gfx.pos[0]=123;playerObject.header.gfx.pos[1]=80;playerObject.header.gfx.pos[2]=456;
  playerObject.header.gfx.angle[1]=0x4000;
- car.basis[2]=car.basis[3]=car.basis[7]=1;car.ticks=88;
+ car.basis[2]=car.basis[3]=car.basis[7]=1;car.ticks=88;car.boosting=1;car.boost=65;
  for(int i=0;i<4;i++){car.wheel_radius[i]=32;car.wheel_position[i][0]=i*10;car.wheel_position[i][1]=-20;}
  snapshotReady=1;character_presentation_begin(&mario);character_presentation_begin(&mario);
  snapshotReady=0; /* real adapter would suspend before native action execution */
@@ -99,6 +99,7 @@ int main(void){
   assert(!memcmp(&mario,&before,sizeof mario)); /* damage, immunity, action, motion unchanged */
   if(id==CHARACTER_OCTANE){RocketSnapshot s;assert(character_presentation_car_snapshot(&s));
    assert(s.position[0]==123&&s.position[1]==120&&s.position[2]==456&&s.ticks==88);
+   assert(!s.boosting&&s.boost==65&&car.boosting==1); /* only the native presentation copy clears thrust */
    assert(fabsf(s.basis[0]-1)<.0001f&&s.velocity[0]==0);
    assert(fabsf(s.wheel_position[1][2]-(456-10))<.001f);
   }

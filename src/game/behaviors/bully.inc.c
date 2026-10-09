@@ -1,4 +1,5 @@
 // bully.c.inc
+#include "game/rocket_bully.h"
 
 static struct ObjectHitbox sSmallBullyHitbox = {
     .interactType = INTERACT_BULLY,
@@ -236,6 +237,7 @@ void bully_play_stomping_sound(void) {
 
 void bully_step(void) {
     s16 collisionFlags = 0;
+    rocket_bully_separate(o);
     collisionFlags = object_step();
     bully_backup_check(collisionFlags);
     bully_play_stomping_sound();

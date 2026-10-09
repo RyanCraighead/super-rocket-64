@@ -1,0 +1,14 @@
+{
+  "schema": "octane-host-materials-v1",
+  "body_geometry_sha256": "e1162f1643ad34857fda1284b5ecac7af7d7172069c968b2eb9473b9fdb523df",
+  "body_package_sha256": "bedf7fc0d64ab2c6d4f2620a946bb88e600f779c3e924fb80ab96c431d67f7e6",
+  "startup_package_sha256": "062682f1c9c5bca132b5aaca18c68fc0df5743ad3a2fdac420566fe18fb644b1",
+  "vertices": 85434,
+  "chassis_vertices": 48480,
+  "uv_channel": 0,
+  "files": {
+    "body.uv": {"size": 683472, "sha256": "dfab6c5470e2f4889fc1b51da747caaec68ac125bd9a3662055fda6f84f5b5e5"},
+    "body.png": {"size": 2967332, "sha256": "0629edaa948b2d5cbfe0f2ca6b698ba1a40bb64b2922ba5e8c5b2509c9f0298f"},
+    "chassis.png": {"size": 2126846, "sha256": "79a2e08676f22deecbbb79b450f2c9757b5ac6cbbc2099de0db0ee946f4919b5"}
+  }
+}

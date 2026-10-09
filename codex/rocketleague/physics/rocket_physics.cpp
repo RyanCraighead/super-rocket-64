@@ -1,6 +1,7 @@
 #include "rocket_physics.h"
 #include "metal_water.h"
 #include "quicksand_policy.h"
+#include "stair_support.h"
 #include "RocketSim.h"
 #include "BulletCollision/CollisionShapes/btTriangleMesh.h"
 #include "BulletCollision/CollisionDispatch/btInternalEdgeUtility.h"
@@ -36,12 +37,19 @@ struct Mesh {
     std::unique_ptr<btTriangleInfoMap> edges;
     std::unique_ptr<btBvhTriangleMeshShape> shape;
     std::unique_ptr<btRigidBody> body;
+    // A proven connected-tread plane serves both tires and chassis on descent.
+    std::vector<HostFace> stairFaces;
+    std::unique_ptr<btTriangleMesh> stairTriangles;
+    std::unique_ptr<btTriangleInfoMap> stairEdges;
+    std::unique_ptr<btBvhTriangleMeshShape> stairShape;
+    std::unique_ptr<btRigidBody> stairBody;
     btTransform previousTransform=btTransform::getIdentity();
     btTransform targetTransform=btTransform::getIdentity();
     std::array<float,3> hostPosition{};
     bool hasPose=false,hasMotion=false;
 };
 constexpr int HOST_MESH_TAG=0x534d3634;
+bool underActiveStair(const btCollisionObject *car,const btCollisionObject *mesh,const btVector3 &point);
 bool validMaterial(unsigned material) {
     if ((material & ~15u) || (material & 3u) == 3u) return false;
     return !(material & ROCKET_MATERIAL_RACE_SLIDE) || material ==
@@ -62,13 +70,20 @@ float materialGrip(const Mesh *mesh,int index) {
     return material&ROCKET_MATERIAL_SLIDING?0.f:1.f;
 }
 struct MaterialAtPoint : btTriangleCallback {
-    const Mesh *mesh;btVector3 point;float grip=1.f,distance=.02f;
-    MaterialAtPoint(const Mesh *m,const btVector3 &p):mesh(m),point(p){}
+    const Mesh *mesh;btVector3 point;float grip=1.f,distance=.02f;bool found=false,stairs=false;
+    MaterialAtPoint(const Mesh *m,const btVector3 &p,bool s=false):mesh(m),point(p),stairs(s){}
     void processTriangle(btVector3 *v,int,int index) override {
         btVector3 normal=(v[1]-v[0]).cross(v[2]-v[0]).normalized();
         float d=std::fabs((point-v[0]).dot(normal));if(d>distance)return;
         for(int k=0;k<3;++k)if((v[(k+1)%3]-v[k]).cross(point-v[k]).dot(normal)<-.00001f)return;
-        distance=d;grip=materialGrip(mesh,index);
+        distance=d;found=true;
+        if(stairs){
+            // Same surface rule and material as the fully covered real tread.
+            if(index<0||(size_t)index>=mesh->stairFaces.size())return;
+            unsigned material=mesh->stairFaces[index].material;
+            grip=(material&3u)==ROCKET_MATERIAL_VERY_SLIPPERY?.25f:
+                 (material&3u)==ROCKET_MATERIAL_SLIPPERY?.5f:material&ROCKET_MATERIAL_SLIDING?0.f:1.f;
+        }else grip=materialGrip(mesh,index);
     }
 };
 constexpr size_t MAX_HOST_TRIANGLES=100000;
@@ -209,7 +224,9 @@ bool hostContact(btManifoldPoint &point,const btCollisionObjectWrapper *a,int pa
         triangle->calcNormal(normal);normal=mesh->getWorldTransform().getBasis()*normal;
         btVector3 plane=mesh->getWorldTransform()*triangle->getVertexPtr(0);
         // Use the transformed child shape, including Octane's hitbox offset.
-        if(rejectContact(point,normal,plane,shape,convex->getWorldTransform(),meshIsB)){
+        if(rejectContact(point,normal,plane,shape,convex->getWorldTransform(),meshIsB)||
+           underActiveStair(convex->getCollisionObject(),mesh->getCollisionObject(),
+                            meshIsB?point.getPositionWorldOnB():point.getPositionWorldOnA())){
             // Bullet ignores the callback return value. The per-world near
             // callback removes this point before solving. Do not let it set
             // RocketSim's worldContact state in the original callback.
@@ -241,8 +258,10 @@ void hostNearCallback(btBroadphasePair &pair,btCollisionDispatcher &dispatcher,c
             auto &point=manifold->getContactPoint(j);
             int index=meshIsB?point.m_index1:point.m_index0;
             bool reject=point.m_userPersistentData==&rejectedHostContact;
-            if(index>=0&&(size_t)index<mesh->faces.size()){
-                const auto &face=mesh->faces[index];
+            reject|=underActiveStair(car,meshBody,meshIsB?point.getPositionWorldOnB():point.getPositionWorldOnA());
+            const auto &faces=meshBody==mesh->stairBody.get()?mesh->stairFaces:mesh->faces;
+            if(index>=0&&(size_t)index<faces.size()){
+                const auto &face=faces[index];
                 reject|=rejectContact(point,meshBody->getWorldTransform().getBasis()*face.normal,
                     meshBody->getWorldTransform()*face.point,convex,transform,meshIsB);
             }
@@ -255,10 +274,13 @@ void hostNearCallback(btBroadphasePair &pair,btCollisionDispatcher &dispatcher,c
 struct RocketWorld {
     std::unique_ptr<Arena> arena;
     Car *car=nullptr;
+    std::unique_ptr<btVehicleRaycaster> stairRaycaster;
     std::array<Mesh,2> meshes;
     std::unordered_map<uint64_t,std::unique_ptr<Mesh>> platforms;
     uint64_t frame=0,ticks=0;
     bool haveFrame=false,ready=false,metalWater=false;
+    bool stairActive=false;
+    unsigned stairRays=0;
     Vec dryGravity;
     unsigned surfaceMode=ROCKET_SURFACES_CAR, speedPercent=100, jumpPercent=100;
     float quicksandDepth=0;
@@ -276,7 +298,10 @@ struct RocketWorld {
         // Meshes belong to this bridge; Arena must not destroy their shapes.
         if(arena){
             for(auto &entry:platforms)if(entry.second->body)arena->_bulletWorld.removeRigidBody(entry.second->body.get());
-            for(auto &mesh:meshes)if(mesh.body)arena->_bulletWorld.removeRigidBody(mesh.body.get());
+            for(auto &mesh:meshes){
+                if(mesh.stairBody&&mesh.stairBody->isInWorld())arena->_bulletWorld.removeRigidBody(mesh.stairBody.get());
+                if(mesh.body)arena->_bulletWorld.removeRigidBody(mesh.body.get());
+            }
         }
         arena.reset();
     }
@@ -293,6 +318,10 @@ extern "C" float rocket_host_wheel_grip(const void *opaqueWheel) {
     btVector3 p=body->getWorldTransform().inverse()*wheel.m_raycastInfo.m_contactPointWS;
     MaterialAtPoint query(mesh,p);btVector3 extent(.02f,.02f,.02f);
     mesh->shape->processAllTriangles(&query,p-extent,p+extent);
+    if(!query.found&&mesh->stairShape){
+        MaterialAtPoint ramp(mesh,p,true);mesh->stairShape->processAllTriangles(&ramp,p-extent,p+extent);
+        return ramp.grip;
+    }
     return query.grip;
 }
 // Adapt only tire support. The chassis still collides with the complete host
@@ -334,6 +363,127 @@ extern "C" int rocket_world_set_jump_height(RocketWorld *w,unsigned percent) {
 }
 extern "C" unsigned rocket_world_jump_height(RocketWorld *w) {return w?w->jumpPercent:100;}
 static thread_local RocketWorld *steppingEnvironment=nullptr;
+namespace {
+void setStairContact(RocketWorld *w,bool active){
+    auto *body=w->meshes[0].stairBody.get();
+    w->stairActive=active&&body;
+    if(!body)return;
+    if(w->stairActive&&!body->isInWorld())w->arena->_bulletWorld.addRigidBody(body);
+    if(!w->stairActive&&body->isInWorld())w->arena->_bulletWorld.removeRigidBody(body);
+}
+bool underActiveStair(const btCollisionObject *car,const btCollisionObject *body,const btVector3 &point){
+    auto *w=steppingEnvironment;
+    if(!w||!w->stairActive||car!=&w->car->_rigidBody||body!=w->meshes[0].body.get())return false;
+    auto &mesh=w->meshes[0];auto a=point,b=point;
+    a.setZ(a.z()+60.f/ROCKET_HOST_SCALE*UU_TO_BT);b.setZ(b.z()+.01f/ROCKET_HOST_SCALE*UU_TO_BT);
+    btTransform start=btTransform::getIdentity(),end=start;start.setOrigin(a);end.setOrigin(b);
+    struct Ray : btCollisionWorld::ClosestRayResultCallback {
+        int triangle=-1;
+        Ray(const btVector3 &a,const btVector3 &b,const btCollisionObject *car):ClosestRayResultCallback(a,b,car){}
+        btScalar addSingleResult(btCollisionWorld::LocalRayResult &r,bool normal) override {
+            if(r.m_hitFraction<=m_closestHitFraction&&r.m_localShapeInfo)triangle=r.m_localShapeInfo->m_triangleIndex;
+            return ClosestRayResultCallback::addSingleResult(r,normal);
+        }
+    } ray(a,b,car);
+    btCollisionWorld::rayTestSingle(start,end,mesh.stairBody.get(),mesh.stairShape.get(),btTransform::getIdentity(),ray);
+    // The lower tread is the bottom of the proven empty wedge. Do not mask a
+    // different floor underneath a staircase, even if it shares this X/Y.
+    return ray.hasHit()&&ray.triangle>=0&&(size_t)ray.triangle<mesh.stairFaces.size()&&
+        point.z()+.01f/ROCKET_HOST_SCALE*UU_TO_BT>=mesh.stairFaces[ray.triangle].point.z();
+}
+}
+static void *stairRay(const void *from,const void *to,const void *chassis,void *original,void *result) {
+    auto *w=steppingEnvironment;
+    if(!w||chassis!=&w->car->_rigidBody||w->waterMode!=ROCKET_WATER_DRY)return original;
+    auto &car=*w->car;const auto &state=car._internalState;
+    if(state.hasJumped||state.hasFlipped||state.isJumping||state.isFlipping)return original;
+    int supports=0;for(bool contact:state.wheelsWithContact)supports+=contact;
+    if(!w->stairActive&&(car.controls.jump||supports<2||car.GetUpDir().z<.4f))return original;
+    auto &mesh=w->meshes[0];
+    if(!mesh.stairShape||!mesh.body||(original&&original!=mesh.body.get()))return original;
+    auto &hit=*static_cast<btVehicleRaycaster::btVehicleRaycasterResult*>(result);
+    // Below a proven support plane, the old tread/riser is now an internal
+    // face. It cannot add a second, contradictory suspension impulse.
+    if(original&&underActiveStair(&car._rigidBody,mesh.body.get(),hit.m_hitPointInWorld))original=nullptr;
+    const auto &a=*static_cast<const btVector3*>(from),&b=*static_cast<const btVector3*>(to);
+    struct Ray : btCollisionWorld::ClosestRayResultCallback {
+        int triangle=-1;
+        Ray(const btVector3 &a,const btVector3 &b,const btCollisionObject *body):ClosestRayResultCallback(a,b,body){m_flags=btTriangleRaycastCallback::kF_FilterBackfaces;}
+        btScalar addSingleResult(btCollisionWorld::LocalRayResult &r,bool worldNormal) override {
+            if(r.m_hitFraction<=m_closestHitFraction&&r.m_localShapeInfo)triangle=r.m_localShapeInfo->m_triangleIndex;
+            return ClosestRayResultCallback::addSingleResult(r,worldNormal);
+        }
+    } ray(a,b,&car._rigidBody);
+    btTransform start=btTransform::getIdentity(),end=start;start.setOrigin(a);end.setOrigin(b);
+    btCollisionWorld::rayTestSingle(start,end,mesh.body.get(),mesh.stairShape.get(),mesh.body->getWorldTransform(),ray);
+    if(!ray.hasHit()||ray.triangle<0||(size_t)ray.triangle>=mesh.stairFaces.size())return original;
+    // A real nearer obstacle remains authoritative. Ramps only cover proven
+    // connected treads, never extend below/above the normal suspension ray.
+    if(original&&hit.m_distFraction+1e-5f<ray.m_closestHitFraction)return original;
+    btVector3 downhill=ray.m_hitNormalWorld;downhill.setZ(0);
+    if(!w->stairActive){
+        if(car._rigidBody.getLinearVelocity().dot(downhill)<=.025f)return original;
+        btVector3 drive=car._rigidBody.getWorldTransform().getBasis().getColumn(0)*car.controls.throttle;
+        if(car.controls.throttle&&drive.dot(downhill)<=0)return original;
+    }
+    hit.m_hitPointInWorld=ray.m_hitPointWorld;hit.m_hitNormalInWorld=ray.m_hitNormalWorld;
+    hit.m_distFraction=ray.m_closestHitFraction;w->stairRays++;
+    setStairContact(w,true);
+    return mesh.body.get();
+}
+namespace {
+struct StairRaycaster : btDefaultVehicleRaycaster {
+    RocketWorld *owner;
+    explicit StairRaycaster(RocketWorld *w):btDefaultVehicleRaycaster(&w->arena->_bulletWorld),owner(w){
+        addedFilterMask=w->car->_bulletVehicleRaycaster.addedFilterMask;
+    }
+    void *castRay(const btVector3 &a,const btVector3 &b,const btCollisionObject *ignore,
+                  btVehicleRaycasterResult &result) override {
+        void *original=nullptr;
+        auto *ramp=owner->meshes[0].stairBody.get();
+        if(!ramp||!ramp->isInWorld())original=btDefaultVehicleRaycaster::castRay(a,b,ignore,result);
+        else {
+            // Match the pinned default ray, excluding only our supplementary
+            // chassis plane. Every actual level/platform obstacle still wins.
+            struct Ray : btCollisionWorld::ClosestRayResultCallback {
+                const btCollisionObject *ramp;
+                Ray(const btVector3 &a,const btVector3 &b,const btCollisionObject *ignore,const btCollisionObject *r)
+                    :ClosestRayResultCallback(a,b,ignore),ramp(r){}
+                bool needsCollision(btBroadphaseProxy *p) const override {
+                    return p->m_clientObject!=ramp&&ClosestRayResultCallback::needsCollision(p);
+                }
+            } ray(a,b,ignore,ramp);
+            ray.m_collisionFilterGroup|=addedFilterMask;m_dynamicsWorld->rayTest(a,b,ray);
+            if(ray.hasHit()){
+                auto *body=btRigidBody::upcast(ray.m_collisionObject);
+                if(body&&body->hasContactResponse()){
+                    result.m_hitPointInWorld=ray.m_hitPointWorld;result.m_hitNormalInWorld=ray.m_hitNormalWorld.normalized();
+                    result.m_distFraction=ray.m_closestHitFraction;original=(void*)body;
+                }
+            }
+        }
+        return stairRay(&a,&b,ignore,original,&result);
+    }
+};
+void retainStairContact(RocketWorld *w){
+    if(!w->stairActive)return;
+    auto &car=*w->car;const auto &state=car._internalState;
+    if(w->waterMode!=ROCKET_WATER_DRY||state.hasJumped||state.hasFlipped||
+       state.isJumping||state.isFlipping){setStairContact(w,false);return;}
+    if(w->stairRays)return;
+    auto &mesh=w->meshes[0];
+    for(int i=0;i<5;i++){
+        auto a=i<4?car._bulletVehicle.m_wheelInfo[i].m_raycastInfo.m_hardPointWS:
+                   car._rigidBody.getWorldTransform().getOrigin(),b=a;
+        b.setZ(b.z()-250.f/ROCKET_HOST_SCALE*UU_TO_BT);
+        btTransform start=btTransform::getIdentity(),end=start;start.setOrigin(a);end.setOrigin(b);
+        btCollisionWorld::ClosestRayResultCallback ray(a,b,&car._rigidBody);
+        btCollisionWorld::rayTestSingle(start,end,mesh.stairBody.get(),mesh.stairShape.get(),btTransform::getIdentity(),ray);
+        if(ray.hasHit())return;
+    }
+    setStairContact(w,false);
+}
+}
 extern "C" float rocket_host_car_jump_impulse(const void *car) {
     auto *w=steppingEnvironment;
     if(!w||w->car!=car)return 1.f;
@@ -446,6 +596,8 @@ extern "C" RocketWorld *rocket_world_create(void) {
         // Arena retains ownership and still performs its harmless bookkeeping.
         w->arena->_bulletWorld.removeRigidBody(&w->arena->ball->_rigidBody);
         w->car=w->arena->AddCar(Team::BLUE,CAR_CONFIG_OCTANE);
+        w->stairRaycaster=std::make_unique<StairRaycaster>(w.get());
+        w->car->_bulletVehicle.m_vehicleRaycaster=w->stairRaycaster.get();
         w->dryGravity=w->arena->GetMutatorConfig().gravity;
         return w.release();
     } catch(const std::exception &e) {error=e.what();return nullptr;}
@@ -533,12 +685,41 @@ extern "C" int rocket_world_mesh(RocketWorld *w,int layer,const RocketTriangle *
             next.body->setRestitution(RLConst::ARENA_COLLISION_BASE_RESTITUTION);
             next.body->setUserPointer(w->arena.get());
             next.body->setUserIndex2(HOST_MESH_TAG);
+            if(layer==0){
+                auto patches=rocket_stairs::detect(triangles,count);
+                if(!patches.empty()){
+                    next.stairTriangles=std::make_unique<btTriangleMesh>();
+                    for(const auto &patch:patches){
+                        btVector3 p[]={fromHost(patch.a.data())*UU_TO_BT,fromHost(patch.b.data())*UU_TO_BT,
+                                       fromHost(patch.c.data())*UU_TO_BT,fromHost(patch.d.data())*UU_TO_BT};
+                        const int indices[][3]={{0,3,1},{0,2,3}};
+                        for(auto &i:indices){
+                            btVector3 a=p[i[0]],b=p[i[1]],c=p[i[2]],n=(b-a).cross(c-a);
+                            if(n.z()<0){std::swap(b,c);n=-n;}
+                            next.stairTriangles->addTriangle(a,b,c,false);
+                            next.stairFaces.push_back({a,n.normalized(),(uint8_t)patch.material});
+                        }
+                    }
+                    next.stairShape=std::make_unique<btBvhTriangleMeshShape>(next.stairTriangles.get(),true);
+                    next.stairEdges=std::make_unique<btTriangleInfoMap>();
+                    btGenerateInternalEdgeInfo(next.stairShape.get(),next.stairEdges.get());
+                    next.stairBody=std::make_unique<btRigidBody>(0,nullptr,next.stairShape.get());
+                    next.stairBody->setWorldTransform(btTransform::getIdentity());
+                    next.stairBody->setFriction(RLConst::ARENA_COLLISION_BASE_FRICTION);
+                    next.stairBody->setRestitution(RLConst::ARENA_COLLISION_BASE_RESTITUTION);
+                    next.stairBody->setUserPointer(w->arena.get());next.stairBody->setUserIndex2(HOST_MESH_TAG);
+                }
+            }
         }
         auto &old=w->meshes[layer];
+        if(layer==0)setStairContact(w,false);
         if(old.body) w->arena->_bulletWorld.removeRigidBody(old.body.get());
         // Explicit destruction order: rigid body, shape, backing triangle array.
-        old.body.reset();old.shape.reset();old.edges.reset();old.triangles.reset();old=std::move(next);
+        old.body.reset();old.shape.reset();old.edges.reset();old.triangles.reset();
+        old.stairBody.reset();old.stairShape.reset();old.stairEdges.reset();old.stairTriangles.reset();old=std::move(next);
+        if(layer==0)w->stairActive=false;
         if(old.body){old.shape->setUserPointer(&old);w->arena->_bulletWorld.addRigidBody(old.body.get());}
+        if(old.stairShape)old.stairShape->setUserPointer(&old);
         return 1;
     } catch(const std::exception &e) {error=e.what();return 0;}
 }
@@ -628,8 +809,10 @@ extern "C" int rocket_world_reset(RocketWorld *w,const float *position,const flo
     // Replace the car so a warm-world reset agrees with a new car's trajectory.
     Car *next=w->arena->AddCar(Team::BLUE,CAR_CONFIG_OCTANE);
     next->SetState(state);w->arena->RemoveCar(w->car);w->car=next;w->car->controls={};
+    w->car->_bulletVehicle.m_vehicleRaycaster=w->stairRaycaster.get();
     clearPlatforms(w);
     w->ticks=0;w->haveFrame=false;w->inhibited=7;w->ready=true;w->environment={};w->temporaryBoost=false;w->quicksandDepth=0;
+    setStairContact(w,false);w->stairRays=0;
     // Discard old warm-start/contact history on teleports and ownership changes.
     auto *proxy=w->car->_rigidBody.getBroadphaseHandle();
     if(proxy) w->arena->_bulletWorld.getBroadphase()->getOverlappingPairCache()->cleanProxyFromPairs(proxy,w->arena->_bulletWorld.getDispatcher());
@@ -658,6 +841,8 @@ extern "C" int rocket_world_recover(RocketWorld *w,const RocketSnapshot *pose) {
     // jump/flip expenditure, timers, or the monotonically increasing tick count.
     Car *next=w->arena->AddCar(Team::BLUE,CAR_CONFIG_OCTANE);
     next->SetState(state);w->arena->RemoveCar(w->car);w->car=next;
+    w->car->_bulletVehicle.m_vehicleRaycaster=w->stairRaycaster.get();
+    setStairContact(w,false);w->stairRays=0;
     w->car->controls={};w->inhibited=7;
     w->arena->_bulletWorld.updateSingleAabb(&w->car->_rigidBody);
     return 1;
@@ -736,8 +921,9 @@ struct StepSweep : btCollisionWorld::ClosestConvexResultCallback {
         if(hit.m_hitCollisionObject->getUserIndex2()==HOST_MESH_TAG&&hit.m_localShapeInfo) {
             auto *mesh=static_cast<const Mesh*>(hit.m_hitCollisionObject->getCollisionShape()->getUserPointer());
             int index=hit.m_localShapeInfo->m_triangleIndex;
-            if(mesh&&index>=0&&(size_t)index<mesh->faces.size()) {
-                authored=hit.m_hitCollisionObject->getWorldTransform().getBasis()*mesh->faces[index].normal;
+            const auto *faces=mesh?(hit.m_hitCollisionObject==mesh->stairBody.get()?&mesh->stairFaces:&mesh->faces):nullptr;
+            if(faces&&index>=0&&(size_t)index<faces->size()) {
+                authored=hit.m_hitCollisionObject->getWorldTransform().getBasis()*(*faces)[index].normal;
                 if(normal.dot(authored)<0)return m_closestHitFraction;
             }
         }
@@ -932,7 +1118,10 @@ extern "C" int rocket_world_frame(RocketWorld *w,uint64_t frame,const RocketInpu
         bool unlimited=w->boostMode==ROCKET_BOOST_INFINITE||w->temporaryBoost||w->waterMode==ROCKET_WATER_JET;
         if(unlimited)w->car->_internalState.boost=100.f;
         stepLowRiser(w);
+        retainStairContact(w);
+        w->stairRays=0;
         {EnvironmentStep scope(w);w->arena->Step();}
+        retainStairContact(w);
         btVector3 drift=fromHost(w->environment.drift)*UU_TO_BT;
         if(!drift.isZero())w->car->_rigidBody.setLinearVelocity(w->car->_rigidBody.getLinearVelocity()-drift);
         if(unlimited)w->car->_internalState.boost=finiteBoost;

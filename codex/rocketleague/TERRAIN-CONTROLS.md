@@ -232,3 +232,60 @@ device families, live rebinding, long labels, scope, closing and Lua precedence.
 Owned background vertices verify a 143-pixel box with a 128-pixel text budget;
 the fixture records native glyph positions. SVG/PNG evidence uses representative
 glyphs and is explicitly a source-test render, not a running-game screenshot.
+
+## Wing Cap on the car
+
+Native Wing course entry and flying triple-jump handoffs return the selected
+local car to ordinary Octane physics. The cap grants temporary unlimited boost
+for the existing native timer; it adds no flight controller, lift or gravity
+change. Mario and other characters retain their native action paths. Losing
+the cap restores the existing finite balance and current saved/session boost
+rule. Coins still affect the finite balance under the coin-only rule. Character
+handoffs clear the temporary physics allowance and reacquire it only from a
+still-valid cap; resets retain finite fuel.
+
+The native cap geometry is centered on the measured cabin roof (33 source
+units up, no forward displacement), using the full car basis through flips.
+Sinking, native squash, cutscene presentation priority and cap expiry flicker
+follow the car. Local cap transforms skip independent native interpolation so
+they do not trail the custom renderer's current car pose. Existing remote cap
+leases and packet formats are unchanged.
+
+`tests/test_wing.sh`, `tests/test_wing_handoff.sh`, the host adapter suite and
+the `rocket_wing_physics_test` target cover native course entry/timer expiry,
+actor selection, arbitrary roof orientations, sinking/squash and actual Octane
+ground/air/flip trajectories, finite fuel and boost-preference transitions.
+Private owned-mesh projections are geometry diagnostics, not game screenshots.
+
+## Downstairs support
+
+Descent over connected static stairs uses one support plane for both tires and
+chassis. The previous low-riser helper only handled upward clearance; descending
+short treads repeatedly lost wheel support and struck flat floors/vertical faces.
+
+The geometry proof requires at least three aligned risers, 4..60 host-unit
+rises, 8..240-unit runs, and a fully covered horizontal tread with one material.
+It subtracts actual floor triangles, so overlapping triangles cannot fill a gap.
+The wedge above each tread must be empty: low obstacles, overhangs and missing
+floors cannot be covered. No authored geometry or moving platform is rewritten.
+Complex custom geometry fails closed to the original collision path.
+
+Entry requires real wheel support and downhill velocity/intent. Ordinary ascent
+keeps the existing low-riser handling. While descending, a supplementary bounded
+chassis surface shares the tires' plane, and contacts with internal treads/risers
+inside its proven empty wedge are suppressed. Other floors, walls, obstacles and
+ledges remain authoritative. Stops, reversals and natural crest takeoff retain
+coherent support while the car overlaps the flight. A requested jump can consume
+its current support; the allowance ends when the real jump/flip starts, or on
+water entry, leaving the flight, reset, recovery or geometry replacement. No
+fuel, ability state, horizontal velocity, timer, packet or saved setting changes.
+Native tread materials and all three surface modes continue to apply.
+
+`rocket_stair_descent_test` compares measured descent with an equivalent actual
+ramp at several grades, throttle levels, angles, speeds and surface modes. It
+also covers gaps, overlapping geometry, material seams, low obstacles, walls,
+variable frame stamps, repeated render calls, pause, stop/reverse, jumping,
+reset/recovery and mesh removal. The optional `--routes` command verifies four
+private owned castle-basement flights without bundling their geometry. Exact
+parent/candidate ascent comparisons protect the accepted castle case. These
+headless checks do not establish rendered gameplay feel.
