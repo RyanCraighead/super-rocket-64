@@ -148,22 +148,28 @@ int rocket_tutorial_text(int dialog,int lines,uint8_t text[ROCKET_TUTORIAL_CAPAC
     native_name(options,configKeyR,device);
     char draft[ROCKET_TUTORIAL_CAPACITY];int length;
     if(welcome) length=snprintf(draft,sizeof draft,
-        "Welcome to Super Rocket64!\nDrive: %s\nBrake: %s\nSteer: %s\f"
-        "Jump: %s\nBoost: %s\nCycle camera: %s\f"
-        "Pause: %s\nMenu: %s while paused\nOptions, Controls:\n"
+        "Welcome to Super Rocket64! Let's get you ready to explore the castle.\f"
+        "Use %s to drive and %s to brake. Steer with %s.\f"
+        "Use %s to jump, %s to boost, and %s to change the camera view.\f"
+        "Press %s to pause. While paused, press %s to open the menu, then choose Options and Controls.\f"
         "%s",
         action[RA_THROTTLE],action[RA_BRAKE],steer,action[RA_JUMP],action[RA_BOOST],action[RA_CAMERA],pause,options,
-        device==CONTROLLER_PROMPT_KEYBOARD?"Rebind keys here.\nCamera: Extra binds, Y.":"Car Controller to rebind.");
+        device==CONTROLLER_PROMPT_KEYBOARD?"Change your keyboard bindings here. To change the camera key, open Extra binds and edit the Y action.":"Choose Car Controller to change your controller bindings.");
     else if(bob) length=snprintf(draft,sizeof draft,
-        "Land on Goombas from\nabove.\nAt supersonic speed you\ncan also ram Goombas\nand Bob-ombs.\f"
-        "Coin only boost:\nYellow, red and blue coins\neach add 5, up to 100.\nBoost: %s\n%s\f"
-        "%s\nPowerslide: %s.\nEase off before turns.",action[RA_BOOST],
-        rocket_boost_mode()==ROCKET_BOOST_INFINITE?"Mode: Infinite boost.":"Mode: Coin only.",
-        rocket_surface_native(rocket_surface_mode())?"Native surfaces:\nIce and slick slopes\nreduce grip.":"Octane surfaces:\nIce uses normal car grip.",action[RA_SLIDE]);
+        "Welcome to Bob-omb Battlefield! Here's how your car can deal with the enemies ahead.\f"
+        "You can defeat Goombas by landing on them from above. At supersonic speed, you can also ram Goombas and Bob-ombs.\f"
+        "In Coin only mode, each yellow coin adds 5 boost, each red coin adds 5, and each blue coin adds 5. Your boost meter holds up to 100.\f"
+        "%s Use %s to boost.\f"
+        "%s\f"
+        "Use %s to powerslide through a turn. Ease off the throttle before sharp turns to stay in control.",
+        rocket_boost_mode()==ROCKET_BOOST_INFINITE?"You are using Infinite boost mode, so boosting does not drain your boost.":"You are using Coin only mode, so collect coins to refill your boost.",action[RA_BOOST],
+        rocket_surface_mode()==ROCKET_SURFACES_NATIVE_NO_WALLS?"With Native surfaces and no wall grip, ice and slippery slopes reduce tire grip, and your tires cannot grip walls.":
+        rocket_surface_native(rocket_surface_mode())?"With Native surfaces, ice and slippery slopes reduce your tire grip.":"With Octane surfaces, ice and slippery slopes use normal car grip.",action[RA_SLIDE]);
     else length=snprintf(draft,sizeof draft,
-        "Let a Whomp fall flat.\nGet on its exposed back.\nRest all four wheels on\nits back to beat a small\nWhomp.\f"
-        "King Whomp takes one hit\nper fall. Let him fall\nagain, then hit the back.\nRepeat until he is beaten.\f"
-        "Hit the exposed back\nwith a flip or a fast\nnose-down boosted dive.\nBoost: %s.",action[RA_BOOST]);
+        "Welcome to Whomp's Fortress! These stone enemies leave their backs exposed when they fall.\f"
+        "Wait for a Whomp to fall flat, then get onto its back. Resting all four wheels on its exposed back defeats a small Whomp.\f"
+        "You can also attack an exposed back with a flip or a fast, nose-down boosted dive. Use %s to boost.\f"
+        "King Whomp can take only one hit each time he falls. After a hit, wait for him to get up and fall again before attacking his back. Repeat this until he is defeated.",action[RA_BOOST]);
     if(length<0||length>=(int)sizeof draft)return 0;
     return wrap(draft,lines,text);
 }

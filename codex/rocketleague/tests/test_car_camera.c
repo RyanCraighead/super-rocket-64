@@ -23,6 +23,7 @@ static int bodyReady=1,wallEnabled,rayCalls,applies,freeEnabled;
 static struct Surface wall;
 static unsigned chaseChecks;
 static unsigned cameraSaves;
+s32 get_dialog_id(void){return gDialogID;}
 const char *configfile_name(void){return "camera-fixture.cfg";}
 void configfile_save(const char *name){assert(!strcmp(name,"camera-fixture.cfg"));cameraSaves++;}
 #define CHASE_CHECK(x) do{chaseChecks++;if(!(x)){fprintf(stderr,"camera line %d: %s\n",__LINE__,#x);abort();}}while(0)
@@ -62,6 +63,86 @@ static void frame(void){gGlobalTimer++;CHASE_CHECK(rocket_camera_loop(&camera));
 static float distance(void){float d=0;for(int k=0;k<3;k++){float x=camera.pos[k]-camera.focus[k];d+=x*x;}return sqrtf(d);}
 static void cycle_poll(void){
  poll();cameraController.buttonDown=host_pad.button;rocket_camera_sync();
+}
+static void modal_camera_poll(void){
+ u16 previous=cameraController.buttonDown;poll();
+ cameraController.buttonDown=host_pad.button;
+ cameraController.buttonPressed=host_pad.button&~previous;
+ u16 down=cameraController.buttonDown,pressed=cameraController.buttonPressed;
+ struct RocketCameraInputGuard guard=rocket_camera_input_begin(&camera);
+ rocket_camera_sync();if(!rocket_camera_selected())newcam_zoom_button();
+ rocket_camera_input_end(guard);
+ CHASE_CHECK(cameraController.buttonDown==down&&cameraController.buttonPressed==pressed);
+}
+static void dialog_camera_checks(void){
+ rocket_bindings_reset();controller_sdl_rocket_bindings_changed();chase_setup(0);
+ configRocketCameraMode=0;freeEnabled=1;
+ configKeyR[0]=VK_RTRIGGER;configKeyR[1]=VK_BASE_SDL_GAMEPAD+SDL_CONTROLLER_BUTTON_RIGHTSHOULDER;
+ controller_sdl_bind();modal_camera_poll();
+ gDialogID=0;car_drawable=0;modal_camera_poll();
+ int distanceIndex=gNewCamera.distanceTargetIndex;unsigned before=cameraSaves;
+ trigger(32767);modal_camera_poll();
+ CHASE_CHECK(gNewCamera.distanceTargetIndex==distanceIndex&&cameraSaves==before);
+ // Presses after opening are also blocked, as are legacy R1 and keyboard R.
+ trigger(-32768);modal_camera_poll();button(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,1);modal_camera_poll();
+ CHASE_CHECK(gNewCamera.distanceTargetIndex==distanceIndex);
+ button(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,0);modal_camera_poll();
+ configKeyR[2]=0x13;keyboard_bindkeys();keyboard_on_key_down(0x13);modal_camera_poll();
+ CHASE_CHECK(gNewCamera.distanceTargetIndex==distanceIndex);keyboard_on_key_up(0x13);modal_camera_poll();
+ // Remapped R2 confirmation survives the camera-only mask on every page.
+ configRocketBindings.action[RA_JUMP]=RB_RT;controller_sdl_rocket_bindings_changed();modal_camera_poll();
+ for(int page=0;page<3;page++){
+  trigger(32767);modal_camera_poll();CHASE_CHECK(cameraController.buttonPressed&A_BUTTON);
+  CHASE_CHECK(gNewCamera.distanceTargetIndex==distanceIndex&&cameraSaves==before);
+  if(page<2){trigger(-32768);modal_camera_poll();}
+ }
+ gDialogID=DIALOG_NONE;car_drawable=1;
+ for(int i=0;i<5;i++){modal_camera_poll();CHASE_CHECK(!(cameraController.buttonDown&A_BUTTON)&&cameraSaves==before&&gNewCamera.distanceTargetIndex==distanceIndex);}
+ trigger(-32768);modal_camera_poll();
+ // Normal R1 zoom returns only after a fresh release/press.
+ button(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,1);modal_camera_poll();
+ CHASE_CHECK(gNewCamera.distanceTargetIndex==(distanceIndex+1)%(int)NEWCAM_NUM_DISTANCES);
+ button(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,0);modal_camera_poll();
+ rocket_bindings_reset();controller_sdl_rocket_bindings_changed();modal_camera_poll();
+ // Both modal sources plus the action-only transition before a cutscene starts.
+ const u32 actions[]={ACT_READING_NPC_DIALOG,ACT_READING_SIGN,ACT_WAITING_FOR_DIALOG,ACT_PULLING_DOOR,ACT_PUSHING_DOOR};
+ for(unsigned i=0;i<sizeof actions/sizeof *actions;i++){
+  configRocketCameraMode=0;gMarioState->action=actions[i];car_drawable=0;
+  distanceIndex=gNewCamera.distanceTargetIndex;before=cameraSaves;
+  button(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,1);modal_camera_poll();
+  CHASE_CHECK(gNewCamera.distanceTargetIndex==distanceIndex);
+  gMarioState->action=ACT_IDLE;car_drawable=1;
+  for(int held=0;held<3;held++){modal_camera_poll();CHASE_CHECK(gNewCamera.distanceTargetIndex==distanceIndex&&cameraSaves==before);}
+  button(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,0);modal_camera_poll();
+  button(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,1);modal_camera_poll();
+  CHASE_CHECK(gNewCamera.distanceTargetIndex==(distanceIndex+1)%(int)NEWCAM_NUM_DISTANCES);
+  button(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,0);modal_camera_poll();
+ }
+ // A camera event sampled before the dialogue opens must not reach dispatch;
+ // queued pressed bits remain blocked across close until a neutral observation.
+ gDialogID=0;distanceIndex=gNewCamera.distanceTargetIndex;before=cameraSaves;
+ cameraController.buttonDown=cameraController.buttonPressed=R_TRIG|Y_BUTTON|A_BUTTON|B_BUTTON;
+ struct RocketCameraInputGuard guard=rocket_camera_input_begin(&camera);
+ CHASE_CHECK(cameraController.buttonPressed==(A_BUTTON|B_BUTTON));newcam_zoom_button();rocket_camera_sync();rocket_camera_input_end(guard);
+ gDialogID=DIALOG_NONE;
+ guard=rocket_camera_input_begin(&camera);newcam_zoom_button();rocket_camera_sync();rocket_camera_input_end(guard);
+ CHASE_CHECK(gNewCamera.distanceTargetIndex==distanceIndex&&cameraSaves==before);
+ cameraController.buttonDown=cameraController.buttonPressed=0;
+ guard=rocket_camera_input_begin(&camera);rocket_camera_sync();rocket_camera_input_end(guard);
+ // Deliberately map car camera to physical R2: it cycles the car view, not R zoom.
+ configRocketBindings.action[RA_CAMERA]=RB_RT;controller_sdl_rocket_bindings_changed();modal_camera_poll();
+ gDialogID=0;modal_camera_poll();trigger(32767);modal_camera_poll();
+ CHASE_CHECK(cameraSaves==before&&gNewCamera.distanceTargetIndex==distanceIndex);
+ gDialogID=DIALOG_NONE;modal_camera_poll();CHASE_CHECK(cameraSaves==before);
+ trigger(-32768);modal_camera_poll();trigger(32767);modal_camera_poll();
+ CHASE_CHECK(cameraSaves==before+1&&configRocketCameraMode==1&&gNewCamera.distanceTargetIndex==distanceIndex);
+ trigger(-32768);modal_camera_poll();
+ // Other characters retain native R input.
+ car_selected=0;gDialogID=0;cameraController.buttonDown=cameraController.buttonPressed=R_TRIG;
+ guard=rocket_camera_input_begin(&camera);CHASE_CHECK(cameraController.buttonPressed&R_TRIG);rocket_camera_input_end(guard);
+ car_selected=1;gDialogID=DIALOG_NONE;configKeyR[2]=VK_INVALID;keyboard_bindkeys();
+ rocket_bindings_reset();controller_sdl_rocket_bindings_changed();modal_camera_poll();freeEnabled=0;
+ puts("PASS modal camera: actual SDL R2/R1 and keyboard, native zoom, mapped camera, dialogue confirm/held-close/queued input, sign/NPC/door actions and fresh re-press");
 }
 static void camera_cycle_checks(void){
  static const int keys[]={-1,0,1,2,3,9,10,7,8,11,12,13,14};
@@ -109,6 +190,7 @@ static void camera_cycle_checks(void){
 int main(void){
  initialize_camera(0,DEFAULT_CAMERA_X,DEFAULT_CAMERA_Y);
  SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS,"1");CHASE_CHECK(!SDL_Init(SDL_INIT_GAMECONTROLLER|SDL_INIT_EVENTS));init_ok=true;attach();rocket_bindings_reset();poll();
+ dialog_camera_checks();
  for(int heading=0;heading<65536;heading+=8192)for(int axis=0;axis<2;axis++)for(int sign=-1;sign<=1;sign+=2)for(int invert=0;invert<2;invert++){
   chase_setup(heading);gNewCamera.invertX=DEFAULT_CAMERA_X^(axis==0&&invert);gNewCamera.invertY=DEFAULT_CAMERA_Y^(axis==1&&invert);
   Mat4 view;mtxf_lookat(view,camera.pos,camera.focus,0);Vec3f original;for(int k=0;k<3;k++)original[k]=camera.focus[k]-camera.pos[k];

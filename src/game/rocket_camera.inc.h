@@ -13,6 +13,34 @@ static struct RocketChaseCamera {
     float anchor[3],distance,clearDistance;
 } rocketChase;
 static int rocket_camera_selected(void){return configRocketCameraMode==1&&rocket_adapter_car_selected();}
+/* UI confirmation must keep its original buttons. Mask only the camera's
+ * read of them, including legacy R zoom, for the entire camera dispatch. */
+struct RocketCameraInputGuard {
+    struct Controller *controller;
+    u16 down,pressed,mask;
+};
+static u16 rocketCameraSuppressed;
+static struct RocketCameraInputGuard rocket_camera_input_begin(struct Camera *c){
+    struct RocketCameraInputGuard guard={.controller=gPlayer1Controller};
+    if(!guard.controller)return guard;
+    if(!rocket_adapter_car_selected()){rocketCameraSuppressed=0;return guard;}
+    u16 raw=guard.controller->buttonDown|guard.controller->buttonPressed;
+    rocketCameraSuppressed&=raw;
+    if(get_dialog_id()!=DIALOG_NONE||c->cutscene||
+       (gMarioStates[0].action&ACT_GROUP_MASK)==ACT_GROUP_CUTSCENE)
+        rocketCameraSuppressed|=Y_BUTTON|L_TRIG|R_TRIG|U_CBUTTONS|D_CBUTTONS|L_CBUTTONS|R_CBUTTONS;
+    guard.mask=rocketCameraSuppressed;
+    guard.down=guard.controller->buttonDown&guard.mask;
+    guard.pressed=guard.controller->buttonPressed&guard.mask;
+    guard.controller->buttonDown&=~guard.mask;
+    guard.controller->buttonPressed&=~guard.mask;
+    return guard;
+}
+static void rocket_camera_input_end(struct RocketCameraInputGuard guard){
+    if(!guard.controller)return;
+    guard.controller->buttonDown=(guard.controller->buttonDown&~guard.mask)|guard.down;
+    guard.controller->buttonPressed=(guard.controller->buttonPressed&~guard.mask)|guard.pressed;
+}
 static void rocket_camera_sync(void){
     static int selected=-1;
     static int cycleHeld=1;

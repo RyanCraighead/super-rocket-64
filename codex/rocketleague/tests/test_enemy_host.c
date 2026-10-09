@@ -52,7 +52,7 @@ static void fresh(const BehaviorScript *behavior,int net) {
     enemy.behavior=behavior;enemy.oSyncID=1;enemy.activeFlags=ACTIVE_FLAG_ACTIVE;
     enemy.header.gfx.activeAreaIndex=1;enemy.hitboxRadius=40;enemy.hitboxHeight=80;
     gCurrentObject=&enemy;gCurrentArea=&areaFixture;areaFixture.index=1;
-    so.o=&enemy;gCLIOpts.rocketCar=true;gCLIOpts.characterNet=net;gNetworkType=net?NT_SERVER:NT_NONE;
+    so.o=&enemy;gCLIOpts.offline=false;gCLIOpts.rocketCar=true;gCLIOpts.characterNet=net;gNetworkType=net?NT_SERVER:NT_NONE;
     gNetworkAreaLoaded=true;gNetworkAreaSyncing=false;gCurrLevelNum=9;gGlobalTimer=1;sCurrPlayMode=PLAY_MODE_NORMAL;
     gNetworkPlayerLocal=&gNetworkPlayers[0];sends=0;localActive=visible=1;localEpoch=1;now=1;
     for(int i=0;i<3;i++){

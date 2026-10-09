@@ -24,11 +24,19 @@ Path(sys.argv[1]).write_text('\n'.join(result)+'\n')
 PY
 python3 -B - "$OUT/car_camera_native.inc.h" <<'PY'
 from pathlib import Path
-import sys
+import sys,re
 sys.path.insert(0,'codex/rocketleague/tests')
 from native_slice import function
 s=Path('src/game/bettercamera.inc.h').read_text()
-Path(sys.argv[1]).write_text(function(s,'newcam_stick_input')+function(s,'newcam_collision'))
+update=function(Path('src/game/camera.c').read_text(),'update_camera')
+start=update.index('rocket_camera_input_begin(c)')
+end=update.index('rocket_camera_input_end(carInput)')
+assert start<update.index('if (c->cutscene == 0)')<end
+assert 'return;' not in update[start:end], 'Camera input must be restored on every exit'
+constants=re.search(r'static const f32 NEWCAM_DISTANCES\[\] = \{.*?;',s,re.S)[0]
+constants+=re.search(r'static const u32 NEWCAM_NUM_DISTANCES = .*?;',s)[0]
+constants+='\n'+re.search(r'#define NEWCAM_DISTANCE_INC[^\n]+',s)[0]+'\n'
+Path(sys.argv[1]).write_text(constants+function(s,'newcam_get_distance_target')+function(s,'newcam_zoom_button')+function(s,'newcam_stick_input')+function(s,'newcam_collision'))
 PY
 cc -std=gnu11 -O1 -g -Wall -Wextra -Werror -Wno-unused-variable -ffunction-sections -fdata-sections \
  -fsanitize=address,undefined -fno-sanitize-recover=all -D_LANGUAGE_C -DVERSION_US -DTARGET_PC -DNON_MATCHING -DAVOID_UB \

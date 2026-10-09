@@ -1,9 +1,9 @@
 using System.Reflection;
-[assembly: AssemblyVersion("0.2.24.0")]
-[assembly: AssemblyFileVersion("0.2.24.0")]
+[assembly: AssemblyVersion("0.2.25.0")]
+[assembly: AssemblyFileVersion("0.2.25.0")]
 namespace SuperRocket64 {
     internal static class UpdateBuild {
-        internal const string Version = "0.2.24";
-        internal const string DisplayVersion = "0.2.24 preview";
+        internal const string Version = "0.2.25";
+        internal const string DisplayVersion = "0.2.25 preview";
     }
 }

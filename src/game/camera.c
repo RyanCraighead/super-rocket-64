@@ -3194,6 +3194,8 @@ void update_camera(struct Camera *c) {
         return;
     }
 
+    struct RocketCameraInputGuard carInput = rocket_camera_input_begin(c);
+
     u8 isEnabled = update_romhack_camera_override(c);
     if (gRomhackCameraSettings.switchable && isEnabled && sCurrPlayMode != PLAY_MODE_PAUSED) {
         struct MarioState* m = &gMarioStates[0];
@@ -3424,6 +3426,7 @@ void update_camera(struct Camera *c) {
     if (c->cutscene != CUTSCENE_PALETTE_EDITOR && c->paletteEditorCapState) {
         mario_exit_palette_editor(m, c);
     }
+    rocket_camera_input_end(carInput);
 }
 
 void soft_reset_camera(struct Camera* c) {

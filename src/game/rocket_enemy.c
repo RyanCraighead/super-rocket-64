@@ -74,7 +74,9 @@ static u8 enemy_ignore_updates(void) {
 }
 int rocket_enemy_authority(struct Object *enemy) {
     if(!enemy||!supported_enemy(enemy)) return 0;
-    if(gNetworkType==NT_NONE) return 1;
+    // Shipped standalone startup uses NT_SERVER for local saves/authority,
+    // without character-net, transport or object synchronization.
+    if(gCLIOpts.offline||gNetworkType==NT_NONE) return 1;
     if(!gCLIOpts.characterNet||!gNetworkAreaLoaded||gNetworkAreaSyncing||
        !gNetworkPlayerLocal||!gNetworkPlayerLocal->currAreaSyncValid) return 0;
     struct SyncObject *so=sync_object_get(enemy->oSyncID);
@@ -187,7 +189,7 @@ int rocket_enemy_attack(struct Object *enemy) {
         /* Send the native interaction before its consumer clears it. Reliable
          * delivery and native unload/death replication retain their normal IDs,
          * loot counters and respawn rules. Never mint coins in this adapter. */
-        if(gNetworkType!=NT_NONE) network_send_object_reliability(enemy,TRUE);
+        if(!gCLIOpts.offline&&gNetworkType!=NT_NONE) network_send_object_reliability(enemy,TRUE);
         return 1;
     }
     return 0;

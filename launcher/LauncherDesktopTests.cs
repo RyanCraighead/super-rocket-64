@@ -153,6 +153,9 @@ namespace SuperRocket64 {
         static int Child(string expected,string output) {
             try {
                 AssertSeparate(expected);Application.EnableVisualStyles();Application.SetCompatibleTextRenderingDefault(false);
+                if(Environment.GetEnvironmentVariable("SR64_TRANSITIONS_ONLY")=="1"){
+                    StableTransitions(output);File.WriteAllText(Path.Combine(output,"ui-result.json"),new JavaScriptSerializer().Serialize(new{passed=true,checks=checks,transition_tests_only=true}));return 0;
+                }
                 using(LauncherForm form=new LauncherForm(Path.Combine(output,"synthetic-install"))) {
                     // Disable automatic read-only address discovery so screenshots contain no private addresses.
                     Field<Button>(form,"refreshAddresses").Enabled=false;
@@ -263,7 +266,7 @@ namespace SuperRocket64 {
                     form.ClientSize=new Size(1280,720);AllPagesFit(form,output,"wide");
                     AssertSeparate(expected);form.Close();
                 }
-                Lifecycle(output);AppearanceFlows(output);AutomaticAppearanceFlows(output);
+                Lifecycle(output);AppearanceFlows(output);AutomaticAppearanceFlows(output);StableTransitions(output);
                 File.WriteAllText(Path.Combine(output,"ui-result.json"),new JavaScriptSerializer().Serialize(new{passed=true,checks=checks,separate_desktop=expected,input_desktop=InputDesktop(),game_started=false,helper_started=
                     false
                 ,synthetic_operation_children_started=true,address_detection_used=false,dpi_message_scales=new[]{96,120,144,192},real_monitor_switch_tested=false}));return 0;
@@ -273,6 +276,7 @@ namespace SuperRocket64 {
         static void PumpUntil(Func<bool> condition,string message){var watch=Stopwatch.StartNew();while(!condition()&&watch.ElapsedMilliseconds<12000){Application.DoEvents();Thread.Sleep(20);}Need(condition(),message);Application.DoEvents();}
         static int OperationFixture(string root,string mode,string cancel){
             Directory.CreateDirectory(root);File.WriteAllText(Path.Combine(root,"started-"+mode),Process.GetCurrentProcess().Id.ToString());
+            var held=Stopwatch.StartNew();while(File.Exists(Path.Combine(root,"hold-"+mode))&&held.ElapsedMilliseconds<12000){if(File.Exists(cancel))return 130;Thread.Sleep(20);}
             if(mode=="play"){
                 if(File.Exists(Path.Combine(root,"fail")))return 9;
                 File.WriteAllText(Path.Combine(root,"game-running"),"ready");
@@ -295,13 +299,16 @@ namespace SuperRocket64 {
             else if(mode=="wizard-status")Console.WriteLine("{\"playable\":true,\"engine\":true,\"ready\":[\"octane\",\"link\"],\"errors\":{},\"detected\":[]}");
             return 0;
         }
-        static LauncherForm OperationForm(string root,List<List<string>> commands){
+        static LauncherForm UnshownOperationForm(string root,List<List<string>> commands){
             var form=new LauncherForm(root);form.AutoAppearanceMigration=false;form.UpdateGameActive=delegate{return File.Exists(Path.Combine(root,"game-running"));};
             form.UpdateTransport=FakeUpdateTransport.New("0.3.0",new byte[]{1,2,3});
             form.PrepareProgramFiles=delegate(string path,Action<string> log){return root;};
             form.GameStarted=delegate(string path,DateTime started){return File.Exists(Path.Combine(root,"game-running"));};
             form.OperationStartInfo=delegate(string path,string data,string cancel,List<string> args){commands.Add(new List<string>(args));return new ProcessStartInfo{FileName=Assembly.GetExecutingAssembly().Location,Arguments="--operation-fixture "+Commands.Quote(root)+" "+Commands.Quote(args[0])+" "+Commands.Quote(cancel??"none"),UseShellExecute=false,CreateNoWindow=true,RedirectStandardInput=true,RedirectStandardOutput=true,RedirectStandardError=true};};
-            form.Show();Application.DoEvents();Set(form,"installationReady",true);Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"homePage"));return form;
+            return form;
+        }
+        static LauncherForm OperationForm(string root,List<List<string>> commands){
+            var form=UnshownOperationForm(root,commands);form.Show();Application.DoEvents();Set(form,"installationReady",true);Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"homePage"));return form;
         }
         static void AddCharacters(LauncherForm form,string output){
             Set(form,"installationReady",true);Field<HashSet<string>>(form,"readyCharacters").Clear();Field<HashSet<string>>(form,"readyCharacters").Add("octane");
@@ -437,6 +444,80 @@ namespace SuperRocket64 {
                 Need(File.ReadAllText(UpdatePreferences.PathFor(root))==preferences,"Appearance changed launcher settings");Escape(form);Page(form,"homePage");form.Close();
             }
         }
+        sealed class PageTrace {
+            internal readonly List<string> Pages=new List<string>();internal int EmptyProgress;
+            internal PageTrace(LauncherForm form){
+                foreach(string name in new[]{"homePage","locationPage","setupPage","extrasPage","progressPage","readyPage","failurePage","appearancePage","updatePage","settingsPage"}){
+                    string captured=name;Control page=Field<Control>(form,name);page.VisibleChanged+=delegate{if(page.Visible)Pages.Add(captured);};
+                }
+                var progress=Field<ProgressBar>(form,"progress");progress.VisibleChanged+=delegate{if(form.Visible&&Field<Control>(form,"progressPage").Visible&&!progress.Visible)EmptyProgress++;};
+            }
+            internal void Verify(string output,string name,params string[] expected){
+                File.WriteAllText(Path.Combine(output,name+"-transitions.json"),new JavaScriptSerializer().Serialize(new{pages=Pages,empty_progress=EmptyProgress,expected=expected}));
+                Need(String.Join(",",Pages.ToArray())==String.Join(",",expected),name+" navigated during intermediate work: "+String.Join(" -> ",Pages.ToArray()));
+                Need(EmptyProgress==0,name+" hid progress between phases");
+            }
+        }
+        static void StableTransitions(string output){
+            foreach(bool handshake in new[]{false,true}){
+                string root=Path.Combine(output,handshake?"stable-update-restart":"stable-startup");Directory.CreateDirectory(Commands.DataDirectory(root));
+                UpdateStore.Save(root,new LauncherState{active=UpdateStore.Capture(root,UpdateStore.CurrentExe,UpdateBuild.Version)});
+                new UpdatePreferences{AutomaticChecks=false,Configured=true}.Save(root);
+                File.WriteAllText(Path.Combine(root,"hold-wizard-status"),"hold");File.WriteAllText(Path.Combine(root,"hold-appearance-migrate"),"hold");
+                using(var form=UnshownOperationForm(root,new List<List<string>>())){
+                    form.AutoAppearanceMigration=true;if(handshake)form.HandshakeToken=Guid.NewGuid().ToString("N");
+                    var trace=new PageTrace(form);form.Show();Application.DoEvents();
+                    if(handshake){
+                        Snapshot(form,output,"stable-restart-commit");
+                        UpdateJson.Atomic(UpdateStore.CommitPath(root,form.HandshakeToken),UpdateJson.Bytes(new{sha256=Guard.HashFile(UpdateStore.CurrentExe)}));
+                    }
+                    PumpUntil(delegate{return File.Exists(Path.Combine(root,"started-wizard-status"));},"Startup verification did not run");
+                    Snapshot(form,output,handshake?"stable-restart-verifying":"stable-startup-verifying");
+                    Rectangle barBounds=Field<ProgressBar>(form,"progress").Bounds,hostBounds=Field<Panel>(form,"pageHost").Bounds;
+                    File.Delete(Path.Combine(root,"hold-wizard-status"));
+                    PumpUntil(delegate{return File.Exists(Path.Combine(root,"started-appearance-migrate"));},"Automatic materials did not run");
+                    Need(Field<ProgressBar>(form,"progress").Bounds==barBounds&&Field<Panel>(form,"pageHost").Bounds==hostBounds,"Progress layout jumped when cancellation became available");
+                    Snapshot(form,output,handshake?"stable-restart-materials":"stable-startup-materials");
+                    File.Delete(Path.Combine(root,"hold-appearance-migrate"));WaitUpdate(form);Page(form,"homePage");
+                    Snapshot(form,output,handshake?"stable-restart-ready":"stable-startup-ready");
+                    trace.Verify(output,handshake?"restart":"startup","progressPage","homePage");form.Close();
+                }
+            }
+            string setup=Path.Combine(output,"stable-setup");Directory.CreateDirectory(setup);File.WriteAllText(Path.Combine(setup,"finish"),"done");File.WriteAllText(Path.Combine(setup,"hold-wizard-status"),"hold");
+            using(var form=OperationForm(setup,new List<List<string>>())){
+                Set(form,"installationReady",false);Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"extrasPage"));var trace=new PageTrace(form);Call(form,"PrepareQueue");
+                PumpUntil(delegate{return File.Exists(Path.Combine(setup,"started-wizard-status"));},"Post-setup verification did not run");
+                Snapshot(form,output,"stable-setup-final-verification");Need(Field<ProgressBar>(form,"progress").Visible&&Field<bool>(form,"installSteps"),"Setup verification lost its progress layout");
+                Need(Field<ProgressBar>(form,"progress").Style==ProgressBarStyle.Marquee,"Unknown helper work retained a measured percentage");
+                File.Delete(Path.Combine(setup,"hold-wizard-status"));WaitUpdate(form);Page(form,"readyPage");trace.Verify(output,"setup","progressPage","readyPage");
+                UpdateStore.Save(setup,new LauncherState{active=UpdateStore.Capture(setup,UpdateStore.CurrentExe,UpdateBuild.Version)});form.UpdateShortcuts=delegate{};form.AutoAppearanceMigration=true;
+                Field<RadioButton>(form,"readyManual").Checked=true;trace=new PageTrace(form);Click(Field<Control>(form,"readyPage"),"Open launcher");WaitUpdate(form);Page(form,"homePage");trace.Verify(output,"setup-finish","progressPage","homePage");form.Close();
+            }
+            string extras=Path.Combine(output,"stable-extras");var extraCommands=new List<List<string>>();using(var form=OperationForm(extras,extraCommands)){
+                Call(form,"ShowAddCharacters");Field<HashSet<string>>(form,"readyCharacters").Add("link");var choices=Field<CheckBox[]>(form,"extraChoices");choices[0].Checked=choices[1].Checked=true;
+                var trace=new PageTrace(form);Click(Field<Control>(form,"extrasPage"),"Install / resume");WaitUpdate(form);Page(form,"extrasPage");
+                Need(extraCommands.Count==1&&extraCommands[0][0]=="preflight"&&Field<Label>(form,"notice").Text.Contains("Choose the original ROM"),"Later missing optional source was stranded on progress");
+                trace.Verify(output,"extras-missing-source","progressPage","extrasPage");form.Close();
+            }
+            string updating=Path.Combine(output,"stable-update");using(var form=OperationForm(updating,new List<List<string>>())){
+                UpdateStore.Save(updating,new LauncherState{active=UpdateStore.Capture(updating,UpdateStore.CurrentExe,UpdateBuild.Version)});
+                var trace=new PageTrace(form);Call(form,"CheckUpdates",false);WaitUpdate(form);Page(form,"updatePage");trace.Verify(output,"update-check","progressPage","updatePage");
+                ((FakeUpdateTransport)form.UpdateTransport).Corrupt=true;trace=new PageTrace(form);Call(form,"InstallAvailableUpdate");WaitUpdate(form);Page(form,"updatePage");trace.Verify(output,"update-failure","progressPage","updatePage");
+                using(var releaseDownload=new ManualResetEvent(false))using(var releaseVerify=new ManualResetEvent(false)){
+                    trace=new PageTrace(form);
+                    Action<System.Threading.CancellationToken> work=delegate(System.Threading.CancellationToken token){
+                        int generation=Field<int>(form,"operationGeneration");CallMeasured(form,generation,"Downloading update...",25,100);releaseDownload.WaitOne(10000);token.ThrowIfCancellationRequested();
+                        CallMeasured(form,generation,"Verifying the downloaded update...",0,0);releaseVerify.WaitOne(10000);token.ThrowIfCancellationRequested();
+                    };
+                    Call(form,"RunUpdate",work,(Action)delegate{Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"homePage"));},true);
+                    PumpUntil(delegate{return Field<ProgressBar>(form,"progress").Value==250;},"Measured update progress did not appear");Snapshot(form,output,"stable-update-measured");releaseDownload.Set();
+                    PumpUntil(delegate{return Field<Label>(form,"progressText").Text=="Verifying the downloaded update...";},"Verification phase did not appear");
+                    Need(Field<ProgressBar>(form,"progress").Style==ProgressBarStyle.Marquee&&Field<ProgressBar>(form,"progress").Value==0,"Unknown verification showed a made-up percentage");Snapshot(form,output,"stable-update-verifying");releaseVerify.Set();WaitUpdate(form);trace.Verify(output,"update-phases","progressPage","homePage");
+                }
+                form.Close();
+            }
+        }
+        static void CallMeasured(LauncherForm form,int generation,string phase,long count,long total){typeof(LauncherForm).GetMethod("MeasuredProgress",BindingFlags.NonPublic|BindingFlags.Instance).Invoke(form,new object[]{generation,phase,count,total});}
         static void InstalledRoutes(LauncherForm form,string output){
             var navigation=Field<ConceptButton[]>(form,"navigation");Set(form,"installationReady",false);Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"locationPage"));
             Need(navigation[2].Text=="SETUP","Fresh installation lost Setup tab");navigation[2].PerformClick();Application.DoEvents();Page(form,"locationPage");

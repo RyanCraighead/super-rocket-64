@@ -89,17 +89,18 @@ namespace SuperRocket64 {
                 // setup completed. Only the current helper's verified report is.
                 if (!Directory.Exists(Commands.DataDirectory(UpdateRoot()))) { ShowPage(locationPage); return; }
                 InspectInstallation(true);
-            } catch (Exception error) { ShowFailure(PlainFailure(error.Message), StartupUpdates, null, locationPage); }
+            } catch (Exception error) { EndOperation();ShowFailure(PlainFailure(error.Message), StartupUpdates, null, locationPage); }
         }
         private void ContinueStartupUpdates() {
             try {
                 string root = UpdateRoot(); UpdatePreferences value = UpdatePreferences.Load(root);
                 using (OperationLease lease = OperationLease.Acquire(root)) { UpdateStore.EnsureCurrent(root); LauncherShortcuts.EnsureStable(root); }
+                ShowPage(homePage);
                 if (value.AutomaticChecks) CheckUpdates(true);
             } catch (Exception error) { ShowUpdateFailure("Could not check updates. " + PlainFailure(error.Message)); }
         }
         private void WaitForUpdateCommit() {
-            pageHost.Enabled = false; string root = UpdateRoot(), token = HandshakeToken;
+            running=true;pageHost.Enabled = false;installSteps=false;ShowProgress("Updating launcher", "Completing the verified update...");string root = UpdateRoot(), token = HandshakeToken;
             UpdateStore.SignalReady(root, token);
             var timer = new System.Windows.Forms.Timer { Interval = 100 }; DateTime deadline = DateTime.UtcNow.AddSeconds(35);
             timer.Tick += delegate {
@@ -108,9 +109,9 @@ namespace SuperRocket64 {
                     if (File.Exists(path)) {
                         var value = UpdateJson.Parse(UpdateJson.ReadFile(path));
                         Guard.Need(UpdateJson.Hash(value, "sha256") == Guard.HashFile(UpdateStore.CurrentExe), "Update restart checksum mismatch");
-                        File.Delete(path); timer.Stop(); timer.Dispose(); HandshakeToken = null; pageHost.Enabled = true; InspectInstallation(true);
-                    } else if (DateTime.UtcNow >= deadline) { timer.Stop(); timer.Dispose(); Close(); }
-                } catch (Exception) { timer.Stop(); timer.Dispose(); Close(); }
+                        File.Delete(path); timer.Stop(); timer.Dispose(); HandshakeToken = null; EndOperation();if(closeAfterOperation){Close();return;}InspectInstallation(true);
+                    } else if (DateTime.UtcNow >= deadline) { timer.Stop(); timer.Dispose(); EndOperation();Close(); }
+                } catch (Exception) { timer.Stop(); timer.Dispose(); EndOperation();Close(); }
             }; timer.Start();
         }
         private void ShowUpdateFailure(string text) {
@@ -120,9 +121,10 @@ namespace SuperRocket64 {
         private void RunUpdate(Action<CancellationToken> work, Action completed, bool cancellable) {
             if (running) { notice.Text = "Finish the current operation first."; return; }
             running = true;++operationGeneration;cancellationAvailable = false; pageHost.Enabled = false; notice.Text = "";
-            installSteps=false;progressSubtitle="Updating launcher";progressText.Text = "Checking and verifying the update...";progress.Visible=true; progress.Style = ProgressBarStyle.Marquee; ShowPage(progressPage);
+            installSteps=false;
             var cancellation=new CancellationTokenSource();updateCancellation = cancellation; CancellationToken token = cancellation.Token;
             cancelOperation.Text = "Cancel update"; cancelOperation.Visible = cancellable; cancelOperation.Enabled = cancellable;
+            ShowProgress("Updating launcher", "Checking and verifying the update...");
             Task.Factory.StartNew(delegate {
                 bool success = false; string failure = null;
                 try { work(token); success = true; }
@@ -130,7 +132,7 @@ namespace SuperRocket64 {
                 catch (Exception error) { failure = "Update could not finish. " + PlainFailure(error.Message); }
                 finally {
                     OnUi(delegate {
-                        updateCancellation = null;cancellation.Dispose();ClearBusy();if(closeAfterOperation){Close();return;}
+                        updateCancellation = null;cancellation.Dispose();EndOperation();if(closeAfterOperation){Close();return;}
                         if (success && completed != null) completed(); else ShowUpdateFailure(failure);
                     });
                 }

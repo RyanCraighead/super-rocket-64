@@ -18,6 +18,17 @@ native A/B advance and closure, zoom cutscene closure, mid-dialog rebinding,
 deferred horizontal reflow, shorter-page clamping, long names, classic mode,
 unrelated IDs/levels, replaced dialogs, response dialogs and Lua overrides.
 The original dialog entry is checked byte for byte after use.
+Every stable page is also read through the native renderer and its emitted
+glyphs are concatenated. They must exactly match the complete encoded dialogue,
+so wrapping cannot silently drop a word or the end of a sentence. This runs for
+all binding/device combinations, including both Whomp entry points.
+
+Custom dialogue uses contextual introductions and complete sentences. Explicit
+paragraph boundaries keep topics together; the normal glyph wrapper adds as
+many six-line pages as needed. Level text omits basic jump/flip input lessons
+and unrelated spike warnings, while retaining combat methods, each coin color's
+5-point boost grant, the 100-point cap, active boost/surface rules and bosses.
+The courtyard alone retains its basic-control and rebinding introduction.
 
 The renderer records each actual native glyph position and asserts its right
 edge is inside the native box. The 128-pixel advance budget allows glyph
@@ -40,7 +51,6 @@ Mechanic sources for the authored text:
 - Goomba landing: native `determine_interaction` / `interact_bounce_top`;
   local car position/velocity/freefall bridge in `rocket_adapter.c`.
 - Supersonic impact: `rocket_enemy.c` / `physics/enemy_impact.h`.
-- Flip / second jump: pinned RocketSim car input and `input/gamepad.h`.
 - All coin colors: `packet_collect_coin.c` and `coin_boost_qa.inc.h` call
   `rocket_runtime_collect_coin` once per accepted pickup; the physical grant
   in `rocket_world_collect_coin` is 5, capped at 100, independent of coin value.

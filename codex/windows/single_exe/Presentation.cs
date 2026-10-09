@@ -190,7 +190,8 @@ namespace SuperRocket64 {
             try {
                 conceptScale=ClientSize.Width/1536f;float shellScale=conceptScale;chrome.Zoom=shellScale;conceptOrder=0;
                 int footer=(int)(42*conceptScale),noticeHeight=String.IsNullOrWhiteSpace(notice.Text)?0:(int)(CopyHeight(notice.Text,1198,20,58)*conceptScale);
-                int operationHeight=cancelOperation.Visible?(int)(90*conceptScale):0;
+                // Keep the progress card fixed as phases gain or lose cancellation.
+                int operationHeight=currentPage==progressPage||cancelOperation.Visible?(int)(90*conceptScale):0;
                 int availableHeight=Math.Max(80,ClientSize.Height-footer-(int)Math.Round(86*shellScale)-noticeHeight-operationHeight);
                 notice.Visible=noticeHeight>0;Place(notice,chrome,300,(ClientSize.Height-footer-noticeHeight)/conceptScale,1198,noticeHeight/conceptScale,20);
                 for(int i=0;i<4;i++)Place(navigation[i],chrome,11,345+i*66,243,59,i==2&&installationReady?21:26);

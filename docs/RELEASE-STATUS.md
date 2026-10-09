@@ -1,5 +1,30 @@
 # Verification and limitations
 
+## v0.2.25: dialogue, offline attacks and stable launcher progress
+
+Standalone car supersonic attacks now recognize explicit offline authority and
+avoid network sends. Existing enemy eligibility, impact thresholds, boss rules,
+online authority and Bully contact history remain unchanged. Camera-control
+buttons are masked only during car dialogue/cutscene camera dispatch, including
+legacy R-trigger zoom; held or queued input requires release before reactivation.
+Original confirmation/menu input is restored after the camera dispatch.
+
+Tutorials use complete sentences, device-aware bindings and native pagination.
+Coin colors each award 5 boost in Coin only mode, capped at 100; all three surface
+options have distinct guidance. The courtyard keeps its basic-control welcome
+and one-time Lakitu flow. Level dialogue describes existing combat mechanics.
+
+Launcher verification, automatic material checks and update restart retain one
+progress page until completion. Cancel space stays reserved, measured phases
+show real progress and unknown totals are indeterminate. Existing appearance,
+save/profile separation and accepted game visuals are retained.
+
+Fresh public Windows build, native dialogue/camera/enemy/Whomp/welcome tests,
+launcher UI/updater checks and exact package/preservation checks validate this
+cumulative preview. Physical-controller, live-game and monitor acceptance remain
+unperformed; existing compatibility limitations remain.
+
+
 ## v0.2.24: focused level tutorial text
 
 Bob-omb Battlefield omits the repeated jump/flip/double-jump lesson and unrelated

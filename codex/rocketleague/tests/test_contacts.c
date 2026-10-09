@@ -52,7 +52,50 @@ static void start(const BehaviorScript *behavior,int net){
     enemy.hitboxRadius=enemy.hurtboxRadius=40;enemy.hitboxHeight=75;enemy.hurtboxHeight=60;
 }
 static void step(float x,uint64_t ticks){localCar.position[0]=x;localCar.ticks=ticks;++gGlobalTimer;detect_object_collisions();}
+static void offline_start(const BehaviorScript *behavior) {
+    start(behavior,0);
+    // Actual shipped --offline startup uses NT_SERVER for local save/object
+    // authority, without character-net or an initialized transport/sync object.
+    gCLIOpts.offline=true;gNetworkType=NT_SERVER;gNetworkPlayerLocal=NULL;enemy.oSyncID=0;
+}
+static void test_offline_impacts(void) {
+    const BehaviorScript *small[]={bhvGoomba,bhvBobomb,bhvSpindrift,bhvScuttlebug,bhvSkeeter,bhvSnufit,bhvFlyGuy};
+    unsigned checks=0;
+    for(unsigned kind=0;kind<sizeof small/sizeof *small;kind++)for(int ground=0;ground<2;ground++)for(int heading=0;heading<4;heading++)for(int speed=50;speed<=100;speed+=50) {
+        offline_start(small[kind]);fixtureSpeedPercent=speed;
+        localCar=pose(-250,100);localCar.grounded=ground;
+        localCar.velocity[0]=ROCKET_ENEMY_SUPERSONIC_SPEED*rocket_speed_scale();
+        float angle=heading*1.57079632679f;
+        localCar.basis[0]=cosf(angle);localCar.basis[2]=sinf(angle);
+        localCar.basis[3]=sinf(angle);localCar.basis[5]=-cosf(angle);
+        detect_object_collisions();assert(!enemy.oInteractStatus);checks++;
+        step(-100,108);
+        assert(enemy.oInteractStatus==(INT_STATUS_INTERACTED|INT_STATUS_WAS_ATTACKED|
+            (small[kind]==bhvBobomb?INT_STATUS_TOUCHED_BOB_OMB:ATTACK_FAST_ATTACK)));checks++;
+        assert(!sends);checks++;
+        if(small[kind]==bhvBobomb){s16 yaw;assert(!rocket_contacts_bobomb_yaw(&enemy,&yaw));checks++;}
+    }
+    for(int speed=50;speed<=100;speed+=50) {
+        offline_start(bhvGoomba);fixtureSpeedPercent=speed;
+        localCar=pose(-250,100);localCar.velocity[0]=ROCKET_ENEMY_SUPERSONIC_SPEED*rocket_speed_scale()-.1f;
+        detect_object_collisions();step(-100,108);assert(!enemy.oInteractStatus&&!sends);checks++;
+        offline_start(bhvGoomba);localCar=pose(-100,100);localCar.velocity[0]=0;
+        detect_object_collisions();step(-100,108);assert(!enemy.oInteractStatus&&!sends);checks++;
+        assert(detect_object_hurtbox_overlap(&players[0],&enemy));checks++; // Stationary car remains vulnerable.
+    }
+    fixtureSpeedPercent=100;
+    const BehaviorScript *excluded[]={bhvKingBobomb,bhvBowser,bhvBobombBuddy};
+    for(unsigned i=0;i<sizeof excluded/sizeof *excluded;i++){
+        offline_start(excluded[i]);detect_object_collisions();step(-100,108);assert(!enemy.oInteractStatus&&!sends);checks++;
+    }
+    offline_start(bhvGoomba);enemy.oGoombaSize=GOOMBA_SIZE_HUGE;
+    detect_object_collisions();step(-100,108);assert(!enemy.oInteractStatus);checks++;
+    offline_start(bhvGoomba);localActive=0;detect_object_collisions();step(-100,108);assert(!enemy.oInteractStatus);checks++;
+    gCLIOpts.offline=false;
+    printf("PASS offline supersonic production collision pass: %u checks; seven small enemies, four faces, ground/air, 50/100 percent thresholds, lower-speed/stationary/boss/selection gates, no transport\n",checks);
+}
 int main(void){
+    test_offline_impacts();
     s16 yaw=0;
     start(bhvGoomba,0);localCar=pose(-146.6667f,100);localCar.position[1]=74;
     detect_object_collisions();assert(!enemy.oInteractStatus);

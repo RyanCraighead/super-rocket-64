@@ -109,14 +109,14 @@ namespace SuperRocket64 {
             appearanceMigrationPending=error==null&&AppearanceFlag("deferred");
             if(error!=null)appearanceStatus.Text=error;
             else {object value;if(lastReport.TryGetValue("message",out value))appearanceStatus.Text=Convert.ToString(value);}
-            notice.Text="";ShowPage(homePage);
-            Action completed=appearanceCompletion;appearanceCompletion=null;if(completed!=null)completed();
+            notice.Text="";
+            Action completed=appearanceCompletion;appearanceCompletion=null;if(completed!=null)completed();else ShowPage(homePage);
         }
         private void ShowAppearance(){
             Guard.Need(installationReady,"Finish the base setup first.");
             if(!appearanceNeedsAttention){ShowPage(homePage);return;}
             addingCharacters=false;appearanceStatus.Text="Checking local car materials...";
-            appearanceApply.Enabled=false;notice.Text="";ShowPage(appearancePage);
+            appearanceApply.Enabled=false;notice.Text="";
             RunAppearance("appearance-status");
         }
         private void RunAppearance(string action){
@@ -148,7 +148,7 @@ namespace SuperRocket64 {
         private void CompleteInspection(bool startup) {
                 ApplyReport();
                 if (installationReady) {
-                    if(startup){ShowPage(homePage);StartAppearanceMigration(ContinueStartupUpdates);}else ShowAddCharacters();
+                    if(startup)StartAppearanceMigration(ContinueStartupUpdates);else ShowAddCharacters();
                 }
                 else {
                     sourceStatus.Text = "";
@@ -171,7 +171,7 @@ namespace SuperRocket64 {
             if(addingCharacters&&index==0){bool chosen=false;foreach(var choice in extraChoices)chosen|=choice.Checked;Guard.Need(chosen,"Choose at least one character.");}
             if (!extrasYes.Checked || index == 5) { PrepareQueue(); return; }
             if (!extraChoices[index].Checked) { ValidateExtras(index + 1); return; }
-            if(addingCharacters&&!readyCharacters.Contains(Commands.OptionalCharacters[index])&&String.IsNullOrWhiteSpace(extraSources[index].Text)){notice.Text="Choose the original ROM for "+((ConceptCheckBox)extraChoices[index]).DisplayText+".";extraSources[index].Focus();return;}
+            if(addingCharacters&&!readyCharacters.Contains(Commands.OptionalCharacters[index])&&String.IsNullOrWhiteSpace(extraSources[index].Text)){notice.Text="Choose the original ROM for "+((ConceptCheckBox)extraChoices[index]).DisplayText+".";ShowPage(extrasPage);extraSources[index].Focus();return;}
             var args = Commands.Setup(Commands.OptionalCharacters[index], addingCharacters ? "" : rom.Text, extraSources[index].Text, "", "", false); args[0] = "preflight";
             BeginOperation(args, false, delegate { ValidateExtras(index + 1); });
         }
@@ -199,7 +199,7 @@ namespace SuperRocket64 {
         private void FinishWizard(bool play) {
             Guard.Need(readyAuto.Checked || readyManual.Checked, "Choose automatic or manual updates before continuing.");
             SavePreferences(readyAuto.Checked, readyDesktop.Checked, readyMenu.Checked);
-            ShowPage(homePage); StartAppearanceMigration(delegate{if(play)PlayOffline();});
+            StartAppearanceMigration(delegate{ShowPage(homePage);if(play)PlayOffline();});
         }
         private void PlayOffline() { BeginOperation(Commands.Play("wheel", "octane", "", 7777, "", mute.Checked), false, null); }
         private void ShowFailure(string message, Action retry, Action skip) { ShowFailure(message, retry, skip, addingCharacters ? extrasPage : setupPage); }
@@ -211,12 +211,12 @@ namespace SuperRocket64 {
         private void RepairProgramFiles() {
             if (running) return;
             Guard.Need(!gameSessionActive&&!UpdateGameActive(),"Close the game normally before repairing program files.");
-            string root = UpdateRoot(); running = true;installSteps=false;progressSubtitle="Repairing program files";int generation=++operationGeneration;pageHost.Enabled = false;progress.Visible=true;progress.Style=ProgressBarStyle.Marquee;ShowPage(progressPage); progressText.Text = "Verifying replacement program files...";
+            string root = UpdateRoot(); running = true;installSteps=false;int generation=++operationGeneration;pageHost.Enabled = false;ShowProgress("Repairing program files", "Verifying replacement program files...");
             Task.Factory.StartNew(delegate {
                 string error = null;
                 try { using (OperationLease lease = OperationLease.Acquire(root)) Installer.RepairEmbedded(root, Log,UpdateGameActive,delegate(string phase,long count,long total){MeasuredProgress(generation,phase,count,total);}); }
                 catch (Exception problem) { error = PlainFailure(problem.Message); }
-                OnUi(delegate { ClearBusy();if(closeAfterOperation){Close();return;}if (error != null) ShowFailure(error, RepairProgramFiles, null); else InspectInstallation(false); });
+                OnUi(delegate { EndOperation();if(closeAfterOperation){Close();return;}if (error != null) ShowFailure(error, RepairProgramFiles, null); else InspectInstallation(false); });
             });
         }
         internal static string PlainFailure(string text) {

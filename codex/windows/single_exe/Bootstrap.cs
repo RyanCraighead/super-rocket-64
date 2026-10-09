@@ -561,6 +561,7 @@ namespace SuperRocket64 {
         private readonly Label addressStatus = new ConceptLabel(), onlineHeading = new ConceptLabel(), notice = new ConceptLabel();
         private readonly FlowLayoutPanel homePage = NewPage(), setupPage = NewPage(), onlineChoicePage = NewPage(), onlinePage = NewPage();
         private readonly Panel pageHost = new Panel();
+        private FlowLayoutPanel currentPage;
         private readonly FlowLayoutPanel hostAddressRow = Row(), joinAddressRow = Row();
         private readonly CheckBox mute = new ConceptCheckBox();
         private bool running, cancellationAvailable;
@@ -625,7 +626,7 @@ namespace SuperRocket64 {
             layout.Controls.Add(pageHost, 0, 0); layout.Controls.Add(operations, 0, 1); layout.Controls.Add(notice, 0, 2);
             Controls.Add(layout);
             InitializeUpdates(); InitializeWizard(); InitializePresentation();
-            ShowPage(locationPage);
+            ShowProgress("Checking installation", "Verifying existing program files and assets...");
             Shown += delegate { StartupUpdates(); };
             FormClosing += delegate(object sender, FormClosingEventArgs e) {
                 if (!running || gameLaunchPending) return;
@@ -643,7 +644,9 @@ namespace SuperRocket64 {
             page.Controls.Add(TextBlock(description));
         }
         private void ShowPage(FlowLayoutPanel page) {
+            currentPage=page;
             foreach (Control item in pageHost.Controls) item.Visible = Object.ReferenceEquals(item, page);
+            if(page!=progressPage)ResetProgress();
             page.BringToFront();
             SelectConcept(page);
             if(page==setupPage)QueueSourceValidation();
@@ -702,9 +705,14 @@ namespace SuperRocket64 {
             if(IsDisposed || Disposing || !IsHandleCreated)return;
             try { BeginInvoke(new Action(delegate { if(!IsDisposed && !Disposing)action(); })); } catch(InvalidOperationException) { }
         }
-        private void ClearBusy() {
+        private void EndOperation() {
             running=false;cancellationAvailable=false;gameLaunchPending=false;cancelRequested=false;pageHost.Enabled=true;
-            cancelOperation.Visible=false;cancelOperation.Enabled=false;progress.Visible=false;progress.Value=progress.Minimum;progressText.Text="";notice.Text="";
+            cancelOperation.Visible=false;cancelOperation.Enabled=false;notice.Text="";
+        }
+        private void ResetProgress(){progress.Visible=false;progress.Value=progress.Minimum;progressText.Text="";}
+        private void ClearBusy(){EndOperation();ResetProgress();}
+        private void ShowProgress(string subtitle,string phase){
+            progressSubtitle=subtitle;progressText.Text=phase;progress.Style=ProgressBarStyle.Marquee;progress.Value=progress.Minimum;progress.Visible=true;notice.Text="";ShowPage(progressPage);
         }
         private void MeasuredProgress(int generation,string phase,long count,long total) {
             lock(measuredLock){long now=DateTime.UtcNow.Ticks;if(generation==lastMeasuredGeneration&&phase==lastMeasuredPhase&&count!=total&&now-lastMeasuredTicks<TimeSpan.TicksPerMillisecond*60)return;lastMeasuredTicks=now;lastMeasuredPhase=phase;lastMeasuredGeneration=generation;}
@@ -733,10 +741,10 @@ namespace SuperRocket64 {
             cancellationAvailable = allowCancellation && isSetup;
             cancelOperation.Text = isAppearance ? "Cancel" : "Cancel setup"; pageHost.Enabled = false;
             cancelOperation.Visible = cancellationAvailable; cancelOperation.Enabled = cancellationAvailable;
-            progress.Visible=isSetup;progress.Style = ProgressBarStyle.Marquee;progress.Value=progress.Minimum;
-            installSteps=args[0]=="setup"&&!addingCharacters;progressSubtitle=isAppearance?"Updating car appearance":installSteps?"4 of 5  -  Installing":addingCharacters?"Adding characters":"Working";
-            progressText.Text = "Preparing selected assets...";notice.Text = isPlay ? "Starting game..." : "Checking your installation...";
-            if(isSetup){ShowPage(progressPage);notice.Text="";}
+            installSteps=!addingCharacters&&(args[0]=="setup"||(installSteps&&currentPage==progressPage));
+            string phase=args[0]=="wizard-status"?"Verifying installed assets...":args[0]=="preflight"?"Checking selected sources...":isAppearance?"Checking local car materials...":"Preparing selected assets...";
+            if(isPlay){ResetProgress();notice.Text="Starting game...";}
+            else ShowProgress(isAppearance?"Updating car appearance":installSteps?"4 of 5  -  Installing":addingCharacters?"Adding characters":args[0]=="preflight"?"Checking sources":"Checking installation", "Verifying program files...");
             Action work=delegate {
                 bool succeeded = false, gameConfirmed=false; string cancelFile = null, errorText = null;
                 Dictionary<string, object> report = null;
@@ -744,8 +752,9 @@ namespace SuperRocket64 {
                 try {
                     lease=OperationLease.Acquire(basePath);
                     {
-                        string root = PrepareProgramFiles!=null?PrepareProgramFiles(basePath,operationLog):Installer.Embedded(basePath,operationLog,isSetup?(Action<string,long,long>)delegate(string phase,long count,long total){MeasuredProgress(generation,phase,count,total);}:null,programCancel.Token);
+                        string root = PrepareProgramFiles!=null?PrepareProgramFiles(basePath,operationLog):Installer.Embedded(basePath,operationLog,!isPlay?(Action<string,long,long>)delegate(string stage,long count,long total){MeasuredProgress(generation,stage,count,total);}:null,programCancel.Token);
                         if (cancelRequested) throw new OperationCanceledException();
+                        if(!isPlay)MeasuredProgress(generation,phase,0,0);
                         string dataDirectory = Commands.DataDirectory(basePath);
                         if (cancellationAvailable) {
                             Guard.NoRedirect(dataDirectory); Directory.CreateDirectory(dataDirectory); Guard.NoRedirect(dataDirectory);
@@ -753,7 +762,6 @@ namespace SuperRocket64 {
                             cancelFile = Commands.CancelPath(dataDirectory, Guid.NewGuid()); activeCancelFile = cancelFile;
                             if (cancelRequested) WriteCancelMarker(cancelFile);
                         }
-                        if(isSetup)MeasuredProgress(generation,"Preparing selected assets...",0,0);
                         StringBuilder stdout = new StringBuilder(), stderr = new StringBuilder();
                         using (Process process = new Process { StartInfo = OperationStartInfo(root, dataDirectory, cancelFile, args) }) {
                             process.OutputDataReceived += delegate(object sender, DataReceivedEventArgs e) { if (e.Data != null) { if (stdout.Length < 1048576) stdout.AppendLine(e.Data); operationLog(e.Data); } };
@@ -789,7 +797,7 @@ namespace SuperRocket64 {
                         if(Object.ReferenceEquals(programCancellation,programCancel))programCancellation=null;
                         if(isPlay)gameSessionActive=false;
                         if(generation!=operationGeneration)return;
-                        ClearBusy();if(closeAfterOperation){Close();return;}
+                        if(isPlay)ClearBusy();else EndOperation();if(closeAfterOperation){Close();return;}
                         if(isPlay && gameConfirmed && succeeded){notice.Text="Game closed";if(appearanceMigrationPending)StartAppearanceMigration(null);return;}
                         if (succeeded) { if (report != null) lastReport = report; try { if (completed != null) completed(); else ShowPage(homePage); } catch (Exception problem) { ShowFailure(PlainFailure(problem.Message), delegate { BeginOperation(args, allowCancellation, completed); }, null); } }
                         else if(args[0]=="appearance-migrate")FinishAppearanceMigration(errorText);

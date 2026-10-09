@@ -65,11 +65,14 @@ static const char *hookText;
 static bool hookAllowed=true;
 static FILE *svg;
 static float penX,penY,maxInk;
+static uint8_t capturedGlyphs[ROCKET_TUTORIAL_CAPACITY];
+static int captureGlyphs,capturedCount;
 #define CHECK(x) do{checks++;if(!(x)){fprintf(stderr,"tutorial line %d: %s\n",__LINE__,#x);abort();}}while(0)
 void *segmented_to_virtual(const void *p){return (void*)p;}
 struct DialogEntry *dialog_table_get(s32 id){return id==DIALOG_NONE?NULL:&original;}
 void create_dl_translation_matrix(s8 op,f32 x,f32 y,f32 z){(void)z;if(op==MENU_MTX_PUSH){penX=x;penY=y;}else {penX+=x;penY+=y;}}
 void render_generic_char(u8 c){
+    if(captureGlyphs){CHECK(capturedCount<ROCKET_TUTORIAL_CAPACITY);capturedGlyphs[capturedCount++]=c;}
     if(gDialogBoxState==DIALOG_STATE_VERTICAL){CHECK(penX>=0&&penX+8<=136&&penY<=-14&&penY>=-94);if(penX+8>maxInk)maxInk=penX+8;}
     if(svg){u8 one[]={c,255};char name[8];convert_string_sm64_to_ascii(name,one);
         const char *s=!strcmp(name,"&")?"&amp;":!strcmp(name,"<")?"&lt;":!strcmp(name,">")?"&gt;":name;
@@ -108,6 +111,18 @@ static char *decoded(const uint8_t *text){
     static char buffer[ROCKET_TUTORIAL_CAPACITY*4];convert_string_sm64_to_ascii(buffer,text);
     int n=0;for(int i=0;buffer[i];i++){char c=buffer[i]=='\n'?' ':buffer[i];if(c!=' '||!n||buffer[n-1]!=' ')buffer[n++]=c;}buffer[n]=0;return buffer;
 }
+static void read_complete_dialog(void){
+    uint8_t expected[ROCKET_TUTORIAL_CAPACITY];int count=0,pages=0;
+    const uint8_t *text=rocket_tutorial_dialog(&original)->str;
+    for(int i=0;text[i]!=DIALOG_CHAR_TERMINATOR;i++)
+        if(text[i]!=DIALOG_CHAR_SPACE&&text[i]!=DIALOG_CHAR_NEWLINE)expected[count++]=text[i];
+    capturedCount=0;
+    while(gDialogID!=DIALOG_NONE&&pages<32){
+        captureGlyphs=1;render();captureGlyphs=0;page();pages++;
+    }
+    CHECK(gDialogID==DIALOG_NONE&&pages<32);
+    CHECK(capturedCount==count&&!memcmp(capturedGlyphs,expected,count));
+}
 static void snapshot(const char *directory,const char *name){
     char path[1024];snprintf(path,sizeof path,"%s/%s.svg",directory,name);svg=fopen(path,"w");CHECK(svg);
     fputs("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"960\" height=\"720\" viewBox=\"0 0 320 240\"><rect width=\"320\" height=\"240\" fill=\"#46574b\"/><rect x=\"23\" y=\"34\" width=\"143\" height=\"106\" fill=\"#111\"/><g fill=\"white\" font-family=\"monospace\" font-size=\"10\">\n",svg);
@@ -123,17 +138,17 @@ int main(int argc,char **argv){
     struct DialogEntry preserved=original;uint8_t text[ROCKET_TUTORIAL_CAPACITY];
     button(SDL_CONTROLLER_BUTTON_A,1);poll();CHECK(controller_sdl_prompt_device()==CONTROLLER_PROMPT_PLAYSTATION);
     begin(LEVEL_CASTLE_GROUNDS,DIALOG_034);CHECK(strstr(decoded(rocket_tutorial_dialog(&original)->str),"Super Rocket64"));snapshot(argv[1],"welcome-playstation");
-    configRocketBindings.stick=1;render();CHECK(strstr(decoded(rocket_tutorial_dialog(&original)->str),"Steer: Right stick"));configRocketBindings.stick=0;render();
+    configRocketBindings.stick=1;render();CHECK(strstr(decoded(rocket_tutorial_dialog(&original)->str),"Steer with Right stick."));configRocketBindings.stick=0;render();
     page();CHECK(strstr(decoded(rocket_tutorial_dialog(&original)->str),"Triangle"));
     int retainedPage=rocket_tutorial_page(rocket_tutorial_dialog(&original)->str,gDialogTextPos,6);
     configRocketBindings.action[RA_CAMERA]=RB_RB;render();CHECK(rocket_tutorial_page(rocket_tutorial_dialog(&original)->str,gDialogTextPos,6)==retainedPage);
-    CHECK(strstr(decoded(rocket_tutorial_dialog(&original)->str),"Cycle camera: R1"));
+    CHECK(strstr(decoded(rocket_tutorial_dialog(&original)->str),"R1 to change the camera view."));
     // A keyboard press wins over a connected, held pad. Only fresh pad input returns it.
     keyboard_on_key_down(0x32);poll();CHECK(controller_sdl_prompt_device()==CONTROLLER_PROMPT_KEYBOARD);render();
-    CHECK(strstr(decoded(rocket_tutorial_dialog(&original)->str),"Cycle camera: M"));
-    configKeyY[0]=0x22;render();CHECK(strstr(decoded(rocket_tutorial_dialog(&original)->str),"Cycle camera: G"));
-    configKeyY[0]=0x27;render();CHECK(strstr(decoded(rocket_tutorial_dialog(&original)->str),"Cycle camera: Semicolon"));
-    configKeyY[0]=0x35;render();CHECK(strstr(decoded(rocket_tutorial_dialog(&original)->str),"Cycle camera: Slash"));
+    CHECK(strstr(decoded(rocket_tutorial_dialog(&original)->str),"M to change the camera view."));
+    configKeyY[0]=0x22;render();CHECK(strstr(decoded(rocket_tutorial_dialog(&original)->str),"G to change the camera view."));
+    configKeyY[0]=0x27;render();CHECK(strstr(decoded(rocket_tutorial_dialog(&original)->str),"Semicolon to change the camera view."));
+    configKeyY[0]=0x35;render();CHECK(strstr(decoded(rocket_tutorial_dialog(&original)->str),"Slash to change the camera view."));
     configKeyY[0]=0x22;
     keyboard_on_key_up(0x32);page();snapshot(argv[1],"welcome-keyboard-menu");
     unsigned beforeClosed=closed;for(int i=0;i<15&&gDialogID!=DIALOG_NONE;i++)page();CHECK(gDialogID==DIALOG_NONE&&closed==beforeClosed+1);
@@ -147,11 +162,11 @@ int main(int argc,char **argv){
         for(int binding=0;binding<RB_COUNT;binding++)for(int which=0;which<4;which++){
             configRocketBindings.action[RA_JUMP]=configRocketBindings.action[RA_CAMERA]=configRocketBindings.action[RA_BOOST]=(unsigned)binding;
             const int levels[]={LEVEL_CASTLE_GROUNDS,LEVEL_BOB,LEVEL_WF,LEVEL_WF},ids[]={DIALOG_034,DIALOG_000,DIALOG_030,DIALOG_114};
-            begin(levels[which],ids[which]);int pages=0;while(gDialogID!=DIALOG_NONE&&pages<20){page();pages++;}CHECK(gDialogID==DIALOG_NONE&&pages<20);
+            begin(levels[which],ids[which]);read_complete_dialog();
         }
     }
     rocket_bindings_reset();family=SDL_CONTROLLER_TYPE_PS4;begin(LEVEL_BOB,DIALOG_000);page();snapshot(argv[1],"first-world-coins");
-    CHECK(strstr(decoded(rocket_tutorial_dialog(&original)->str),"each add 5"));
+    CHECK(strstr(decoded(rocket_tutorial_dialog(&original)->str),"each yellow coin adds 5 boost, each red coin adds 5, and each blue coin adds 5."));
     boostMode=ROCKET_BOOST_INFINITE;surfaceMode=ROCKET_SURFACES_CAR;render();CHECK(strstr(decoded(rocket_tutorial_dialog(&original)->str),"Infinite boost"));CHECK(strstr(decoded(rocket_tutorial_dialog(&original)->str),"normal car grip"));
     begin(LEVEL_WF,DIALOG_030);snapshot(argv[1],"whomp-four-wheels");CHECK(strstr(decoded(rocket_tutorial_dialog(&original)->str),"four wheels"));
     // Reflow is deferred during native horizontal transitions.
