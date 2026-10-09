@@ -34,7 +34,6 @@ namespace SuperRocket64 {
             extraInputs.Controls.Clear();extraInputs.AutoSize=false;extraInputs.Padding=Padding.Empty;extraInputs.Margin=Padding.Empty;extraInputs.BackColor=ConceptTheme.Background;var list=new ConceptCanvas();extraInputs.Controls.Add(list);
             var onlineNotice=CopyLabel("Optional characters are for offline play.",false);
             var noExtras=CopyLabel("Mario and Octane are included. You can add optional characters later from Play.",false);
-            var appearance=AddButton(extrasPage,"Car appearance",ShowAppearance);
             Primary(installExtras);canvas.PaintDesign=delegate(Graphics g){if(!addingCharacters)Stepper(g,3);ConceptTheme.Card(g,new RectangleF(0,addingCharacters?124:203,1198,49),Color.FromArgb(221,190,20));};
             list.PaintDesign=delegate(Graphics g){ConceptTheme.Card(g,new RectangleF(0,0,1198,459),ConceptTheme.Border);};
             extrasYes.CheckedChanged+=delegate{if(chrome!=null)ArrangeConcept();};
@@ -47,8 +46,7 @@ namespace SuperRocket64 {
                 }
                 list.Size=new Size((int)(1198*conceptScale),(int)(460*conceptScale));
                 float footer=addingCharacters?700:extrasYes.Checked?825:550;PageHeight(canvas,addingCharacters?790:895);
-                wizardHeading.Visible=!addingCharacters;Place(charactersHeading,canvas,0,0,798,73,60);charactersHeading.Visible=addingCharacters;
-                Place(appearance,canvas,832,4,366,61,25);appearance.Visible=addingCharacters;
+                wizardHeading.Visible=!addingCharacters;Place(charactersHeading,canvas,0,0,1198,73,60);charactersHeading.Visible=addingCharacters;
                 canvas.Controls[1].Text=addingCharacters?"Mario and Octane are ready. Manage your offline extras.":"3 of 5  -  Offline extras";
                 Place(warning,canvas,60,addingCharacters?130:209,1130,37,22);Place(extrasNo,canvas,29,265,550,55,24);Place(extrasYes,canvas,625,265,573,55,24);extrasNo.Visible=extrasYes.Visible=!addingCharacters;
                 Place(extraInputs,canvas,0,addingCharacters?199:336,1198,460,22);extraInputs.Visible=extrasYes.Checked;Place(noExtras,canvas,31,355,1140,80,27);noExtras.Visible=!extrasYes.Checked;
@@ -63,14 +61,14 @@ namespace SuperRocket64 {
             var sourceLabel=CopyLabel("Rocket League folder",true);
             appearanceStatus.AutoSize=false;appearanceStatus.ForeColor=ConceptTheme.White;appearanceStatus.BackColor=ConceptTheme.Surface;
             var help=CopyLabel("Uses your existing car geometry. Textures stay on this PC. Saves, settings and sounds stay unchanged. Lighting is approximate.",false);
-            var download=CopyLabel("Compatible local textures are added automatically. Revert keeps your previous appearance on future starts; you can switch back here.",false);
+            var download=CopyLabel("Compatible local textures are added automatically. Resolve the issue above, then retry. Your current appearance stays available until this finishes.",false);
             Primary(appearanceApply);
             canvas.PaintDesign=delegate(Graphics g){ConceptTheme.Card(g,new RectangleF(0,148,1198,194),ConceptTheme.Border);};
             AddLayout(canvas,delegate{
                 PageHeight(canvas,790);Place(appearanceStatus,canvas,32,170,1134,148,29);
                 Place(sourceLabel,canvas,0,368,1198,40,27);Place(source,canvas,0,423,952,60,24);Place(browse,canvas,974,423,224,60,24);browse.Enabled=appearanceSource.Enabled;
                 Place(help,canvas,0,504,1198,72,24);Place(download,canvas,0,592,1198,66,22);
-                Place(back,canvas,0,706,218,64,27);Place(appearanceUndo,canvas,365,706,355,64,25);Place(appearanceApply,canvas,742,706,456,64,26);
+                Place(back,canvas,0,706,218,64,27);Place(appearanceApply,canvas,980,706,218,64,26);
             });
         }
         private void BuildOperationConcepts() {

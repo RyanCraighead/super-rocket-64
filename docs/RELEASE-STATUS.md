@@ -1,5 +1,22 @@
 # Verification and limitations
 
+## v0.2.23: automatic appearance without routine controls
+
+Normal Play and Characters no longer offer appearance upgrade/revert controls.
+Compatible materials are still added automatically during startup/setup and
+reused on later starts without repeating conversion, download or source discovery.
+Finish car appearance appears only after a migration problem; its recovery page
+offers Retry and Back. Success or already-active materials return to Play and
+clear the prompt. Existing warnings, source selection, cancellation, game guards
+and internal rollback/reapply remain intact, including an explicit reverted choice.
+
+The accepted car visuals, material converter/profile and gameplay engine are
+unchanged from v0.2.22. Fresh launcher UI, material idempotence, persistence,
+package and upgrade checks validate this focused cleanup. Physical monitor
+transitions and live gameplay are not newly tested. Fresh-game Lakitu work is
+not part of this completed launcher checkpoint.
+
+
 ## v0.2.22: automatic installed car appearance migration
 
 Verified startup and setup completion automatically add improved car materials

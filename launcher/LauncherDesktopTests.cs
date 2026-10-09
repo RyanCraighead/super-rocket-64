@@ -52,7 +52,7 @@ namespace SuperRocket64 {
         static void Call(LauncherForm form,string name,params object[] args) {typeof(LauncherForm).GetMethod(name,BindingFlags.Instance|BindingFlags.NonPublic).Invoke(form,args);Application.DoEvents();}
         static Button Button(Control parent,string text) {foreach(Control c in parent.Controls){Button b=c as Button;if(b!=null&&b.Text==text)return b;if(c.HasChildren){b=Button(c,text);if(b!=null)return b;}}return null;}
         static void Click(Control page,string text) {Button b=Button(page,text);Need(b!=null&&b.Visible&&b.Enabled,"Missing usable button: "+text);b.PerformClick();Application.DoEvents();}
-        static void Page(LauncherForm form,string name) {Need(Field<Control>(form,name).Visible,"Wrong page: "+name+"; notice="+Field<Label>(form,"notice").Text+"; failure="+Field<Label>(form,"failureText").Text);}
+        static void Page(LauncherForm form,string name) {Need(Field<Control>(form,name).Visible,"Wrong page: "+name+"; notice="+Field<Label>(form,"notice").Text+"; failure="+Field<Label>(form,"failureText").Text+"; update="+Field<Label>(form,"updateMessage").Text);}
         // DrawToBitmap composites transparent children differently and hid the
         // reported black radio/checkbox bars. Capture the native window instead.
         static void Snapshot(LauncherForm form,string output,string name) {WindowSnapshot(form,output,name);}
@@ -386,6 +386,9 @@ namespace SuperRocket64 {
                 string root=Path.Combine(output,missing?"auto-appearance-missing":"auto-appearance-compatible");Directory.CreateDirectory(root);
                 if(missing)File.WriteAllText(Path.Combine(root,"missing-source"),"fixture");
                 var commands=new List<List<string>>();using(var form=OperationForm(root,commands)){
+                    // Represent an already registered installation in this synthetic root.
+                    // The real running-game registration guard must remain enabled.
+                    UpdateStore.Save(root,new LauncherState{active=UpdateStore.Capture(root,UpdateStore.CurrentExe,UpdateBuild.Version)});
                     form.AutoAppearanceMigration=true;new UpdatePreferences{AutomaticChecks=false,Configured=true}.Save(root);
                     string prefs=File.ReadAllText(UpdatePreferences.PathFor(root));commands.Clear();Set(form,"lastReport",Report(true,true,"octane"));Call(form,"CompleteInspection",true);WaitUpdate(form);Page(form,"homePage");
                     Need(commands.Count==1&&commands[0][0]=="appearance-migrate","Normal installed startup did not migrate appearance automatically");
@@ -395,7 +398,7 @@ namespace SuperRocket64 {
                     if(missing){
                         foreach(int dpi in new[]{96,120,144,192}){Dpi(form,dpi);ControlsFit(Field<Control>(form,"homePage"),Field<Panel>(form,"pageHost"));Reach(form,Button(Field<Control>(form,"homePage"),"Finish car appearance"));}
                         Dpi(form,96);form.ClientSize=new Size(960,640);Set(form,"notificationVisible",true);Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"homePage"));ControlsFit(Field<Control>(form,"homePage"),Field<Panel>(form,"pageHost"));Snapshot(form,output,"appearance-and-update-prompt-minimum");Set(form,"notificationVisible",false);
-                        Click(Field<Control>(form,"homePage"),"Finish car appearance");WaitUpdate(form);Page(form,"appearancePage");Escape(form);Page(form,"extrasPage");}
+                        Click(Field<Control>(form,"homePage"),"Finish car appearance");WaitUpdate(form);Page(form,"appearancePage");Escape(form);Page(form,"homePage");}
                     else{
                         File.Delete(Path.Combine(root,"material-active"));File.WriteAllText(Path.Combine(root,"material-saved"),"user chose revert");
                         Call(form,"StartAppearanceMigration",(Action)null);WaitUpdate(form);Need(!File.Exists(Path.Combine(root,"material-active"))&&!Field<bool>(form,"appearanceNeedsAttention"),"Normal startup overwrote explicit revert choice");
@@ -411,23 +414,27 @@ namespace SuperRocket64 {
             string root=Path.Combine(output,"appearance-flow");Directory.CreateDirectory(root);File.WriteAllText(Path.Combine(root,"finish"),"done");
             var commands=new List<List<string>>();using(var form=OperationForm(root,commands)){
                 new UpdatePreferences{AutomaticChecks=false,Configured=true}.Save(root);string preferences=File.ReadAllText(UpdatePreferences.PathFor(root));
-                Call(form,"ShowAddCharacters");Reach(form,Button(Field<Control>(form,"extrasPage"),"Car appearance"));Click(Field<Control>(form,"extrasPage"),"Car appearance");WaitUpdate(form);Page(form,"appearancePage");
+                Need(Button(form,"Use improved appearance")==null&&Button(form,"Revert appearance")==null,"Routine appearance actions remain in launcher");
+                Call(form,"ShowAddCharacters");Need(Button(Field<Control>(form,"extrasPage"),"Car appearance")==null,"Characters still offers routine appearance actions");Escape(form);Page(form,"homePage");
+                Call(form,"ShowAppearance");Page(form,"homePage");Need(commands.Count==0,"Recovery opened without an actual appearance problem");
+                Set(form,"appearanceNeedsAttention",true);Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"homePage"));Click(Field<Control>(form,"homePage"),"Finish car appearance");WaitUpdate(form);Page(form,"appearancePage");
                 Need(commands.Count==1&&commands[0][0]=="appearance-status","Appearance entry changed assets or ran full setup");
-                var apply=Field<Button>(form,"appearanceApply");var undo=Field<Button>(form,"appearanceUndo");var source=Field<TextBox>(form,"appearanceSource");
-                Need(apply.Enabled&&!undo.Enabled&&source.Enabled&&source.Text.Contains("Synthetic"),"Material source/status mapping failed");
-                form.ClientSize=new Size(1536,1024);Snapshot(form,output,"appearance-ready");
+                var apply=Field<Button>(form,"appearanceApply");var source=Field<TextBox>(form,"appearanceSource");
+                Need(apply.Text=="Retry"&&apply.Enabled&&source.Enabled&&source.Text.Contains("Synthetic"),"Material recovery source/status mapping failed");
+                form.ClientSize=new Size(1536,1024);Snapshot(form,output,"appearance-recovery");
                 foreach(int dpi in new[]{96,120,144,192}){Dpi(form,dpi);ControlsFit(Field<Control>(form,"appearancePage"),Field<Panel>(form,"pageHost"));Reach(form,apply);Snapshot(form,output,"appearance-dpi-"+dpi);}
                 Dpi(form,96);form.ClientSize=new Size(960,640);ControlsFit(Field<Control>(form,"appearancePage"),Field<Panel>(form,"pageHost"));Snapshot(form,output,"appearance-minimum");
                 File.WriteAllText(Path.Combine(root,"game-running"),"fixture");int before=commands.Count;apply.PerformClick();Application.DoEvents();Need(commands.Count==before&&Field<Label>(form,"notice").Text.Contains("Close the game normally"),"Appearance change ignored active game");File.Delete(Path.Combine(root,"game-running"));
-                form.ClientSize=new Size(1536,1024);Click(Field<Control>(form,"appearancePage"),"Use improved appearance");WaitUpdate(form);Page(form,"appearancePage");Need(!apply.Enabled&&undo.Enabled&&!source.Enabled,"Applied appearance controls are stale");Snapshot(form,output,"appearance-applied");
-                Click(Field<Control>(form,"appearancePage"),"Revert appearance");WaitUpdate(form);Page(form,"appearancePage");Need(apply.Enabled&&!undo.Enabled&&!source.Enabled,"Undo lost reusable-material state");Snapshot(form,output,"appearance-restored");
-                Click(Field<Control>(form,"appearancePage"),"Use improved appearance");WaitUpdate(form);Need(undo.Enabled&&!apply.Enabled,"Reapply failed");
-                Escape(form);Page(form,"extrasPage");Need(Field<bool>(form,"addingCharacters"),"Appearance Back entered wizard");
-                Call(form,"ShowAppearance");WaitUpdate(form);Click(Field<Control>(form,"appearancePage"),"Revert appearance");WaitUpdate(form);
-                File.WriteAllText(Path.Combine(root,"fail"),"fixture");Click(Field<Control>(form,"appearancePage"),"Use improved appearance");WaitUpdate(form);Page(form,"appearancePage");Need(apply.Enabled&&Field<Label>(form,"appearanceStatus").Text.Contains("Current appearance is unchanged"),"Unavailable source did not remain actionable on appearance page");Snapshot(form,output,"appearance-unavailable");File.Delete(Path.Combine(root,"fail"));
-                File.Delete(Path.Combine(root,"finish"));Click(Field<Control>(form,"appearancePage"),"Use improved appearance");Page(form,"progressPage");Need(!Field<bool>(form,"installSteps")&&Field<bool>(form,"cancellationAvailable"),"Appearance operation used full setup steps or lost cancel");Snapshot(form,output,"appearance-progress");Call(form,"CancelOperation");WaitUpdate(form);Page(form,"appearancePage");Need(Field<Label>(form,"appearanceStatus").Text.Contains("canceled"),"Appearance cancel was not explained");
+                form.ClientSize=new Size(1536,1024);Click(Field<Control>(form,"appearancePage"),"Retry");WaitUpdate(form);Page(form,"homePage");Need(!Field<bool>(form,"appearanceNeedsAttention")&&!Button(Field<Control>(form,"homePage"),"Finish car appearance").Visible,"Successful recovery left an appearance prompt");Snapshot(form,output,"appearance-recovered-play");
+                before=commands.Count;Call(form,"ShowAppearance");Page(form,"homePage");Need(commands.Count==before,"Successful recovery remained accessible as routine action");
+                // A stale failure flag must close recovery when another attempt already succeeded.
+                Set(form,"appearanceNeedsAttention",true);Call(form,"ShowAppearance");WaitUpdate(form);Page(form,"homePage");Need(!Field<bool>(form,"appearanceNeedsAttention"),"Verified active materials did not clear stale recovery");
+                File.Delete(Path.Combine(root,"material-active"));Set(form,"appearanceNeedsAttention",true);Call(form,"ShowAppearance");WaitUpdate(form);
+                File.WriteAllText(Path.Combine(root,"fail"),"fixture");Click(Field<Control>(form,"appearancePage"),"Retry");WaitUpdate(form);Page(form,"appearancePage");Need(apply.Enabled&&Field<Label>(form,"appearanceStatus").Text.Contains("Current appearance is unchanged"),"Unavailable source did not remain actionable on appearance page");Snapshot(form,output,"appearance-unavailable");File.Delete(Path.Combine(root,"fail"));
+                Escape(form);Page(form,"homePage");Need(!Field<bool>(form,"addingCharacters"),"Recovery Back entered Characters or setup");Call(form,"ShowAppearance");WaitUpdate(form);
+                File.Delete(Path.Combine(root,"finish"));Click(Field<Control>(form,"appearancePage"),"Retry");Page(form,"progressPage");Need(!Field<bool>(form,"installSteps")&&Field<bool>(form,"cancellationAvailable"),"Appearance operation used full setup steps or lost cancel");Snapshot(form,output,"appearance-progress");Call(form,"CancelOperation");WaitUpdate(form);Page(form,"appearancePage");Need(Field<Label>(form,"appearanceStatus").Text.Contains("canceled"),"Appearance cancel was not explained");
                 foreach(var command in commands)Need(command[0].StartsWith("appearance-")&&!command.Contains("--sm64")&&!command.Contains("--rom")&&!command.Contains("--assets"),"Appearance action invoked full setup/import");
-                Need(File.ReadAllText(UpdatePreferences.PathFor(root))==preferences,"Appearance changed launcher settings");Escape(form);Page(form,"extrasPage");form.Close();
+                Need(File.ReadAllText(UpdatePreferences.PathFor(root))==preferences,"Appearance changed launcher settings");Escape(form);Page(form,"homePage");form.Close();
             }
         }
         static void InstalledRoutes(LauncherForm form,string output){
@@ -439,6 +446,7 @@ namespace SuperRocket64 {
             Need(navigation[2].Text=="CHARACTERS"&&navigation[2].AccessibleName=="CHARACTERS"&&Field<bool>(form,"addingCharacters"),"Verified installation did not transform Setup into Characters");
             Need(((ConceptCheckBox)Field<CheckBox[]>(form,"extraChoices")[0]).DisplayText=="Link \u00b7 Ocarina of Time","Characters text has an encoding artifact");
             Need(!Field<RadioButton>(form,"extrasNo").Visible&&!Field<RadioButton>(form,"extrasYes").Visible&&TextControl(Field<Control>(form,"extrasPage"),"Characters").Visible,"Installed Characters retained wizard controls/title");
+            Need(Button(Field<Control>(form,"extrasPage"),"Car appearance")==null,"Installed Characters retained the routine appearance button");
             Dpi(form,96);form.ClientSize=new Size(1536,1024);Field<Label>(form,"notice").Text="";Snapshot(form,output,"installed-characters");
             Escape(form);Page(form,"homePage");Need(Field<Button>(form,"setupRepair").Text=="Repair installation","Installed repair action is not explicit");Snapshot(form,output,"installed-play");
             navigation[2].PerformClick();Application.DoEvents();Page(form,"extrasPage");Need(Field<bool>(form,"addingCharacters"),"Characters tab reopened base wizard");

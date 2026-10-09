@@ -11,8 +11,9 @@ hashes must match. The wheel package is not required when the installed geometry
 is verified. Missing sources, unsupported versions, insufficient storage or a
 failed conversion leave the known working geometry untouched and keep Play
 available. Only then does Play show **Finish car appearance**, which opens the
-source/retry page. **Characters > Car appearance** remains a compact route to
-retry or revert. No source location is written to new preferences.
+source/retry page. **Retry** is offered only on that recovery path, and success
+returns to Play and removes the prompt. Normal Play and Characters have no
+appearance upgrade/revert controls. No source location is written to new preferences.
 
 `appearance-migrate` is distinct from read-only `wizard-status` and
 `appearance-status`. Startup defers migration if a game is active. The helper
@@ -30,9 +31,9 @@ Only these files are activated under
 - `chassis.png`
 - `manifest.json`
 
-**Revert appearance** atomically renames that validated directory to
+The internal `appearance-undo` command atomically renames that validated directory to
 `materials.disabled`. This archive is also the explicit previous-appearance
-choice: later startup and setup preserve it. **Use improved appearance** moves
+choice: later startup and setup preserve it. Internal `appearance-apply` moves
 the verified archive back without a source or download. The operation rejects
 extra files, redirected paths, modified materials and conflicting archives,
 rather than overwrite possible customization. It never rewrites setup inventory,
@@ -44,7 +45,9 @@ material schema, canonical profile SHA-256 and the bundled engine SHA-256.
 the engine bytes before conversion and immediately before activation. Release
 integration must keep this field, the helper, its CLI routing and the UI together,
 and build/test the engine with the corresponding material renderer. A UI-only
-rebuild around an older unchanged payload is insufficient.
+rebuild around an older payload without that capability is insufficient. This
+button cleanup retains the complete v0.2.22 engine and migration behavior; only
+one helper log message changes to remove a reference to the deleted menu route.
 
 Regression commands:
 

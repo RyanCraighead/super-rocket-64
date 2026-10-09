@@ -246,6 +246,21 @@ class AppearanceTests(unittest.TestCase):
         self.mocks[2].assert_not_called()
         self.mocks[3].assert_not_called()
 
+    def test_later_starts_reuse_successful_conversion_without_source_or_download(self):
+        self.assertTrue(appearance.migrate(self.args, self.api)['active'])
+        before = {p.name: (p.read_bytes(), p.stat().st_mtime_ns) for p in self.active.iterdir()}
+        self.mocks[2].reset_mock()
+        self.mocks[3].reset_mock()
+        self.args.game = None
+        with patch('wizard_setup.discover', side_effect=AssertionError('Must reuse active materials')):
+            for _ in range(3):
+                result = appearance.migrate(self.args, self.api)
+                self.assertTrue(result['active'])
+                self.assertFalse(result['needs_attention'])
+        self.assertEqual({p.name: (p.read_bytes(), p.stat().st_mtime_ns) for p in self.active.iterdir()}, before)
+        self.mocks[2].assert_not_called()
+        self.mocks[3].assert_not_called()
+
     def test_failed_automatic_conversion_keeps_previous_appearance(self):
         self.mocks[3].side_effect = ValueError('conversion failed')
         result = appearance.migrate(self.args, self.api)

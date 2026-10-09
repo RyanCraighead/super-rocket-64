@@ -28,7 +28,7 @@ namespace SuperRocket64 {
         private readonly FlowLayoutPanel appearancePage = NewPage();
         private readonly TextBox appearanceSource = new TextBox();
         private readonly Label appearanceStatus = new Label { AutoSize = true };
-        private Button appearanceApply, appearanceUndo;
+        private Button appearanceApply;
         internal bool AutoAppearanceMigration = true;
         private bool appearanceMigrationPending, appearanceNeedsAttention;
         private Action appearanceCompletion;
@@ -86,9 +86,8 @@ namespace SuperRocket64 {
             AddPageText(appearancePage, "Car appearance", "Improved Octane body textures and dark windows.");
             appearancePage.Controls.Add(appearanceStatus);
             AddPath(appearancePage, "Rocket League folder", appearanceSource, false);
-            appearanceApply=AddButton(appearancePage, "Use improved appearance", delegate { RunAppearance("appearance-apply"); });
-            appearanceUndo=AddButton(appearancePage, "Revert appearance", delegate { RunAppearance("appearance-undo"); });
-            AddButton(appearancePage, "Back", ShowAddCharacters);
+            appearanceApply=AddButton(appearancePage, "Retry", delegate { RunAppearance("appearance-apply"); });
+            AddButton(appearancePage, "Back", delegate { ShowPage(homePage); });
             pageHost.Controls.Add(appearancePage);
             InitializeSourceValidation();
         }
@@ -115,8 +114,9 @@ namespace SuperRocket64 {
         }
         private void ShowAppearance(){
             Guard.Need(installationReady,"Finish the base setup first.");
-            addingCharacters=true;appearanceStatus.Text="Checking local car materials...";
-            appearanceApply.Enabled=appearanceUndo.Enabled=false;notice.Text="";ShowPage(appearancePage);
+            if(!appearanceNeedsAttention){ShowPage(homePage);return;}
+            addingCharacters=false;appearanceStatus.Text="Checking local car materials...";
+            appearanceApply.Enabled=false;notice.Text="";ShowPage(appearancePage);
             RunAppearance("appearance-status");
         }
         private void RunAppearance(string action){
@@ -127,11 +127,11 @@ namespace SuperRocket64 {
         private bool AppearanceFlag(string name){object value;return lastReport.TryGetValue(name,out value)&&value is bool&&(bool)value;}
         private void CompleteAppearance(){
             object value;appearanceStatus.Text=lastReport.TryGetValue("message",out value)?Convert.ToString(value):"Could not read car appearance status.";
-            appearanceApply.Enabled=AppearanceFlag("can_apply");appearanceUndo.Enabled=AppearanceFlag("can_undo");
+            appearanceApply.Enabled=AppearanceFlag("can_apply");
             appearanceSource.Enabled=!AppearanceFlag("active")&&!AppearanceFlag("reusable")&&appearanceApply.Enabled;
             if(String.IsNullOrWhiteSpace(appearanceSource.Text)&&lastReport.TryGetValue("source",out value))appearanceSource.Text=Convert.ToString(value);
             appearanceNeedsAttention=!AppearanceFlag("active")&&!AppearanceFlag("reusable");
-            notice.Text="";ShowPage(appearancePage);
+            notice.Text="";ShowPage(appearanceNeedsAttention?appearancePage:homePage);
         }
         private void AppearanceFailed(string message){appearanceStatus.Text=message;notice.Text="";ShowPage(appearancePage);}
         private void ShowAddCharacters(){

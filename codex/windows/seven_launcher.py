@@ -160,7 +160,7 @@ def prepare_car_materials(args, target, root=ROOT):
     except (ValueError, OSError, KeyError, TypeError):
         pass
     if old.private_path(target, 'octane-model/materials.disabled').exists():
-        print('Previous car appearance choice retained. Change it in Characters > Car appearance.', flush=True)
+        print('Previous car appearance choice retained.', flush=True)
         return
     if not args.game:
         return  # Existing cached models remain playable without re-extraction.
