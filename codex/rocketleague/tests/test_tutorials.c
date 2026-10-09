@@ -150,7 +150,7 @@ int main(int argc,char **argv){
             begin(levels[which],ids[which]);int pages=0;while(gDialogID!=DIALOG_NONE&&pages<20){page();pages++;}CHECK(gDialogID==DIALOG_NONE&&pages<20);
         }
     }
-    rocket_bindings_reset();family=SDL_CONTROLLER_TYPE_PS4;begin(LEVEL_BOB,DIALOG_000);page();page();snapshot(argv[1],"first-world-coins");
+    rocket_bindings_reset();family=SDL_CONTROLLER_TYPE_PS4;begin(LEVEL_BOB,DIALOG_000);page();snapshot(argv[1],"first-world-coins");
     CHECK(strstr(decoded(rocket_tutorial_dialog(&original)->str),"each add 5"));
     boostMode=ROCKET_BOOST_INFINITE;surfaceMode=ROCKET_SURFACES_CAR;render();CHECK(strstr(decoded(rocket_tutorial_dialog(&original)->str),"Infinite boost"));CHECK(strstr(decoded(rocket_tutorial_dialog(&original)->str),"normal car grip"));
     begin(LEVEL_WF,DIALOG_030);snapshot(argv[1],"whomp-four-wheels");CHECK(strstr(decoded(rocket_tutorial_dialog(&original)->str),"four wheels"));

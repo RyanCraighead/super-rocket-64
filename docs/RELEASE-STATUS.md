@@ -1,5 +1,23 @@
 # Verification and limitations
 
+## v0.2.24: focused level tutorial text
+
+Bob-omb Battlefield omits the repeated jump/flip/double-jump lesson and unrelated
+spike warning. Whomp's Fortress omits step-by-step jump-button instructions while
+retaining exposed-back flip/fast nose-down boosted-dive guidance. Existing small
+Whomp four-wheel contact and King Whomp's one-hit-per-fall behavior are described;
+no boss mechanic, damage, physics, control, save or network behavior changes.
+
+The entire courtyard welcome/control/options block is byte-identical to v0.2.23,
+including its Jump binding and completed one-time Lakitu flow. Coin/boost modes,
+surfaces, powerslide and other combat guidance remain. Only two tutorial source/
+test paths plus release metadata change. Actual SDL/native tutorial tests,
+existing Whomp mechanics and welcome regressions, a rebuilt public Windows
+engine, final package/upgrade and previous-updater checks validate the release.
+Accepted visuals and launcher UI are unchanged. Physical-controller and live
+gameplay acceptance are not newly performed; prior compatibility limits remain.
+
+
 ## v0.2.23: appearance cleanup and fresh car welcome
 
 Normal Play and Characters no longer offer routine appearance upgrade/revert

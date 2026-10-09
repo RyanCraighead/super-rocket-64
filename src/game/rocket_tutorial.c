@@ -155,16 +155,15 @@ int rocket_tutorial_text(int dialog,int lines,uint8_t text[ROCKET_TUTORIAL_CAPAC
         action[RA_THROTTLE],action[RA_BRAKE],steer,action[RA_JUMP],action[RA_BOOST],action[RA_CAMERA],pause,options,
         device==CONTROLLER_PROMPT_KEYBOARD?"Rebind keys here.\nCamera: Extra binds, Y.":"Car Controller to rebind.");
     else if(bob) length=snprintf(draft,sizeof draft,
-        "Land on Goombas from\nabove. Avoid spikes!\nAt supersonic speed you\ncan also ram Goombas\nand Bob-ombs.\f"
-        "Jump: %s\nRelease and press again\nwith steering to flip.\nCenter steering for a\ndouble jump. The second\njump has a time limit.\f"
+        "Land on Goombas from\nabove.\nAt supersonic speed you\ncan also ram Goombas\nand Bob-ombs.\f"
         "Coin only boost:\nYellow, red and blue coins\neach add 5, up to 100.\nBoost: %s\n%s\f"
-        "%s\nPowerslide: %s.\nEase off before turns.",action[RA_JUMP],action[RA_BOOST],
+        "%s\nPowerslide: %s.\nEase off before turns.",action[RA_BOOST],
         rocket_boost_mode()==ROCKET_BOOST_INFINITE?"Mode: Infinite boost.":"Mode: Coin only.",
         rocket_surface_native(rocket_surface_mode())?"Native surfaces:\nIce and slick slopes\nreduce grip.":"Octane surfaces:\nIce uses normal car grip.",action[RA_SLIDE]);
     else length=snprintf(draft,sizeof draft,
         "Let a Whomp fall flat.\nGet on its exposed back.\nRest all four wheels on\nits back to beat a small\nWhomp.\f"
         "King Whomp takes one hit\nper fall. Let him fall\nagain, then hit the back.\nRepeat until he is beaten.\f"
-        "Flip into the back:\nJump: %s, then release.\nSteer and jump again.\nOr dive nose-down fast\nwith boost into the back.\nBoost: %s.",action[RA_JUMP],action[RA_BOOST]);
+        "Hit the exposed back\nwith a flip or a fast\nnose-down boosted dive.\nBoost: %s.",action[RA_BOOST]);
     if(length<0||length>=(int)sizeof draft)return 0;
     return wrap(draft,lines,text);
 }
