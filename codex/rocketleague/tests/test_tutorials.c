@@ -8,6 +8,7 @@
 static SDL_GameControllerType family=SDL_CONTROLLER_TYPE_PS4;
 SDL_GameControllerType tutorial_device_type(SDL_GameController *controller){assert(controller);return family;}
 #include "game/hardcoded.h"
+#include "game/character_switch.h"
 #include "game/level_info.h"
 #include "game/camera.h"
 #include "game/segment2.h"
@@ -173,6 +174,8 @@ int main(int argc,char **argv){
     // No edits to unrelated dialogs, classic Mario, Lua text or replacement tables.
     gCurrLevelNum=LEVEL_WF;CHECK(!rocket_tutorial_text(DIALOG_000,6,text));CHECK(!rocket_tutorial_text(DIALOG_115,6,text));CHECK(!rocket_tutorial_text(DIALOG_COUNT,6,text));
     gCLIOpts.rocketCar=false;CHECK(!rocket_tutorial_text(DIALOG_030,6,text));gCLIOpts.rocketCar=true;
+    gCLIOpts.characterWheel=true;wheel_enabled=1;car_selected=0;CHECK(!rocket_tutorial_text(DIALOG_030,6,text));
+    car_selected=1;CHECK(rocket_tutorial_text(DIALOG_030,6,text));gCLIOpts.characterWheel=false;wheel_enabled=0;
     original.replaced=true;gDialogID=DIALOG_030;CHECK(rocket_tutorial_dialog(&original)==&original);original.replaced=false;
     gLastDialogResponse=1;CHECK(rocket_tutorial_dialog(&original)==&original);gLastDialogResponse=0;
     inverted=1;begin(LEVEL_WF,DIALOG_030);for(int i=0;i<15&&gDialogID!=DIALOG_NONE;i++){page();}

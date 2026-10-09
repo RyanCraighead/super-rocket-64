@@ -6,6 +6,7 @@
 #include "area.h"
 #include "dialog_ids.h"
 #include "level_table.h"
+#include "character_switch.h"
 #include "pc/cliopts.h"
 #include "pc/configfile.h"
 #include "pc/rocket_bindings.h"
@@ -129,6 +130,7 @@ int rocket_tutorial_page_start(const uint8_t *text,int page,int lines) {
 }
 int rocket_tutorial_text(int dialog,int lines,uint8_t text[ROCKET_TUTORIAL_CAPACITY]) {
     if((!gCLIOpts.rocketCar&&!gCLIOpts.characterNet)||dialog<0||dialog>=DIALOG_COUNT||lines<1||lines>8)return 0;
+    if(gCLIOpts.characterWheel && (!character_switch_enabled() || character_switch_active()!=CHARACTER_OCTANE))return 0;
     int welcome=gCurrLevelNum==LEVEL_CASTLE_GROUNDS&&dialog==gBehaviorValues.dialogs.LakituIntroDialog;
     int bob=gCurrLevelNum==LEVEL_BOB&&dialog==DIALOG_000;
     int whomp=gCurrLevelNum==LEVEL_WF&&(dialog==DIALOG_030||dialog==gBehaviorValues.dialogs.KingWhompDialog);

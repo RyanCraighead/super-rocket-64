@@ -5,6 +5,9 @@
  * TODO: Processing order relative to bhvCloud
  */
 
+#include "game/rocket_welcome.h"
+#include "game/rocket_adapter.h"
+
 static u8 lakituTargetLocalIndex = UNKNOWN_LOCAL_INDEX;
 
 static u8 bhv_camera_lakitu_ignore_if_true(void) {
@@ -28,12 +31,14 @@ static void bhv_camera_lakitu_on_received_post(u8 localIndex) {
  * Spawn cloud if not the intro lakitu.
  */
 void bhv_camera_lakitu_init(void) {
+    rocket_welcome_reset(o);
     if (o->oBehParams2ndByte != CAMERA_LAKITU_BP_FOLLOW_CAMERA) {
         // Despawn unless this is the very beginning of the game
-        if (!gNeverEnteredCastle) {
+        if (!gNeverEnteredCastle && !rocket_welcome_pending()) {
             obj_mark_for_deletion(o);
             return;
         }
+        if (!gNeverEnteredCastle) { o->header.gfx.node.flags |= GRAPH_RENDER_INVISIBLE; }
     } else {
         spawn_object_relative_with_scale(CLOUD_BP_LAKITU_CLOUD, 0, 0, 0, 2.0f, o, MODEL_MIST, bhvCloud);
     }
@@ -70,6 +75,19 @@ static void camera_lakitu_intro_act_trigger_cutscene(void) {
     if (!marioState) { return; }
     struct Object* player = marioState->marioObj;
 
+    if (rocket_welcome_pending() && rocket_adapter_car_selected()) {
+        if (rocket_welcome_ready(&gMarioStates[0], o)
+            && set_mario_npc_dialog(&gMarioStates[0], 2, camera_lakitu_intro_act_show_dialog_continue_dialog) == 1) {
+            rocket_welcome_started(o);
+            o->header.gfx.node.flags &= ~GRAPH_RENDER_INVISIBLE;
+            o->oAction = CAMERA_LAKITU_INTRO_ACT_SPAWN_CLOUD;
+        }
+        return;
+    }
+    // A retained car welcome must not undo another character's skip-intro setting.
+    rocket_welcome_ready(NULL, o);
+    if (!gNeverEnteredCastle) { return; }
+
     //! These bounds are slightly smaller than the actual bridge bounds, allowing
     //  the RTA speedrunning method of lakitu skip
     if (player->oPosX > -544.0f && player->oPosX < 545.0f && player->oPosY > 800.0f
@@ -92,6 +110,7 @@ static void camera_lakitu_intro_act_spawn_cloud(void) {
         o->oPosX = 1800.0f;
         o->oPosY = 2400.0f;
         o->oPosZ = -2400.0f;
+        rocket_welcome_spawn(o);
 
         o->oMoveAnglePitch = 0x4000;
         o->oCameraLakituSpeed = 60.0f;
@@ -105,6 +124,7 @@ static void camera_lakitu_intro_act_spawn_cloud(void) {
  * Circle down to mario, show the dialog, then fly away.
  */
 static void camera_lakitu_intro_act_show_dialog(void) {
+    rocket_welcome_observe(o);
     struct MarioState* marioState = nearest_mario_state_to_object(o);
     if (lakituTargetLocalIndex != UNKNOWN_LOCAL_INDEX) {
         marioState = &gMarioStates[lakituTargetLocalIndex];
@@ -181,6 +201,7 @@ static void camera_lakitu_intro_act_show_dialog(void) {
             }
         } else if (marioState && should_start_or_continue_dialog(marioState, o) && cur_obj_update_dialog_with_cutscene(&gMarioStates[0], 2, DIALOG_UNK2_FLAG_0, CUTSCENE_DIALOG, gBehaviorValues.dialogs.LakituIntroDialog, camera_lakitu_intro_act_show_dialog_continue_dialog) != 0) {
             o->oCameraLakituFinishedDialog = TRUE;
+            rocket_welcome_finished(o);
         }
     }
 

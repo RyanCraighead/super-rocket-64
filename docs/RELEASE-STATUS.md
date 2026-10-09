@@ -1,21 +1,28 @@
 # Verification and limitations
 
-## v0.2.23: automatic appearance without routine controls
+## v0.2.23: appearance cleanup and fresh car welcome
 
-Normal Play and Characters no longer offer appearance upgrade/revert controls.
-Compatible materials are still added automatically during startup/setup and
-reused on later starts without repeating conversion, download or source discovery.
-Finish car appearance appears only after a migration problem; its recovery page
-offers Retry and Back. Success or already-active materials return to Play and
-clear the prompt. Existing warnings, source selection, cancellation, game guards
-and internal rollback/reapply remain intact, including an explicit reverted choice.
+Normal Play and Characters no longer offer routine appearance upgrade/revert
+controls. Automatic startup/setup migration and verified material reuse remain.
+Finish car appearance appears only after a migration problem; Retry/Back provide
+recovery, and success or already-active materials return to Play and clear it.
+Warnings, source selection, cancellation, game guards and internal rollback stay.
+The accepted car renderer/material profile and physics are unchanged.
 
-The accepted car visuals, material converter/profile and gameplay engine are
-unchanged from v0.2.22. Fresh launcher UI, material idempotence, persistence,
-package and upgrade checks validate this focused cleanup. Physical monitor
-transitions and live gameplay are not newly tested. Fresh-game Lakitu work is
-not part of this completed launcher checkpoint.
+An unused offline car-capable save slot retains the courtyard Lakitu despite
+the launcher's skip-intro setting. Once the selected car settles safely on dry
+ground for 15 simulation frames, Lakitu uses native flight, NPC dialog and
+departure. Only a displayed, completed dialog commits the native file-exists
+marker through the ordinary checksum/save path. Existing saves, other slots,
+backup saves, online and other-character intro behavior are preserved. No new
+save flag, schema, progress unlock or network field is introduced.
 
+Fresh cumulative Windows build, native Windows/Linux welcome fixtures, actual
+SDL/tutorial tests, related native regressions, launcher UI/material/persistence,
+source/package/upgrade checks validate this release. No live save or installed
+game is changed in testing. Physical-controller, live game-world and physical
+monitor acceptance are not newly performed. Fresh extraction with the unsupported
+newer wheel profile and previous visual approximation limits remain.
 
 ## v0.2.22: automatic installed car appearance migration
 
