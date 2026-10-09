@@ -25,6 +25,13 @@ namespace SuperRocket64 {
         private Action retryAction, skipAction;
         private Button skipOptional, failureBack, retrySetup;
         private FlowLayoutPanel failureReturn;
+        private readonly FlowLayoutPanel appearancePage = NewPage();
+        private readonly TextBox appearanceSource = new TextBox();
+        private readonly Label appearanceStatus = new Label { AutoSize = true };
+        private Button appearanceApply, appearanceUndo;
+        internal bool AutoAppearanceMigration = true;
+        private bool appearanceMigrationPending, appearanceNeedsAttention;
+        private Action appearanceCompletion;
         private bool installationReady;
         private bool addingCharacters;
         private bool repairOverview;
@@ -76,6 +83,13 @@ namespace SuperRocket64 {
             AddButton(failurePage, "Repair program files", RepairProgramFiles);
             AddButton(failurePage, "Close", delegate { Close(); });
             foreach (Control page in new Control[] { locationPage, extrasPage, progressPage, readyPage, failurePage }) pageHost.Controls.Add(page);
+            AddPageText(appearancePage, "Car appearance", "Improved Octane body textures and dark windows.");
+            appearancePage.Controls.Add(appearanceStatus);
+            AddPath(appearancePage, "Rocket League folder", appearanceSource, false);
+            appearanceApply=AddButton(appearancePage, "Use improved appearance", delegate { RunAppearance("appearance-apply"); });
+            appearanceUndo=AddButton(appearancePage, "Revert appearance", delegate { RunAppearance("appearance-undo"); });
+            AddButton(appearancePage, "Back", ShowAddCharacters);
+            pageHost.Controls.Add(appearancePage);
             InitializeSourceValidation();
         }
         private void CancelWizard() { addingCharacters=false; if (installationReady) ShowPage(homePage); else Close(); }
@@ -85,6 +99,41 @@ namespace SuperRocket64 {
             failureText.Text="Verify the existing installation, or repair its program files. Your character assets, saves and settings are retained.";
             retryAction=delegate{InspectInstallation(false);};skipAction=null;skipOptional.Visible=false;notice.Text="";ShowPage(failurePage);
         }
+        private void StartAppearanceMigration(Action completed){
+            if(!AutoAppearanceMigration){if(completed!=null)completed();return;}
+            if(running||gameSessionActive||UpdateGameActive()){appearanceMigrationPending=true;if(completed!=null)completed();return;}
+            appearanceCompletion=completed;appearanceMigrationPending=false;
+            BeginOperation(new List<string>{"appearance-migrate"},true,delegate{FinishAppearanceMigration(null);});
+        }
+        private void FinishAppearanceMigration(string error){
+            appearanceNeedsAttention=error!=null||AppearanceFlag("needs_attention");
+            appearanceMigrationPending=error==null&&AppearanceFlag("deferred");
+            if(error!=null)appearanceStatus.Text=error;
+            else {object value;if(lastReport.TryGetValue("message",out value))appearanceStatus.Text=Convert.ToString(value);}
+            notice.Text="";ShowPage(homePage);
+            Action completed=appearanceCompletion;appearanceCompletion=null;if(completed!=null)completed();
+        }
+        private void ShowAppearance(){
+            Guard.Need(installationReady,"Finish the base setup first.");
+            addingCharacters=true;appearanceStatus.Text="Checking local car materials...";
+            appearanceApply.Enabled=appearanceUndo.Enabled=false;notice.Text="";ShowPage(appearancePage);
+            RunAppearance("appearance-status");
+        }
+        private void RunAppearance(string action){
+            var args=new List<string>{action};
+            if(!String.IsNullOrWhiteSpace(appearanceSource.Text)){args.Add("--game");args.Add(appearanceSource.Text.Trim());}
+            BeginOperation(args,action!="appearance-status",CompleteAppearance);
+        }
+        private bool AppearanceFlag(string name){object value;return lastReport.TryGetValue(name,out value)&&value is bool&&(bool)value;}
+        private void CompleteAppearance(){
+            object value;appearanceStatus.Text=lastReport.TryGetValue("message",out value)?Convert.ToString(value):"Could not read car appearance status.";
+            appearanceApply.Enabled=AppearanceFlag("can_apply");appearanceUndo.Enabled=AppearanceFlag("can_undo");
+            appearanceSource.Enabled=!AppearanceFlag("active")&&!AppearanceFlag("reusable")&&appearanceApply.Enabled;
+            if(String.IsNullOrWhiteSpace(appearanceSource.Text)&&lastReport.TryGetValue("source",out value))appearanceSource.Text=Convert.ToString(value);
+            appearanceNeedsAttention=!AppearanceFlag("active")&&!AppearanceFlag("reusable");
+            notice.Text="";ShowPage(appearancePage);
+        }
+        private void AppearanceFailed(string message){appearanceStatus.Text=message;notice.Text="";ShowPage(appearancePage);}
         private void ShowAddCharacters(){
             if(!installationReady){notice.Text="Finish the base setup first.";ShowSetupPage();return;}
             addingCharacters=true;extrasYes.Checked=true;notice.Text="";ShowPage(extrasPage);
@@ -99,7 +148,7 @@ namespace SuperRocket64 {
         private void CompleteInspection(bool startup) {
                 ApplyReport();
                 if (installationReady) {
-                    if(startup){ShowPage(homePage);ContinueStartupUpdates();}else ShowAddCharacters();
+                    if(startup){ShowPage(homePage);StartAppearanceMigration(ContinueStartupUpdates);}else ShowAddCharacters();
                 }
                 else {
                     sourceStatus.Text = "";
@@ -150,7 +199,7 @@ namespace SuperRocket64 {
         private void FinishWizard(bool play) {
             Guard.Need(readyAuto.Checked || readyManual.Checked, "Choose automatic or manual updates before continuing.");
             SavePreferences(readyAuto.Checked, readyDesktop.Checked, readyMenu.Checked);
-            ShowPage(homePage); if (play) PlayOffline();
+            ShowPage(homePage); StartAppearanceMigration(delegate{if(play)PlayOffline();});
         }
         private void PlayOffline() { BeginOperation(Commands.Play("wheel", "octane", "", 7777, "", mute.Checked), false, null); }
         private void ShowFailure(string message, Action retry, Action skip) { ShowFailure(message, retry, skip, addingCharacters ? extrasPage : setupPage); }

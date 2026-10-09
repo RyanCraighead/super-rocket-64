@@ -11,16 +11,28 @@ set and owned body/chassis diffuse textures. The source material instances
 texture; the next 36,954 use the paint/window/trim texture. Original UV order is
 verified against the complete decoded legacy geometry before accepting it.
 
-Select the installed Rocket League folder in Setup to add these materials to a
-verified cached mesh. This upgrade requires the supported body and Startup
-packages, but does not re-extract the wheel package. The package and decoded
-output hashes are pinned in `codex/windows/rocket-material-profile.json`.
+Verified launcher startup (including after an update) and normal setup completion
+automatically add these materials to a verified cached mesh when compatible local
+Rocket League files are available. The source is discovered from local Epic/Steam
+metadata and checked against the supported body and Startup package hashes; the
+wheel package is not re-extracted. Missing prerequisites or failed conversion
+leave the car playable and show a compact **Finish car appearance** action on Play.
+**Characters > Car appearance** also exposes retry and **Revert appearance**.
+An explicit revert survives later startup and setup; switching back reuses the
+verified material archive without a source or another download.
+
+The package and decoded output hashes are pinned in
+`codex/windows/rocket-material-profile.json`. The release manifest declares the
+tested engine hash, material schema and canonical profile hash; the helper checks
+that pairing before conversion and again before atomic directory activation.
 The pinned UE Viewer runs in hidden export mode against temporary compatibility
 copies. Original installed files, mesh cache, sounds, saves and controls remain
 unchanged. Missing caches, unsupported versions, failed extraction or invalid
-materials keep the legacy car playable. Cancellation preserves existing data;
-a successfully replaced invalid material directory is retained for recovery.
-Setup refuses to add materials while its game launch lock exists.
+materials keep the legacy car playable. The installed-user migration refuses to
+replace changed, customized or unknown material folders. Cancellation preserves
+existing data. Revert atomically archives only the four generated material files;
+geometry, audio, profiles and user settings are never rolled back. Migration is
+deferred while a game/setup is active; the launcher never closes the game.
 
 The renderer samples the original textures and adds compact host lighting and
 view-dependent highlights. Blue paint, dark opaque windows and trim remain
@@ -32,6 +44,7 @@ Physics, authority, snapshots and network formats are unchanged.
 
 Validation commands:
 - `python codex/windows/tests/test_car_materials.py`
+- `python codex/windows/tests/test_car_appearance.py`
 - `bash codex/rocketleague/tests/test_material_render.sh`
 - `python codex/rocketleague/tests/test_metal_shaders.py`
 

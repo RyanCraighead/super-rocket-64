@@ -171,7 +171,7 @@ namespace SuperRocket64 {
             chrome.Controls.Add(minimizeCaption);chrome.Controls.Add(maximizeCaption);chrome.Controls.Add(closeCaption);
             chrome.MouseDown+=delegate(object sender,MouseEventArgs e){if(e.Button==MouseButtons.Left&&e.Y<52*conceptScale){ReleaseCapture();SendMessage(Handle,0xA1,new IntPtr(2),IntPtr.Zero);}};
             chrome.PaintDesign=PaintChrome;
-            BuildHomeConcept();BuildLocationConcept();BuildSettingsConcept();BuildOnlineConcept();BuildSourcesConcept();BuildExtrasConcept();BuildOperationConcepts();
+            BuildHomeConcept();BuildLocationConcept();BuildSettingsConcept();BuildOnlineConcept();BuildSourcesConcept();BuildExtrasConcept();BuildAppearanceConcept();BuildOperationConcepts();
             SizeChanged+=delegate{ArrangeConcept();};notice.TextChanged+=delegate{ArrangeConcept();};cancelOperation.VisibleChanged+=delegate{ArrangeConcept();};pageHost.EnabledChanged+=delegate{foreach(var b in navigation)b.Enabled=pageHost.Enabled;};
             ResumeLayout();ArrangeConcept();
         }
@@ -225,8 +225,11 @@ namespace SuperRocket64 {
             var canvas=Canvas(homePage);var title=CopyLabel("SUPER ROCKET 64",true);
             mute.Visible=false;mute.Checked=false;
             Primary(play);((ConceptButton)play).IconName="play";((ConceptButton)online).IconName="online";((ConceptButton)setup).IconName="setup";
+            var appearanceHelp=CopyLabel("Car appearance needs attention. Choose your local game files or retry.",false);
+            var finishAppearance=AddButton(homePage,"Finish car appearance",ShowAppearance);
             Primary(notifyUpdate);notificationText.BackColor=ConceptTheme.Background;notificationText.ForeColor=ConceptTheme.White;
-            AddLayout(canvas,delegate{setup.Text=installationReady?"Repair installation":"Setup / repair";PageHeight(canvas,660);Place(title,canvas,0,45,1198,92,64);Place(play,canvas,0,214,583,96,33);Place(online,canvas,615,214,583,96,33);Place(characters,canvas,0,340,583,80,28);Place(setup,canvas,615,340,583,80,28);Place(notificationText,canvas,0,490,1198,50,27);Place(notifyUpdate,canvas,0,557,330,66,27);Place(dismissNotification,canvas,350,557,220,66,27);notificationText.Visible=notifyUpdate.Visible=dismissNotification.Visible=notificationVisible;});
+            AddLayout(canvas,delegate{setup.Text=installationReady?"Repair installation":"Setup / repair";PageHeight(canvas,660);Place(title,canvas,0,45,1198,92,64);Place(play,canvas,0,214,583,96,33);Place(online,canvas,615,214,583,96,33);Place(characters,canvas,0,340,583,80,28);Place(setup,canvas,615,340,583,80,28);Place(notificationText,canvas,0,490,1198,50,27);Place(notifyUpdate,canvas,0,557,330,66,27);Place(dismissNotification,canvas,350,557,220,66,27);notificationText.Visible=notifyUpdate.Visible=dismissNotification.Visible=notificationVisible;
+                Place(appearanceHelp,canvas,0,notificationVisible?668:490,1198,52,24);Place(finishAppearance,canvas,0,notificationVisible?735:557,499,66,26);appearanceHelp.Visible=finishAppearance.Visible=appearanceNeedsAttention;PageHeight(canvas,appearanceNeedsAttention&&notificationVisible?820:660);});
         }
         private void BuildLocationConcept() {
             Button browse=FindButton(install.Parent,"Browse..."),next=FindButton(locationPage,"Next"),cancel=FindButton(locationPage,"Cancel");var field=new ConceptField(install);var canvas=Canvas(locationPage);

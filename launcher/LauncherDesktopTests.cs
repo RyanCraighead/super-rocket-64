@@ -158,7 +158,7 @@ namespace SuperRocket64 {
                     Field<Button>(form,"refreshAddresses").Enabled=false;
                     Field<Label>(form,"addressStatus").Text="Test fixture: use a reachable LAN or existing Tailscale address.";
                     var transport = FakeUpdateTransport.New("0.3.0", Encoding.ASCII.GetBytes("synthetic update"));
-                    form.UpdateTransport = transport;
+                    form.AutoAppearanceMigration=false;form.UpdateTransport = transport;
                     // Seed only this synthetic root so real running games need not be stopped.
                     string fixtureRoot=Field<TextBox>(form,"install").Text;
                     // This deliberately incomplete version directory exercises
@@ -263,7 +263,7 @@ namespace SuperRocket64 {
                     form.ClientSize=new Size(1280,720);AllPagesFit(form,output,"wide");
                     AssertSeparate(expected);form.Close();
                 }
-                Lifecycle(output);
+                Lifecycle(output);AppearanceFlows(output);AutomaticAppearanceFlows(output);
                 File.WriteAllText(Path.Combine(output,"ui-result.json"),new JavaScriptSerializer().Serialize(new{passed=true,checks=checks,separate_desktop=expected,input_desktop=InputDesktop(),game_started=false,helper_started=
                     false
                 ,synthetic_operation_children_started=true,address_detection_used=false,dpi_message_scales=new[]{96,120,144,192},real_monitor_switch_tested=false}));return 0;
@@ -278,6 +278,16 @@ namespace SuperRocket64 {
                 File.WriteAllText(Path.Combine(root,"game-running"),"ready");
                 try{var watch=Stopwatch.StartNew();while(!File.Exists(Path.Combine(root,"stop"))&&watch.ElapsedMilliseconds<30000)Thread.Sleep(20);}
                 finally{File.Delete(Path.Combine(root,"game-running"));}
+            }else if(mode.StartsWith("appearance-")){
+                if(mode!="appearance-status"&&mode!="appearance-migrate"){
+                    var watch=Stopwatch.StartNew();while(!File.Exists(Path.Combine(root,"finish"))&&watch.ElapsedMilliseconds<12000){if(File.Exists(cancel))return 130;Thread.Sleep(20);}
+                    if(File.Exists(Path.Combine(root,"fail"))){Console.Error.WriteLine("Stopped: This Rocket League folder is missing supported packages. Current appearance is unchanged.");return 2;}
+                    if(mode=="appearance-apply"){File.WriteAllText(Path.Combine(root,"material-active"),"fixture");File.Delete(Path.Combine(root,"material-saved"));}
+                    else{File.Delete(Path.Combine(root,"material-active"));File.WriteAllText(Path.Combine(root,"material-saved"),"fixture");}
+                }
+                if(mode=="appearance-migrate"&&!File.Exists(Path.Combine(root,"material-saved"))&&!File.Exists(Path.Combine(root,"missing-source")))File.WriteAllText(Path.Combine(root,"material-active"),"auto fixture");
+                bool active=File.Exists(Path.Combine(root,"material-active")),reusable=File.Exists(Path.Combine(root,"material-saved"));
+                Console.WriteLine(new JavaScriptSerializer().Serialize(new{needs_attention=File.Exists(Path.Combine(root,"missing-source")),deferred=false,active=active,reusable=reusable,can_apply=!active,can_undo=active,source="C:\\Synthetic owned Rocket League",message=active?"Improved body textures and dark windows are active. Revert restores the previous plain appearance.":reusable?"You chose the previous appearance. Switch back to reuse your verified textures without a source or download.":"Supported local textures found. Ready to upgrade the car appearance."}));
             }else if(mode=="setup"){
                 var watch=Stopwatch.StartNew();while(!File.Exists(Path.Combine(root,"finish"))&&watch.ElapsedMilliseconds<12000){if(File.Exists(cancel))return 130;Thread.Sleep(20);}
                 if(File.Exists(Path.Combine(root,"fail")))return 8;
@@ -286,7 +296,7 @@ namespace SuperRocket64 {
             return 0;
         }
         static LauncherForm OperationForm(string root,List<List<string>> commands){
-            var form=new LauncherForm(root);form.UpdateGameActive=delegate{return File.Exists(Path.Combine(root,"game-running"));};
+            var form=new LauncherForm(root);form.AutoAppearanceMigration=false;form.UpdateGameActive=delegate{return File.Exists(Path.Combine(root,"game-running"));};
             form.UpdateTransport=FakeUpdateTransport.New("0.3.0",new byte[]{1,2,3});
             form.PrepareProgramFiles=delegate(string path,Action<string> log){return root;};
             form.GameStarted=delegate(string path,DateTime started){return File.Exists(Path.Combine(root,"game-running"));};
@@ -369,6 +379,55 @@ namespace SuperRocket64 {
                 Set(form,"running",true);Set(form,"operationGeneration",40);Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"progressPage"));Call(form,"MeasuredProgress",40,"Measured fixture",25L,100L);
                 var bar=Field<ProgressBar>(form,"progress");Need(bar.Style==ProgressBarStyle.Continuous&&bar.Value==250,"Measured 25/100 did not produce 25%");Snapshot(form,output,"measured-progress-fixture");
                 Call(form,"MeasuredProgress",39,"Stale",99L,100L);Need(bar.Value==250,"Stale progress changed current operation");Call(form,"MeasuredProgress",40,"Unknown phase",0L,0L);Need(bar.Style==ProgressBarStyle.Marquee,"Unknown phase retained percentage");Call(form,"ClearBusy");Need(!bar.Visible&&bar.Value==0,"Completion retained progress");form.Close();
+            }
+        }
+        static void AutomaticAppearanceFlows(string output){
+            foreach(bool missing in new[]{false,true}){
+                string root=Path.Combine(output,missing?"auto-appearance-missing":"auto-appearance-compatible");Directory.CreateDirectory(root);
+                if(missing)File.WriteAllText(Path.Combine(root,"missing-source"),"fixture");
+                var commands=new List<List<string>>();using(var form=OperationForm(root,commands)){
+                    form.AutoAppearanceMigration=true;new UpdatePreferences{AutomaticChecks=false,Configured=true}.Save(root);
+                    string prefs=File.ReadAllText(UpdatePreferences.PathFor(root));commands.Clear();Set(form,"lastReport",Report(true,true,"octane"));Call(form,"CompleteInspection",true);WaitUpdate(form);Page(form,"homePage");
+                    Need(commands.Count==1&&commands[0][0]=="appearance-migrate","Normal installed startup did not migrate appearance automatically");
+                    Need(Field<bool>(form,"appearanceNeedsAttention")==missing,"Automatic appearance prompt is not prerequisite-specific");
+                    Need(Button(Field<Control>(form,"homePage"),"Finish car appearance").Visible==missing,"Unnecessary appearance prompt on compatible installation");
+                    Snapshot(form,output,missing?"auto-appearance-needs-source":"auto-appearance-complete");
+                    if(missing){
+                        foreach(int dpi in new[]{96,120,144,192}){Dpi(form,dpi);ControlsFit(Field<Control>(form,"homePage"),Field<Panel>(form,"pageHost"));Reach(form,Button(Field<Control>(form,"homePage"),"Finish car appearance"));}
+                        Dpi(form,96);form.ClientSize=new Size(960,640);Set(form,"notificationVisible",true);Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"homePage"));ControlsFit(Field<Control>(form,"homePage"),Field<Panel>(form,"pageHost"));Snapshot(form,output,"appearance-and-update-prompt-minimum");Set(form,"notificationVisible",false);
+                        Click(Field<Control>(form,"homePage"),"Finish car appearance");WaitUpdate(form);Page(form,"appearancePage");Escape(form);Page(form,"extrasPage");}
+                    else{
+                        File.Delete(Path.Combine(root,"material-active"));File.WriteAllText(Path.Combine(root,"material-saved"),"user chose revert");
+                        Call(form,"StartAppearanceMigration",(Action)null);WaitUpdate(form);Need(!File.Exists(Path.Combine(root,"material-active"))&&!Field<bool>(form,"appearanceNeedsAttention"),"Normal startup overwrote explicit revert choice");
+                        File.Delete(Path.Combine(root,"material-saved"));File.WriteAllText(Path.Combine(root,"game-running"),"fixture");int count=commands.Count;
+                        Call(form,"StartAppearanceMigration",(Action)null);Need(commands.Count==count&&Field<bool>(form,"appearanceMigrationPending"),"Automatic migration touched running game");File.Delete(Path.Combine(root,"game-running"));
+                        Call(form,"StartAppearanceMigration",(Action)null);WaitUpdate(form);Need(File.Exists(Path.Combine(root,"material-active")),"Deferred appearance did not migrate when idle");
+                    }
+                    Need(File.ReadAllText(UpdatePreferences.PathFor(root))==prefs,"Automatic migration changed preferences");form.Close();
+                }
+            }
+        }
+        static void AppearanceFlows(string output){
+            string root=Path.Combine(output,"appearance-flow");Directory.CreateDirectory(root);File.WriteAllText(Path.Combine(root,"finish"),"done");
+            var commands=new List<List<string>>();using(var form=OperationForm(root,commands)){
+                new UpdatePreferences{AutomaticChecks=false,Configured=true}.Save(root);string preferences=File.ReadAllText(UpdatePreferences.PathFor(root));
+                Call(form,"ShowAddCharacters");Reach(form,Button(Field<Control>(form,"extrasPage"),"Car appearance"));Click(Field<Control>(form,"extrasPage"),"Car appearance");WaitUpdate(form);Page(form,"appearancePage");
+                Need(commands.Count==1&&commands[0][0]=="appearance-status","Appearance entry changed assets or ran full setup");
+                var apply=Field<Button>(form,"appearanceApply");var undo=Field<Button>(form,"appearanceUndo");var source=Field<TextBox>(form,"appearanceSource");
+                Need(apply.Enabled&&!undo.Enabled&&source.Enabled&&source.Text.Contains("Synthetic"),"Material source/status mapping failed");
+                form.ClientSize=new Size(1536,1024);Snapshot(form,output,"appearance-ready");
+                foreach(int dpi in new[]{96,120,144,192}){Dpi(form,dpi);ControlsFit(Field<Control>(form,"appearancePage"),Field<Panel>(form,"pageHost"));Reach(form,apply);Snapshot(form,output,"appearance-dpi-"+dpi);}
+                Dpi(form,96);form.ClientSize=new Size(960,640);ControlsFit(Field<Control>(form,"appearancePage"),Field<Panel>(form,"pageHost"));Snapshot(form,output,"appearance-minimum");
+                File.WriteAllText(Path.Combine(root,"game-running"),"fixture");int before=commands.Count;apply.PerformClick();Application.DoEvents();Need(commands.Count==before&&Field<Label>(form,"notice").Text.Contains("Close the game normally"),"Appearance change ignored active game");File.Delete(Path.Combine(root,"game-running"));
+                form.ClientSize=new Size(1536,1024);Click(Field<Control>(form,"appearancePage"),"Use improved appearance");WaitUpdate(form);Page(form,"appearancePage");Need(!apply.Enabled&&undo.Enabled&&!source.Enabled,"Applied appearance controls are stale");Snapshot(form,output,"appearance-applied");
+                Click(Field<Control>(form,"appearancePage"),"Revert appearance");WaitUpdate(form);Page(form,"appearancePage");Need(apply.Enabled&&!undo.Enabled&&!source.Enabled,"Undo lost reusable-material state");Snapshot(form,output,"appearance-restored");
+                Click(Field<Control>(form,"appearancePage"),"Use improved appearance");WaitUpdate(form);Need(undo.Enabled&&!apply.Enabled,"Reapply failed");
+                Escape(form);Page(form,"extrasPage");Need(Field<bool>(form,"addingCharacters"),"Appearance Back entered wizard");
+                Call(form,"ShowAppearance");WaitUpdate(form);Click(Field<Control>(form,"appearancePage"),"Revert appearance");WaitUpdate(form);
+                File.WriteAllText(Path.Combine(root,"fail"),"fixture");Click(Field<Control>(form,"appearancePage"),"Use improved appearance");WaitUpdate(form);Page(form,"appearancePage");Need(apply.Enabled&&Field<Label>(form,"appearanceStatus").Text.Contains("Current appearance is unchanged"),"Unavailable source did not remain actionable on appearance page");Snapshot(form,output,"appearance-unavailable");File.Delete(Path.Combine(root,"fail"));
+                File.Delete(Path.Combine(root,"finish"));Click(Field<Control>(form,"appearancePage"),"Use improved appearance");Page(form,"progressPage");Need(!Field<bool>(form,"installSteps")&&Field<bool>(form,"cancellationAvailable"),"Appearance operation used full setup steps or lost cancel");Snapshot(form,output,"appearance-progress");Call(form,"CancelOperation");WaitUpdate(form);Page(form,"appearancePage");Need(Field<Label>(form,"appearanceStatus").Text.Contains("canceled"),"Appearance cancel was not explained");
+                foreach(var command in commands)Need(command[0].StartsWith("appearance-")&&!command.Contains("--sm64")&&!command.Contains("--rom")&&!command.Contains("--assets"),"Appearance action invoked full setup/import");
+                Need(File.ReadAllText(UpdatePreferences.PathFor(root))==preferences,"Appearance changed launcher settings");Escape(form);Page(form,"extrasPage");form.Close();
             }
         }
         static void InstalledRoutes(LauncherForm form,string output){

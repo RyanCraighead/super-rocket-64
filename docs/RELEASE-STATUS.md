@@ -1,5 +1,28 @@
 # Verification and limitations
 
+## v0.2.22: automatic installed car appearance migration
+
+Verified startup and setup completion automatically add improved car materials
+when compatible local sources are available. Verified geometry is reused; there
+is no model import, wheel extraction or separate opt-in. Missing prerequisites
+keep the car playable and expose Finish car appearance on Play and Car appearance
+under Characters. The previous installed-user material-upgrade limitation is
+resolved.
+
+Engine/profile/schema pairing, package/source/geometry/material hashes and
+game/setup locks are checked before activation. Active games defer migration.
+Revert appearance atomically archives only four generated material files;
+automatic startup/setup honors that choice. Use improved appearance restores
+verified archived files without a source or download. Customized/unknown files
+are preserved. Saves, controls, audio, geometry, inventory and preferences are
+outside the migration write scope. Gameplay, renderer and env3 remain unchanged.
+
+Fresh UI, material/migration, persistence, package and owned-input checks verify
+the cumulative release. Lighting remains approximate. Physical/game-world and
+live-monitor acceptance remain unperformed; unsupported fresh wheel extraction
+still needs its own compatibility profile.
+
+
 ## v0.2.21: cumulative gameplay and visual refinements
 
 Wing Cap keeps the car in its own physics and positions the cap on its roof.

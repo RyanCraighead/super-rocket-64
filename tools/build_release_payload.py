@@ -25,7 +25,7 @@ for name in ('codex/windows/seven_launcher.py','codex/windows/download_ueviewer.
              'codex/thps/mechanics/air_spin_export_rotations.py','codex/thps/assets/UPSTREAM-MIT.txt',
              'codex/rocketleague/tools/local_aes.py','codex/rocketleague/tools/export_octane.py','codex/rocketleague/tools/convert_octane.py'):
     add(root/name,name)
-for name in ('wizard_setup.py','rocket_audio_setup.py','rocket-audio-profile.json','rocket_material_setup.py','rocket-material-profile.json','vgmstream-r2117.json','engine_setup.py','owned_audio_setup.py','engine_recipe.json','owned-audio-recipe.json','owned_ctl_setup.py','custom_visual_setup.py','source_audio_setup.py'):
+for name in ('car_appearance.py','wizard_setup.py','rocket_audio_setup.py','rocket-audio-profile.json','rocket_material_setup.py','rocket-material-profile.json','vgmstream-r2117.json','engine_setup.py','owned_audio_setup.py','engine_recipe.json','owned-audio-recipe.json','owned_ctl_setup.py','custom_visual_setup.py','source_audio_setup.py'):
     add(root/'codex/windows'/name,'codex/windows/'+name)
 recipe=json.loads((root/'codex/windows/engine_recipe.json').read_text())
 assert all(entry['method'] not in ('seed','audio') for entry in recipe['files'].values()), 'A private full-buffer seed dependency remains'
@@ -77,6 +77,8 @@ Updates ask before downloading; the previous launcher is kept for rollback.
 See licenses/baseline and codex/windows/THIRD_PARTY_NOTICES.txt for attribution.
 '''
 manifest={'schema_version':4,'edition':'super-rocket-64','release_status':'public-preview','upstream_commit':'8cd6e5977d9f920d51ca71f2c61801d019ed79c6','files':{name:{'size':len(data),'sha256':sha(data)} for name,data in sorted(files.items())}}
+material_profile=json.loads((root/'codex/windows/rocket-material-profile.json').read_text(encoding='utf-8'))
+manifest['car_materials']={'schema':material_profile['schema'],'profile_sha256':sha(json.dumps(material_profile,sort_keys=True,separators=(',',':')).encode()),'engine_sha256':sha(files['sm64coopdx.exe'])}
 files['PACKAGE-MANIFEST.json']=(json.dumps(manifest,indent=2)+'\n').encode()
 payload=output/'Payload.zip'
 assert not payload.exists(),'Choose a new output directory'

@@ -421,8 +421,8 @@ namespace SuperRocket64 {
             command.Append(" --data-dir "); command.Append(Quote(Path.GetFullPath(dataDirectory)));
             if (!String.IsNullOrEmpty(cancelFile)) {
                 bool setup = false;
-                foreach (string argument in args) if (argument == "setup") { setup = true; break; }
-                Guard.Need(setup, "Cooperative cancellation is supported for setup only");
+                foreach (string argument in args) { setup = argument == "setup" || argument == "appearance-apply" || argument == "appearance-undo" || argument == "appearance-migrate"; break; }
+                Guard.Need(setup, "Cooperative cancellation is supported for asset changes only");
                 command.Append(" --cancel-file "); command.Append(Quote(Path.GetFullPath(cancelFile)));
             }
             info.Arguments = command.ToString(); info.WorkingDirectory = root;
@@ -723,17 +723,18 @@ namespace SuperRocket64 {
         }
         private void BeginOperation(List<string> args, bool allowCancellation, Action completed) {
             Guard.Need(!running, "Finish the current operation first."); string basePath = install.Text.Trim();
-            bool isPlay=args[0]=="play", isSetup=args[0]=="setup";
+            bool isAppearance=args[0].StartsWith("appearance-",StringComparison.Ordinal);
+            bool isPlay=args[0]=="play", isSetup=args[0]=="setup"||(isAppearance&&args[0]!="appearance-status");
             Guard.Need((!isPlay && !isSetup) || (!gameSessionActive && !UpdateGameActive()), "Close the game normally before starting another game or changing its assets.");
             Installer.Destination(basePath, PayloadInfo.ZipSha256); running = true; cancelRequested = false; activeCancelFile = null;
             gameLaunchPending=isPlay;int generation=++operationGeneration;
             var programCancel=new System.Threading.CancellationTokenSource();programCancellation=programCancel;
             Action<string> operationLog=delegate(string line){OnUi(delegate{if(generation==operationGeneration)Log(line);});};
-            cancellationAvailable = allowCancellation && args.Count > 0 && args[0] == "setup";
-            cancelOperation.Text = "Cancel setup"; pageHost.Enabled = false;
+            cancellationAvailable = allowCancellation && isSetup;
+            cancelOperation.Text = isAppearance ? "Cancel" : "Cancel setup"; pageHost.Enabled = false;
             cancelOperation.Visible = cancellationAvailable; cancelOperation.Enabled = cancellationAvailable;
             progress.Visible=isSetup;progress.Style = ProgressBarStyle.Marquee;progress.Value=progress.Minimum;
-            installSteps=isSetup&&!addingCharacters;progressSubtitle=installSteps?"4 of 5  -  Installing":addingCharacters?"Adding characters":"Working";
+            installSteps=args[0]=="setup"&&!addingCharacters;progressSubtitle=isAppearance?"Updating car appearance":installSteps?"4 of 5  -  Installing":addingCharacters?"Adding characters":"Working";
             progressText.Text = "Preparing selected assets...";notice.Text = isPlay ? "Starting game..." : "Checking your installation...";
             if(isSetup){ShowPage(progressPage);notice.Text="";}
             Action work=delegate {
@@ -769,7 +770,7 @@ namespace SuperRocket64 {
                             process.WaitForExit(); // Drain redirected helper output before releasing its lifetime.
                             if (process.ExitCode == 130) throw new OperationCanceledException();
                             Guard.Need(process.ExitCode == 0, PlainFailure(stderr.ToString()));
-                            if (args[0] == "wizard-status" || args[0] == "preflight") {
+                            if (args[0] == "wizard-status" || args[0] == "preflight" || isAppearance) {
                                 report = new JavaScriptSerializer().DeserializeObject(stdout.ToString()) as Dictionary<string, object>;
                                 Guard.Need(report != null, "Could not read setup status. Repair the program files and retry.");
                                 object valid; if (report.TryGetValue("valid", out valid)) Guard.Need((bool)valid, (string)report["message"]);
@@ -777,7 +778,7 @@ namespace SuperRocket64 {
                             succeeded = true;
                         }
                     }
-                } catch (OperationCanceledException) { errorText = "Setup paused. Completed characters, saves and controls are safe. Resume to reuse verified work."; }
+                } catch (OperationCanceledException) { errorText = isAppearance ? "Appearance change canceled. Your current materials and game data are preserved." : "Setup paused. Completed characters, saves and controls are safe. Resume to reuse verified work."; }
                 catch (Exception error) { errorText = PlainFailure(error.Message); }
                 finally {
                     if(lease!=null)lease.Dispose();
@@ -789,8 +790,10 @@ namespace SuperRocket64 {
                         if(isPlay)gameSessionActive=false;
                         if(generation!=operationGeneration)return;
                         ClearBusy();if(closeAfterOperation){Close();return;}
-                        if(isPlay && gameConfirmed && succeeded){notice.Text="Game closed";return;}
+                        if(isPlay && gameConfirmed && succeeded){notice.Text="Game closed";if(appearanceMigrationPending)StartAppearanceMigration(null);return;}
                         if (succeeded) { if (report != null) lastReport = report; try { if (completed != null) completed(); else ShowPage(homePage); } catch (Exception problem) { ShowFailure(PlainFailure(problem.Message), delegate { BeginOperation(args, allowCancellation, completed); }, null); } }
+                        else if(args[0]=="appearance-migrate")FinishAppearanceMigration(errorText);
+                        else if(isAppearance)AppearanceFailed(errorText);
                         else ShowFailure(errorText, delegate { BeginOperation(args, allowCancellation, completed); }, args[0] == "setup" && args.Contains("--character") && args[args.IndexOf("--character") + 1] != "octane" ? completed : null, args[0] == "play" && args.Contains("--mode") && (args[args.IndexOf("--mode") + 1] == "host" || args[args.IndexOf("--mode") + 1] == "join") ? onlinePage : addingCharacters ? extrasPage : setupPage);
                         } finally {programCancel.Dispose();}
                     };

@@ -190,7 +190,7 @@ namespace SuperRocket64 {
                 string firstCancel = Commands.CancelPath(data, first), secondCancel = Commands.CancelPath(data, second);
                 Check(firstCancel.StartsWith(Path.Combine(data, ".runtime"), StringComparison.OrdinalIgnoreCase) && firstCancel != secondCancel, "Cancel markers are not unique under stable data");
             });
-            Test("helper commands always include stable data path; only setup receives a cancel marker", delegate {
+            Test("helper commands include stable data path and cancellation only for asset changes", delegate {
                 string data = Path.Combine(testRoot, "data with spaces");
                 string cancel = Commands.CancelPath(data, Guid.NewGuid());
                 ProcessStartInfo setup = Commands.StartInfo(testRoot, data, cancel, new string[] { "setup", "--character", "octane" });
@@ -201,6 +201,12 @@ namespace SuperRocket64 {
                 Check(!play.UseShellExecute && play.CreateNoWindow && play.RedirectStandardOutput && play.RedirectStandardError && play.RedirectStandardInput, "Unsafe process flags");
                 Check(play.Arguments.StartsWith("-I -B -u -X utf8 ") && play.EnvironmentVariables.ContainsKey("PYTHONDONTWRITEBYTECODE"), "Isolation/UTF8 flags missing");
                 Reject(delegate { Commands.StartInfo(testRoot, data, cancel, new string[] { "play" }); });
+                foreach (string action in new[] { "appearance-apply", "appearance-undo", "appearance-migrate" }) {
+                    ProcessStartInfo change = Commands.StartInfo(testRoot, data, cancel, new string[] { action });
+                    Check(change.Arguments.Contains("--cancel-file") && change.Arguments.Contains(action), "Appearance cancellation IPC missing");
+                }
+                Reject(delegate { Commands.StartInfo(testRoot, data, cancel, new string[] { "appearance-status" }); });
+                Reject(delegate { Commands.StartInfo(testRoot, data, cancel, new string[] { "play", "--name", "appearance-apply" }); });
             });
             Test("bundled helper cannot inherit unrelated process environment variables", delegate {
                 string prior = Environment.GetEnvironmentVariable("SM64_ROCKET_QA_OUTPUT");

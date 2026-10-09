@@ -159,6 +159,9 @@ def prepare_car_materials(args, target, root=ROOT):
         return
     except (ValueError, OSError, KeyError, TypeError):
         pass
+    if old.private_path(target, 'octane-model/materials.disabled').exists():
+        print('Previous car appearance choice retained. Change it in Characters > Car appearance.', flush=True)
+        return
     if not args.game:
         return  # Existing cached models remain playable without re-extraction.
     try:
@@ -439,7 +442,7 @@ def launch(args, root=ROOT):
 
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('action', choices=('setup', 'check', 'play', 'status', 'wizard-status', 'preflight'))
+    p.add_argument('action', choices=('setup', 'check', 'play', 'status', 'wizard-status', 'preflight', 'appearance-status', 'appearance-apply', 'appearance-undo', 'appearance-migrate'))
     p.add_argument('--character', choices=CHARACTERS)
     for name in ('sm64', 'rom', 'assets', 'game', 'ueviewer'):
         p.add_argument('--' + name, type=Path)
@@ -466,6 +469,9 @@ def main(argv=None):
             old.check_location(DATA_ROOT)
             old.private_path(DATA_ROOT, '.runtime')
         require(sys.version_info >= (3, 10), 'Python 3.10 or newer is required')
+        if a.action.startswith('appearance-'):
+            import car_appearance
+            return car_appearance.run(a, sys.modules[__name__])
         if a.action in ('wizard-status', 'preflight'):
             import wizard_setup
             return wizard_setup.run(a, sys.modules[__name__])
