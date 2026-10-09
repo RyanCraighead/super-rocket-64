@@ -1,11 +1,11 @@
 # Verification and limitations
 
-## v0.2.20: launcher actions, notifications and operation lifecycle
+## v0.2.20: camera controls, tutorials and launcher lifecycle
 
 Play keeps its title with direct Offline, Online, Add characters and repair
 actions, without the hero or slogans. Direct Add characters reuses
 verified core assets and queues only optional selections. Installation artwork,
-shared controls, saved preferences, data and all gameplay remain preserved.
+saved preferences and data remain preserved.
 
 Update notifications default on and respect existing opt-outs. Update now /
 Later appears after a preview-aware check, deferred during gameplay/operations;
@@ -19,8 +19,9 @@ cancel safely or finish their current atomic step without advancing the queue.
 
 Fresh launcher, synthetic process/close, source-validation, updater and native
 UI tests accompany source/payload audits and upgrade/save-preservation checks.
-The complete game payload is byte-identical to v0.2.19, retaining its verified
-physics/native/menu/network evidence and env3 format. Real gameplay, physical
+Fresh production tutorial, input, camera, menu and Windows saved-control tests
+validate the combined public build. Unchanged physics retains prior evidence;
+the env3 network format remains unchanged. Real gameplay, physical
 controller, two-PC and real monitor transitions remain unperformed. Supported
 source fingerprints and the newer Steam wheel-package limitation are unchanged.
 
@@ -29,6 +30,18 @@ and Add characters open a standalone chooser without the setup stepper; Back
 returns to Play. Explicit repair opens choices without automatic work. Fresh
 or incomplete installations keep the full wizard. Existing source selections
 and preferences are preserved; no prefill feature or migration is added.
+
+Triangle/Y cycles the saved Car follow and Mario views on a fresh press. Cycle
+camera is remappable, supports sharing or Unbound, and preserves old bindings,
+stick/inversion choices and custom keyboard keys. Legacy profiles assign the
+new default only when that button was unused. Held or blocked input cannot queue
+a later switch.
+
+Native courtyard, BOB, WF and King Whomp lessons use current keyboard/controller
+bindings and effective session rules. Native triggers, page progression, dialog
+overrides, boss damage and save progression remain authoritative. Text reflows
+at native size; changing bindings preserves or clamps the current page. Tutorial
+code changes no physics, saved flags or network fields.
 
 See [launcher lifecycle](../launcher/LIFECYCLE-REFINEMENTS.md).
 

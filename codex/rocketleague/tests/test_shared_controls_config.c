@@ -37,10 +37,19 @@ int main(int argc,char **argv){
     FILE *f=fopen(shared,"w");CHECK(f);fputs("key_a 002c 1003 1103\nrocket-bindings: 1 14 13 4 6 5 5 0 0 1 1 1\n",f);fclose(f);
     setenv("SUPER_ROCKET64_CONTROLS",shared,1);configfile_load();
     CHECK(configKeyA[0]==0x2c&&configRocketBindings.action[RA_BOOST]==RB_RB);
+    CHECK(configRocketBindings.action[RA_JUMP]==RB_NORTH&&configRocketBindings.action[RA_CAMERA]==RB_NONE);
     configKeyA[0]=0x31;configKeyB[0]=0x32;configKeyCLeft[0]=0x33;
     controller_reconfigure();CHECK(reconfigured==2);
     configKeyA[0]=0;configKeyB[0]=0;configKeyCLeft[0]=0;
     configfile_load();CHECK(configKeyA[0]==0x31&&configKeyB[0]==0x32&&configKeyCLeft[0]==0x33);
     CHECK(configRocketBindings.action[RA_BOOST]==RB_RB);
+    for(unsigned binding=RB_NONE;binding<RB_COUNT;binding++){
+        configRocketBindings.action[RA_CAMERA]=binding;configRocketCameraMode=binding%2;configKeyY[0]=0x21;
+        configfile_save(configfile_name());
+        configRocketBindings.action[RA_CAMERA]=RB_NONE;configRocketCameraMode=2;configKeyY[0]=0;
+        configfile_load();
+        CHECK(configRocketBindings.action[RA_CAMERA]==binding&&configRocketCameraMode==binding%2&&configKeyY[0]==0x21);
+        CHECK(configRocketBindings.action[RA_JUMP]==RB_NORTH&&configRocketBindings.action[RA_BOOST]==RB_RB);
+    }
     printf("immediate native controls save/reload: %d checks passed\n",checks);return 0;
 }

@@ -15,5 +15,11 @@ extern struct ControllerAPI controller_sdl;
 void controller_sdl_set_window_active(int active);
 int controller_sdl_rocket_input_blocked(void);
 void controller_sdl_rocket_bindings_changed(void);
+enum ControllerPromptDevice {
+    CONTROLLER_PROMPT_KEYBOARD, CONTROLLER_PROMPT_XBOX, CONTROLLER_PROMPT_PLAYSTATION,
+    CONTROLLER_PROMPT_NINTENDO, CONTROLLER_PROMPT_GENERIC
+};
+int controller_sdl_prompt_device(void);
+void controller_sdl_note_keyboard_input(void);
 
 #endif

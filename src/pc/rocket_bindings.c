@@ -1,7 +1,7 @@
 #include "rocket_bindings.h"
 #include <string.h>
 
-#define ROCKET_DEFAULT_BINDINGS { { RB_RT, RB_LT, RB_SOUTH, RB_EAST, RB_WEST, RB_WEST, RB_NONE, RB_NONE }, 0, 0, 0 }
+#define ROCKET_DEFAULT_BINDINGS { { RB_RT, RB_LT, RB_SOUTH, RB_EAST, RB_WEST, RB_WEST, RB_NONE, RB_NONE, RB_NORTH }, 0, 0, 0 }
 const RocketBindings rocket_default_bindings = ROCKET_DEFAULT_BINDINGS;
 RocketBindings configRocketBindings = ROCKET_DEFAULT_BINDINGS;
 const char *const rocket_binding_names[RB_COUNT] = {
@@ -11,7 +11,7 @@ const char *const rocket_binding_names[RB_COUNT] = {
 };
 const char *const rocket_action_names[RA_COUNT] = {
     "Accelerate", "Brake / Reverse", "Jump", "Boost", "Powerslide",
-    "Air Roll (hold)", "Air Roll Left", "Air Roll Right"
+    "Air Roll (hold)", "Air Roll Left", "Air Roll Right", "Cycle camera"
 };
 void rocket_bindings_reset(void) { configRocketBindings = rocket_default_bindings; }
 
@@ -32,30 +32,41 @@ unsigned int rocket_bindings_conflicts(const RocketBindings *b) {
 
 /* A whole, versioned record is committed only after strict range checking.
  * No partial profile or integer wraparound can silently change a mapping. */
-void rocket_bindings_read(char **tokens, int count) {
+int rocket_bindings_parse(char **tokens, int count, RocketBindings *result) {
     RocketBindings next = rocket_default_bindings;
     unsigned int values[RA_COUNT + 3];
-    if (count != RA_COUNT + 5 || strcmp(tokens[1], "1")) return;
-    for (int i = 0; i < RA_COUNT + 3; ++i) {
+    if (count < 2 || !result) return 0;
+    int actions = !strcmp(tokens[1], "1") ? RA_CAMERA : !strcmp(tokens[1], "2") ? RA_COUNT : 0;
+    if (!actions || count != actions + 5) return 0;
+    for (int i = 0; i < actions + 3; ++i) {
         const char *s = tokens[i + 2];
         unsigned int n = 0;
-        if (!*s) return;
+        if (!*s) return 0;
         for (; *s; ++s) {
-            if (*s < '0' || *s > '9' || n > RB_COUNT) return;
+            if (*s < '0' || *s > '9' || n > RB_COUNT) return 0;
             n = n * 10 + (unsigned int)(*s - '0');
         }
         values[i] = n;
     }
-    for (int i = 0; i < RA_COUNT; ++i) next.action[i] = values[i];
-    next.stick = values[RA_COUNT];
-    next.invert_x = values[RA_COUNT + 1];
-    next.invert_y = values[RA_COUNT + 2];
-    if (rocket_bindings_valid(&next)) configRocketBindings = next;
+    for (int i = 0; i < actions; ++i) next.action[i] = values[i];
+    /* Never make an existing Triangle/Y driving action also switch cameras.
+     * Version 2 preserves any deliberately shared or unbound camera choice. */
+    if (actions == RA_CAMERA) for (int i = 0; i < actions; ++i)
+        if (next.action[i] == RB_NORTH) next.action[RA_CAMERA] = RB_NONE;
+    next.stick = values[actions];
+    next.invert_x = values[actions + 1];
+    next.invert_y = values[actions + 2];
+    if (!rocket_bindings_valid(&next)) return 0;
+    *result = next;
+    return 1;
+}
+void rocket_bindings_read(char **tokens, int count) {
+    rocket_bindings_parse(tokens,count,&configRocketBindings);
 }
 void rocket_bindings_write(FILE *file) {
     const RocketBindings *b = rocket_bindings_valid(&configRocketBindings) ?
         &configRocketBindings : &rocket_default_bindings;
-    fprintf(file, "rocket-bindings: 1");
+    fprintf(file, "rocket-bindings: 2");
     for (int i = 0; i < RA_COUNT; ++i) fprintf(file, " %u", b->action[i]);
     fprintf(file, " %u %u %u\n", b->stick, b->invert_x, b->invert_y);
 }
@@ -83,6 +94,7 @@ void rocket_bindings_apply(const RocketBindings *b, const RocketPadSample *raw, 
     pad->air_roll = rocket_pad_trigger(binding_value(b->action[RA_ROLL], raw)) > 0;
     pad->air_roll_left = rocket_pad_trigger(binding_value(b->action[RA_ROLL_LEFT], raw)) > 0;
     pad->air_roll_right = rocket_pad_trigger(binding_value(b->action[RA_ROLL_RIGHT], raw)) > 0;
+    pad->camera = rocket_pad_trigger(binding_value(b->action[RA_CAMERA], raw)) > 0;
 }
 int rocket_bindings_neutral(const RocketPadSample *raw) {
     /* Both sticks must be released even when switching the steering stick. */

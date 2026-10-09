@@ -22,6 +22,9 @@ static struct Camera camera;
 static int bodyReady=1,wallEnabled,rayCalls,applies,freeEnabled;
 static struct Surface wall;
 static unsigned chaseChecks;
+static unsigned cameraSaves;
+const char *configfile_name(void){return "camera-fixture.cfg";}
+void configfile_save(const char *name){assert(!strcmp(name,"camera-fixture.cfg"));cameraSaves++;}
 #define CHASE_CHECK(x) do{chaseChecks++;if(!(x)){fprintf(stderr,"camera line %d: %s\n",__LINE__,#x);abort();}}while(0)
 uint32_t rocket_runtime_epoch(void){return carEpoch;}
 int rocket_adapter_car_selected(void){return car_selected;}
@@ -44,6 +47,7 @@ static void chase_setup(int heading){
  memset(&rocketChase,0,sizeof rocketChase);memset(&camera,0,sizeof camera);memset(&chaseCar,0,sizeof chaseCar);
  memset(gMarioStates,0,sizeof gMarioStates);gMarioState=&gMarioStates[0];
  static struct Object player;gMarioState->marioObj=&player;gMarioState->area=&chaseArea;gMarioState->statusForCamera=&cameraStatus;
+ chaseArea.camera=&camera;
  gMarioState->health=0x880;gMarioState->action=ACT_IDLE;
  gPlayer1Controller=&cameraController;memset(&cameraController,0,sizeof cameraController);
  memset(&gNewCamera,0,sizeof gNewCamera);gNewCamera.isActive=gNewCamera.isAnalogue=true;gNewCamera.deceleration=50;
@@ -56,6 +60,52 @@ static void chase_setup(int heading){
 }
 static void frame(void){gGlobalTimer++;CHASE_CHECK(rocket_camera_loop(&camera));}
 static float distance(void){float d=0;for(int k=0;k<3;k++){float x=camera.pos[k]-camera.focus[k];d+=x*x;}return sqrtf(d);}
+static void cycle_poll(void){
+ poll();cameraController.buttonDown=host_pad.button;rocket_camera_sync();
+}
+static void camera_cycle_checks(void){
+ static const int keys[]={-1,0,1,2,3,9,10,7,8,11,12,13,14};
+ for(int binding=RB_SOUTH;binding<RB_COUNT;binding++){
+  rocket_bindings_reset();configRocketBindings.action[RA_CAMERA]=binding;controller_sdl_rocket_bindings_changed();
+  chase_setup(0);cycle_poll();unsigned before=cameraSaves;
+  if(binding==RB_LT)SDL_JoystickSetVirtualAxis(device,SDL_CONTROLLER_AXIS_TRIGGERLEFT,32767);
+  else if(binding==RB_RT)SDL_JoystickSetVirtualAxis(device,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,32767);
+  else button((SDL_GameControllerButton)keys[binding],1);
+  cycle_poll();CHASE_CHECK(configRocketCameraMode==0&&cameraSaves==before+1&&(host_pad.button&Y_BUTTON));
+  for(int i=0;i<5;i++){cycle_poll();}CHASE_CHECK(cameraSaves==before+1);
+  SDL_JoystickSetVirtualAxis(device,SDL_CONTROLLER_AXIS_TRIGGERLEFT,-32768);SDL_JoystickSetVirtualAxis(device,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,-32768);
+  if(binding<RB_LT)button((SDL_GameControllerButton)keys[binding],0);
+  cycle_poll();
+ }
+ rocket_bindings_reset();controller_sdl_rocket_bindings_changed();chase_setup(0);cycle_poll();
+ for(int gate=0;gate<9;gate++){
+  unsigned before=cameraSaves,mode=configRocketCameraMode;
+  switch(gate){case 0:panel_active=1;break;case 1:focused=false;break;case 2:sCurrPlayMode=PLAY_MODE_PAUSED;break;
+   case 3:camera.cutscene=1;break;case 4:gMarioState->freeze=1;break;case 5:car_drawable=0;break;
+   case 6:gDialogID=1;break;case 7:car_selected=0;break;case 8:wheel_open=1;break;}
+  button(SDL_CONTROLLER_BUTTON_Y,1);cycle_poll();CHASE_CHECK(cameraSaves==before&&configRocketCameraMode==mode);
+  panel_active=0;focused=true;sCurrPlayMode=PLAY_MODE_NORMAL;camera.cutscene=0;gMarioState->freeze=0;
+  car_drawable=car_selected=1;gDialogID=DIALOG_NONE;wheel_open=0;
+  cycle_poll();CHASE_CHECK(cameraSaves==before);
+  button(SDL_CONTROLLER_BUTTON_Y,0);cycle_poll();button(SDL_CONTROLLER_BUTTON_Y,1);cycle_poll();
+  CHASE_CHECK(cameraSaves==before+1&&configRocketCameraMode==1-mode);
+  button(SDL_CONTROLLER_BUTTON_Y,0);cycle_poll();
+ }
+ // Rebind during a held press requires release, including a shared old key.
+ button(SDL_CONTROLLER_BUTTON_Y,1);cycle_poll();unsigned before=cameraSaves;
+ configRocketBindings.action[RA_CAMERA]=RB_RB;controller_sdl_rocket_bindings_changed();button(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,1);
+ cycle_poll();CHASE_CHECK(cameraSaves==before);button(SDL_CONTROLLER_BUTTON_Y,0);button(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,0);cycle_poll();
+ button(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,1);cycle_poll();CHASE_CHECK(cameraSaves==before+1&&!(host_pad.button&R_TRIG));
+ button(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,0);cycle_poll();
+ configRocketBindings.action[RA_CAMERA]=RB_NONE;controller_sdl_rocket_bindings_changed();cycle_poll();before=cameraSaves;
+ button(SDL_CONTROLLER_BUTTON_Y,1);cycle_poll();CHASE_CHECK(cameraSaves==before);button(SDL_CONTROLLER_BUTTON_Y,0);cycle_poll();
+ // Keyboard uses the already-saved Y action, independently of an unbound pad.
+ configKeyY[0]=0x32;keyboard_bindkeys();keyboard_on_key_down(0x32);cycle_poll();CHASE_CHECK(cameraSaves==before+1);
+ for(int i=0;i<5;i++){cycle_poll();}CHASE_CHECK(cameraSaves==before+1);keyboard_on_key_up(0x32);cycle_poll();
+ configKeyY[0]=0x21;keyboard_bindkeys();keyboard_on_key_down(0x32);cycle_poll();CHASE_CHECK(cameraSaves==before+1);keyboard_on_key_up(0x32);
+ keyboard_on_key_down(0x21);cycle_poll();CHASE_CHECK(cameraSaves==before+2);keyboard_on_key_up(0x21);cycle_poll();
+ rocket_bindings_reset();puts("PASS camera cycle: actual SDL and keyboard, all remaps, two views, one save per fresh press, blocked/held/unbound gates");
+}
 int main(void){
  initialize_camera(0,DEFAULT_CAMERA_X,DEFAULT_CAMERA_Y);
  SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS,"1");CHASE_CHECK(!SDL_Init(SDL_INIT_GAMECONTROLLER|SDL_INIT_EVENTS));init_ok=true;attach();rocket_bindings_reset();poll();
@@ -98,6 +148,7 @@ int main(void){
  gMarioState=&gMarioStates[1];CHASE_CHECK(!rocket_camera_loop(&camera));gMarioState=&gMarioStates[0];frame();
  configRocketCameraMode=0;CHASE_CHECK(!rocket_camera_loop(&camera));rocket_camera_sync();CHASE_CHECK(!gNewCamera.isActive);
  configRocketCameraMode=1;rocket_camera_sync();CHASE_CHECK(gNewCamera.isActive);car_selected=0;rocket_camera_sync();CHASE_CHECK(!gNewCamera.isActive);
+ camera_cycle_checks();
  printf("PASS %u native-input car-camera checks: direction, reverse/roll, recenter, boost/trigger, collision, pause/warp and local ownership\n",chaseChecks);
  SDL_JoystickClose(device);SDL_JoystickDetachVirtual(device_index);SDL_Quit();return 0;
 }

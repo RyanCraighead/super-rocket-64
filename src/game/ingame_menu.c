@@ -1882,6 +1882,8 @@ s8 gDialogCourseActNum = 1;
 #define DIAG_VAL2 240 // JP & US
 #endif
 
+#include "rocket_tutorial.inc.h"
+
 void render_dialog_entries(void) {
 #ifdef VERSION_EU
     s8 lowerBound = 0;
@@ -1891,6 +1893,7 @@ void render_dialog_entries(void) {
     s8 lowerBound = 0;
 #endif
     struct DialogEntry *dialog = dialog_table_get(gDialogID);
+    dialog = rocket_tutorial_dialog(dialog);
 
     if (dialog == NULL) {
         gDialogID = DIALOG_NONE;

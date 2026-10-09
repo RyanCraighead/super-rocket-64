@@ -62,6 +62,35 @@ static u32 last_gamepad = 0;
 static bool gamepad_rearm = true, gamepad_connected = false;
 static int gamepad_context = -1;
 static bool gamepad_window_active=true;
+/* Prompt ownership changes on fresh activity, never merely because an idle
+ * controller remains connected or a held button is polled after a keypress. */
+static int promptKeyboard=-1;
+static u32 promptButtons;
+static int promptAxes[6];
+void controller_sdl_note_keyboard_input(void) { promptKeyboard=1; }
+int controller_sdl_prompt_device(void) {
+    if(promptKeyboard==1||configDisableGamepads||!sdl_cntrl||!SDL_GameControllerGetAttached(sdl_cntrl))return CONTROLLER_PROMPT_KEYBOARD;
+#if SDL_VERSION_ATLEAST(2,0,12)
+    switch(SDL_GameControllerGetType(sdl_cntrl)) {
+        case SDL_CONTROLLER_TYPE_XBOX360: case SDL_CONTROLLER_TYPE_XBOXONE: return CONTROLLER_PROMPT_XBOX;
+        case SDL_CONTROLLER_TYPE_PS3: case SDL_CONTROLLER_TYPE_PS4: return CONTROLLER_PROMPT_PLAYSTATION;
+#if SDL_VERSION_ATLEAST(2,0,14)
+        case SDL_CONTROLLER_TYPE_PS5: return CONTROLLER_PROMPT_PLAYSTATION;
+#endif
+        case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_PRO: return CONTROLLER_PROMPT_NINTENDO;
+        default: break;
+    }
+#endif
+    return CONTROLLER_PROMPT_GENERIC;
+}
+static void controller_prompt_sample(const RocketPadSample *sample) {
+    int axes[]={sample->left_x/8000,sample->left_y/8000,sample->right_x/8000,sample->right_y/8000,
+        sample->left_trigger>AXIS_THRESHOLD,sample->right_trigger>AXIS_THRESHOLD};
+    int fresh=!!(sample->buttons&~promptButtons);
+    for(int i=0;i<6;i++){fresh|=axes[i]!=0&&axes[i]!=promptAxes[i];promptAxes[i]=axes[i];}
+    promptButtons=sample->buttons;
+    if(sdl_cntrl&&gamepad_window_active&&gWindowApi->has_focus()&&fresh)promptKeyboard=0;
+}
 /* Car controls keep their meaning while native door/star actions borrow motion.
  * A held car binding must also be released before becoming a Mario/camera key
  * after a character switch or rebind, including analog trigger deadzones. */
@@ -294,6 +323,7 @@ static void controller_sdl_read(OSContPad *pad) {
     pad->button |= buttons_down;
     // remember buttons that changed from 0 to 1
     last_mouse = (mouse_prev ^ mouse) & mouse;
+    if(last_mouse&&gWindowApi->has_focus())controller_sdl_note_keyboard_input();
 
     if (configExtendedReports != sExtendedReports) {
         sExtendedReports = configExtendedReports;
@@ -382,6 +412,7 @@ static void controller_sdl_read(OSContPad *pad) {
     rocketRaw.right_x=rightx;rocketRaw.right_y=righty;
     rocketRaw.left_trigger=ltrig;rocketRaw.right_trigger=rtrig;
     for (unsigned i=0;i<MAX_JOYBUTTONS;++i) if(raw_buttons[i]) rocketRaw.buttons|=1u<<i;
+    controller_prompt_sample(&rocketRaw);
     const bool rocketActive=rocket_runtime_enabled() && character_switch_accepts(CHARACTER_OCTANE);
     const bool ui = controller_game_ui_active();
     u32 heldKeys=rocketRaw.buttons;
@@ -486,6 +517,7 @@ static void controller_sdl_read(OSContPad *pad) {
         // Pause and deliberate camera bindings remain available. Assigned car
         // controls cannot also trigger a camera action, even during cutscenes.
         if (SDL_GameControllerGetButton(sdl_cntrl,SDL_CONTROLLER_BUTTON_START)) buttons_down |= START_BUTTON;
+        if (rocketPad.camera) buttons_down |= Y_BUTTON;
     }
     u32 nativeReserved=rocket_reserved_held;
     if(rocketActive&&gDialogID!=DIALOG_NONE&&rocketPad.jump) {

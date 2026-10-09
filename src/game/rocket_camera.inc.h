@@ -2,6 +2,8 @@
  * and apply path. It owns only the local camera while actual car physics owns
  * the local player. Native doors/cutscenes continue through the normal path. */
 #include "pc/rocket_boost.h"
+#include "pc/configfile.h"
+#include "pc/controller/controller_sdl.h"
 static struct RocketChaseCamera {
     int valid;
     struct Area *area;
@@ -13,6 +15,21 @@ static struct RocketChaseCamera {
 static int rocket_camera_selected(void){return configRocketCameraMode==1&&rocket_adapter_car_selected();}
 static void rocket_camera_sync(void){
     static int selected=-1;
+    static int cycleHeld=1;
+    struct MarioState *m=&gMarioStates[0];
+    int allowed=rocket_adapter_car_selected()&&rocket_runtime_owns_controls()&&
+        gMarioState==m&&m->area&&m->area->camera&&!m->area->camera->cutscene&&
+        m->health>=0x100&&!m->freeze&&sCurrPlayMode==PLAY_MODE_NORMAL&&
+        gPlayer1Controller&&!controller_sdl_rocket_input_blocked();
+    int down=gPlayer1Controller&&!!(gPlayer1Controller->buttonDown&Y_BUTTON);
+    if(!allowed)cycleHeld=1;
+    else {
+        if(down&&!cycleHeld){
+            configRocketCameraMode=configRocketCameraMode==1?0:1;
+            configfile_save(configfile_name());
+        }
+        cycleHeld=down;
+    }
     int next=rocket_camera_selected();
     if(next!=selected){rocketChase.valid=0;selected=next;newcam_init_settings();}
     newcam_toggle(camera_config_is_free_cam_enabled()||next||gDjuiInMainMenu);

@@ -86,6 +86,24 @@ int main(void) {
     assert(!remove(tempFile));
 #endif
     rocket_bindings_reset();parse(line);assert(!memcmp(&configRocketBindings,&custom,sizeof(custom)));
+    assert(strstr(line,"rocket-bindings:")==line);
+    /* Version 1 has eight actions. Preserve every saved value and only add a
+     * camera default when Triangle/Y is not already assigned to gameplay. */
+    strcpy(line,"rocket-bindings: 1 14 13 1 6 3 3 0 0 1 1 0");parse(line);
+    assert(configRocketBindings.action[RA_BOOST]==RB_RB&&configRocketBindings.action[RA_CAMERA]==RB_NORTH);
+    assert(configRocketBindings.stick==1&&configRocketBindings.invert_x==1&&!configRocketBindings.invert_y);
+    strcpy(line,"rocket-bindings: 1 4 13 1 6 3 3 0 0 1 1 0");parse(line);
+    assert(configRocketBindings.action[RA_THROTTLE]==RB_NORTH&&configRocketBindings.action[RA_CAMERA]==RB_NONE);
+    for(unsigned camera=RB_NONE;camera<RB_COUNT;camera++){
+        snprintf(line,sizeof line,"rocket-bindings: 2 4 13 1 6 3 3 0 0 %u 1 1 0",camera);parse(line);
+        assert(configRocketBindings.action[RA_THROTTLE]==RB_NORTH&&configRocketBindings.action[RA_CAMERA]==camera);
+        assert(configRocketBindings.stick==1&&configRocketBindings.invert_x==1&&!configRocketBindings.invert_y);
+        RocketGamepad pad={0};RocketPadSample sample={0};
+        if(camera==RB_LT)sample.left_trigger=32767;else if(camera==RB_RT)sample.right_trigger=32767;
+        else if(camera)sample.buttons=1u<<bits[camera];
+        rocket_bindings_apply(&configRocketBindings,&sample,&pad);assert(pad.camera==(camera!=RB_NONE));
+    }
+    configRocketBindings=custom;
     const char *bad[]={"rocket-bindings: 2 14 13 1 6 3 3 0 0 0 0 0",
         "rocket-bindings: 1 14 13 1 99 3 3 0 0 0 0 0",
         "rocket-bindings: 1 14 13 1 -1 3 3 0 0 0 0 0",

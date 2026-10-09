@@ -38,6 +38,7 @@ static int keyboard_map_scancode(int scancode) {
 }
 
 bool keyboard_on_key_down(int scancode) {
+    controller_sdl_note_keyboard_input();
     djui_panel_pause_disconnect_key_update(scancode);
 
     // see if interactable captures this scancode

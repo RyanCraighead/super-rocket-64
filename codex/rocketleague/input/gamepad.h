@@ -9,6 +9,7 @@ typedef struct RocketGamepad {
     int32_t instance;
     int16_t left_x, left_y, left_trigger, right_trigger;
     int jump, boost, air_roll, powerslide, air_roll_left, air_roll_right;
+    int camera; /* Local camera only; never merged into physics/network input. */
 } RocketGamepad;
 static inline float rocket_pad_axis(int16_t value) {
     float x=value<0?value/32768.f:value/32767.f;

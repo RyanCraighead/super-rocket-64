@@ -32,11 +32,9 @@ static bool shared_number(const char *text,unsigned base,unsigned limit,unsigned
 static bool shared_controls_tokens(char **tokens,unsigned count,bool apply) {
     if(!count||tokens[0][0]=='#')return true;
     if(!strcmp(tokens[0],"rocket-bindings:")) {
-        unsigned values[RA_COUNT+3];
-        if(count!=RA_COUNT+5||strcmp(tokens[1],"1"))return false;
-        for(unsigned i=0;i<RA_COUNT+3;i++)
-            if(!shared_number(tokens[i+2],10,i<RA_COUNT?RB_COUNT-1:1,&values[i]))return false;
-        if(apply)rocket_bindings_read(tokens,count);
+        RocketBindings next;
+        if(!rocket_bindings_parse(tokens,count,&next))return false;
+        if(apply)configRocketBindings=next;
         return true;
     }
     const struct ConfigOption *option=shared_control_option(tokens[0]);

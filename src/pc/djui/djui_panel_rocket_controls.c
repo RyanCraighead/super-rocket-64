@@ -57,11 +57,11 @@ static void action_panel(struct DjuiBase *caller, int begin, int end, char *titl
     djui_panel_add(caller,panel,NULL);
 }
 static void driving(struct DjuiBase *caller) { action_panel(caller,RA_THROTTLE,RA_SLIDE,"Car Driving"); }
-static void air_controls(struct DjuiBase *caller) { action_panel(caller,RA_SLIDE,RA_COUNT,"Car Air / Slide"); }
+static void air_controls(struct DjuiBase *caller) { action_panel(caller,RA_SLIDE,RA_CAMERA,"Car Air / Slide"); }
 static void reset_bindings(struct DjuiBase *caller) {
     rocket_bindings_reset();
     bindings_changed(caller);
-    /* Refresh only the three axis selectionboxes in this panel. */
+    /* Refresh camera and axis selectionboxes in this panel. */
     for(struct DjuiBaseChild *child=caller->parent->child;child;child=child->next)
         if(child->base->bTag) djui_selectionbox_update_value(child->base);
 }
@@ -72,6 +72,10 @@ void djui_panel_rocket_controls_create(struct DjuiBase *caller) {
     note(body,"",48)->base.on_render_pre=controller_status;
     djui_button_create(body,"Driving bindings",DJUI_BUTTON_STYLE_NORMAL,driving);
     djui_button_create(body,"Air / slide bindings",DJUI_BUTTON_STYLE_NORMAL,air_controls);
+    char *cameraChoices[RB_COUNT];
+    for(int i=0;i<RB_COUNT;i++)cameraChoices[i]=(char*)rocket_binding_names[i];
+    djui_selectionbox_create(body,"Cycle camera",cameraChoices,RB_COUNT,&configRocketBindings.action[RA_CAMERA],bindings_changed)->base.bTag=true;
+    note(body,"Camera: Car follow / Mario.\nKeyboard: remap Y in Extra binds.",48);
     char *sticks[]={"Left stick","Right stick"};
     char *directions[]={"Normal","Inverted"};
     djui_selectionbox_create(body,"Steering / Pitch",sticks,2,&configRocketBindings.stick,bindings_changed)->base.bTag=true;

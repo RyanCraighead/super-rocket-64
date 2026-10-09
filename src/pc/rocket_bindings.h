@@ -10,7 +10,7 @@ enum RocketBinding {
 };
 enum RocketAction {
     RA_THROTTLE, RA_BRAKE, RA_JUMP, RA_BOOST, RA_SLIDE, RA_ROLL,
-    RA_ROLL_LEFT, RA_ROLL_RIGHT, RA_COUNT
+    RA_ROLL_LEFT, RA_ROLL_RIGHT, RA_CAMERA, RA_COUNT
 };
 typedef struct RocketBindings {
     unsigned int action[RA_COUNT];
@@ -34,6 +34,7 @@ int rocket_bindings_valid(const RocketBindings *bindings);
 /* Shared buttons are intentional and permitted; return a bit per shared action. */
 unsigned int rocket_bindings_conflicts(const RocketBindings *bindings);
 void rocket_bindings_read(char **tokens, int count);
+int rocket_bindings_parse(char **tokens, int count, RocketBindings *result);
 void rocket_bindings_write(FILE *file);
 void rocket_bindings_apply(const RocketBindings *bindings, const RocketPadSample *raw, RocketGamepad *pad);
 int rocket_bindings_neutral(const RocketPadSample *raw);

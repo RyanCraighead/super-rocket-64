@@ -12,6 +12,25 @@ import launcher as old
 
 LIMIT = 65536
 
+def binding_values(values):
+    if not values or values[0] not in ('1', '2'): return None
+    actions = 8 if values[0] == '1' else 9
+    if len(values) != actions + 4 or not all(v.isascii() and v.isdecimal() for v in values): return None
+    try:
+        numbers = [int(v) for v in values]
+    except ValueError:
+        return None
+    if not all(v < 15 for v in numbers[1:actions+1]) or not all(v < 2 for v in numbers[actions+1:]): return None
+    return [str(v) for v in numbers]
+
+def saved_camera_action(data):
+    explicit = False
+    for line in data.decode('utf-8-sig').splitlines():
+        parts = line.split()
+        if parts and parts[0] == 'rocket-bindings:' and binding_values(parts[1:]):
+            explicit = parts[1] == '2'
+    return explicit
+
 def records(data, defaults, strict=False):
     result = {}
     for line in data.decode('utf-8-sig').splitlines():
@@ -21,9 +40,13 @@ def records(data, defaults, strict=False):
         key, values = parts[0], parts[1:]
         valid = True
         if key == 'rocket-bindings:':
-            valid = len(values) == 12 and values[0] == '1' and all(v.isascii() and v.isdecimal() for v in values)
-            valid = valid and all(int(v) < 15 for v in values[1:9]) and all(int(v) < 2 for v in values[9:])
-            if valid: values = [str(int(v)) for v in values]
+            parsed = binding_values(values)
+            valid = parsed is not None and int(parsed[0]) <= int(defaults[key][0])
+            if valid:
+                values = parsed
+                if values[0] == '1' and defaults[key][0] == '2':
+                    camera = '0' if '4' in values[1:9] else '4'
+                    values = ['2', *values[1:9], camera, *values[9:]]
         elif key.startswith('key_'):
             try:
                 valid = 1 <= len(values) <= 3 and all(0 <= int(v, 16) <= 65535 and not v.startswith(('-', '+')) for v in values)
@@ -115,8 +138,14 @@ def prepare(data, engine, saves, active_save):
         # Treat keyboard/gamepad/mouse slots and car actions independently, so
         # a custom boost in one old mode cannot erase a custom jump in another.
         for slot in range(len(base)):
+            slot_candidates = candidates
+            if key == 'rocket-bindings:' and base[0] == '2' and slot == 9:
+                # An explicitly saved new camera binding outranks a synthesized
+                # legacy default, including deliberate sharing with Triangle/Y.
+                explicit = [c for c in candidates if saved_camera_action(c[4])]
+                if explicit: slot_candidates = explicit
             choices = [(values[key][slot] != base[slot], stamp, active, -index, values[key][slot], source)
-                       for stamp, active, index, source, raw, values in candidates if key in values]
+                       for stamp, active, index, source, raw, values in slot_candidates if key in values]
             if choices:
                 custom, stamp, active, index, value, source = max(choices)
                 chosen[key][slot] = value

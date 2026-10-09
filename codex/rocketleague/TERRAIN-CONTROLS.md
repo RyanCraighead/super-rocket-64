@@ -184,3 +184,51 @@ Windowless tests run the actual native warp scheduling/destination functions,
 the real car adapter and controller/keyboard mapping, with explicit saved-star,
 surface, runtime and audiovisual service fixtures. No real gameplay capture
 or controller hardware session is implied.
+
+## Camera cycle
+
+Triangle on PlayStation / Y on Xbox cycles between the existing Car follow and
+Mario views. Change it in Options > Controls > Car Controller > Cycle camera;
+every supported button or trigger, deliberate shared bindings and Unbound are
+available. Keyboard uses the existing saved Y action (default M), remappable
+under Extra binds. One fresh press changes the view and saves the preference.
+Held input across menus, pause, focus loss, native cutscenes, frozen control,
+character changes and rebinding cannot queue a later toggle. The camera action
+is local and never enters physics or network input.
+
+The version-2 binding record appends the camera action. Existing version-1
+records retain all eight actions, steering stick and inversion choices. They
+receive Triangle/Y only if that button is unused; otherwise camera starts
+Unbound so a saved driving action does not gain a surprise second action.
+Version-2 camera choices, including Unbound and deliberate sharing, round-trip
+unchanged. Existing camera mode and keyboard mappings are preserved.
+
+## Scoped native tutorials
+
+The existing courtyard Lakitu welcome now introduces Super Rocket64 with only
+the driving, brake, steering, jump, boost, camera and options/rebinding basics.
+BOB's first entry covers Goomba landings, supersonic impacts, double jumps and
+flips, coin boost and surface grip. Every yellow, red or blue coin pickup adds
+five boost, capped at 100; coin value does not multiply the grant. The text
+shows the effective session boost and surface mode, including host rules.
+Whomp's Fortress's entry and King Whomp's existing introduction explain the
+exposed-back attacks: four supported wheels, a qualifying flip or a fast
+boosted nose dive. Native small-Whomp loot and one boss hit per fall remain
+unchanged; the tutorial does not hardcode boss health or award progress.
+
+Prompts follow fresh input from the active mapped controller or keyboard/mouse.
+They use saved car bindings, saved native pause/options keys, and the chosen
+steering stick. PlayStation, Xbox and Nintendo labels follow SDL's device type;
+unknown mapped pads use physical-position names. All text is rebuilt after a
+remap. Reflow keeps the page number and waits for horizontal scrolling to finish.
+Native font size, six-line pagination, confirmation, closing and cutscene
+triggers are retained. Lua text overrides and replaced/custom dialog entries
+remain authoritative. Classic modes without the car feature retain original
+text. No ROM strings, save flags, physics or network data are changed.
+
+`tests/test_tutorials.sh` uses the production SDL/keyboard and encoder, plus
+verbatim native dialog state/pagination code. It covers all car binding choices,
+device families, live rebinding, long labels, scope, closing and Lua precedence.
+Owned background vertices verify a 143-pixel box with a 128-pixel text budget;
+the fixture records native glyph positions. SVG/PNG evidence uses representative
+glyphs and is explicitly a source-test render, not a running-game screenshot.

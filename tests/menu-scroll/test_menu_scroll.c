@@ -329,6 +329,14 @@ int main(int argc,char**argv){
         if(d==1&&scale==1&&!center)snapshot("settings-surfaces-1280x720");
         focus(controls);controls->interactable->on_click(controls);settle();sweep();djui_panel_back();settle();CHECK(sInputControlledBase==controls);visible(controls);
         djui_panel_rocket_controls_create(controls);settle();sweep();
+        struct DjuiBase *carBody=djui_three_panel_get_body((struct DjuiThreePanel*)sPanelList->base),*cameraBind=NULL;
+        for(struct DjuiBaseChild*c=carBody->child;c;c=c->next)
+            if(c->base->measure==djui_selectionbox_measure&&((struct DjuiSelectionbox*)c->base)->value==&configRocketBindings.action[RA_CAMERA])cameraBind=c->base;
+        CHECK(cameraBind);focus(cameraBind);visible(cameraBind);
+        unsigned cameraBefore=configRocketBindings.action[RA_CAMERA];cameraBind->interactable->on_cursor_down_begin(cameraBind,true);
+        CHECK(configRocketBindings.action[RA_CAMERA]!=cameraBefore);unsigned cameraSaved=configRocketBindings.action[RA_CAMERA];
+        configRocketBindings.action[RA_CAMERA]=RB_NONE;configfile_load();CHECK(configRocketBindings.action[RA_CAMERA]==cameraSaved);
+        if(d==0&&scale==1&&center)snapshot("camera-binding-640x480");
         if(d==0&&scale==1&&center)snapshot("car-controls-640x480");
         struct DjuiBase*caller=sInputControlledBase;driving(caller);settle();sweep();djui_panel_back();settle();CHECK(sInputControlledBase==caller);
         air_controls(caller);settle();sweep();djui_panel_back();settle();
