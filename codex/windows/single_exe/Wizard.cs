@@ -32,12 +32,12 @@ namespace SuperRocket64 {
         private readonly HashSet<string> readyCharacters = new HashSet<string>();
 
         private void InitializeWizard() {
-            AddPageText(locationPage, "1 of 5 Â· Choose where to install", "Keep your program, reusable assets, saves and controls together in this folder. Select an existing Super Rocket 64 folder to update or repair it.");
+            AddPageText(locationPage, "1 of 5 · Choose where to install", "Keep your program, reusable assets, saves and controls together in this folder. Select an existing Super Rocket 64 folder to update or repair it.");
             AddPath(locationPage, "Installation folder", install, false);
             AddPageText(locationPage, "Storage", "Setup checks free space before extraction. Allow 1 GB free for program files and temporary work; optional characters may need more. Completed assets are verified and reused. Your whole Rocket League installation is never copied.");
             AddButton(locationPage, "Next", delegate { InspectInstallation(false); });
             AddButton(locationPage, "Cancel", delegate { if (installationReady) ShowPage(homePage); else Close(); });
-            AddPageText(setupPage, "2 of 5 Â· Choose your games", "Select only missing sources. Original SM64 US: .z64, .v64, .n64, or a ZIP containing one ROM. Rocket League: Windows Epic or Steam installation containing TAGame. Body and wheel files must match the supported Steam 25535926 profile; identical Epic files work. Other versions may require a new compatibility profile.");
+            AddPageText(setupPage, "2 of 5 · Choose your games", "Select only missing sources. Original SM64 US: .z64, .v64, .n64, or a ZIP containing one ROM. Rocket League: Windows Epic or Steam installation containing TAGame. Body and wheel files must match the supported Steam 25535926 profile; identical Epic files work. Other versions may require a new compatibility profile.");
             setupPage.Controls.Add(sourceStatus);
             AddPath(setupPage, "SM64 US ROM", rom, true);
             AddPath(setupPage, "Rocket League folder", game, false);
@@ -45,9 +45,9 @@ namespace SuperRocket64 {
             sourceNext=AddButton(setupPage, "Next", ContinueFromSources);
             AddButton(setupPage, "Back", delegate { ShowPage(locationPage); });
             AddButton(setupPage, "Cancel", CancelWizard);
-            AddPageText(extrasPage, "3 of 5 Â· Optional characters", "Very WIP: some progression sections may not work with these characters. Switch back to Mario or Octane using the character wheel if stuck. Extra characters are for Offline play; Online supports Mario and Octane only.");
+            AddPageText(extrasPage, "3 of 5 · Optional characters", "Very WIP: some progression sections may not work with these characters. Switch back to Mario or Octane using the character wheel if stuck. Extra characters are for Offline play; Online supports Mario and Octane only.");
             extrasPage.Controls.Add(extrasNo); extrasPage.Controls.Add(extrasYes);
-            string[] names = { "Link Â· Ocarina of Time (US 1.2, compressed retail)", "Bomberman 64 (USA 1.0)", "Banjo-Kazooie (USA Rev 1)", "Spider-Man (N64 USA 1.0)", "Tony Hawk's Pro Skater (N64 USA Rev 1)" };
+            string[] names = { "Link · Ocarina of Time (US 1.2, compressed retail)", "Bomberman 64 (USA 1.0)", "Banjo-Kazooie (USA Rev 1)", "Spider-Man (N64 USA 1.0)", "Tony Hawk's Pro Skater (N64 USA Rev 1)" };
             for (int i = 0; i < 5; i++) {
                 int index = i; var choice = new ConceptCheckBox { Text = names[i], AutoSize = true }; extraChoices[i] = choice;
                 extraSources[i] = new TextBox(); extraInputs.Controls.Add(choice);
@@ -61,9 +61,9 @@ namespace SuperRocket64 {
             extrasPage.Controls.Add(TextBlock("Install uses the location you chose, verifies cached tools, and downloads missing official extraction tools only when needed. Internet is needed for those first-time downloads. Your game sources stay local."));
             AddButton(extrasPage, "Install / resume", delegate { ValidateExtras(0); });
             AddButton(extrasPage, "Back", delegate { if(addingCharacters){addingCharacters=false;ShowPage(homePage);}else ShowPage(setupPage); }); AddButton(extrasPage, "Cancel", CancelWizard);
-            AddPageText(progressPage, "4 of 5 Â· Getting ready", "Completed assets stay available if you cancel or need to retry.");
+            AddPageText(progressPage, "4 of 5 · Getting ready", "Completed assets stay available if you cancel or need to retry.");
             progressPage.Controls.Add(progressText); progressPage.Controls.Add(progress);
-            AddPageText(readyPage, "5 of 5 Â· Ready to play", "Your game sources and saves stay on this PC."); readyPage.Controls.Add(readyStatus);
+            AddPageText(readyPage, "5 of 5 · Ready to play", "Your game sources and saves stay on this PC."); readyPage.Controls.Add(readyStatus);
             readyPage.Controls.Add(readyMenu); readyPage.Controls.Add(readyDesktop);
             readyPage.Controls.Add(TextBlock("Choose how to update (change this any time in Settings):")); readyPage.Controls.Add(readyAuto); readyPage.Controls.Add(readyManual);
             readyPage.Controls.Add(TextBlock("Notifications: check at startup and choose Update now or Later. Manual: no startup checks. Assets, controls and saves are preserved."));
@@ -98,8 +98,8 @@ namespace SuperRocket64 {
                     sourceStatus.Text = "";
                     var componentErrors = lastReport["errors"] as Dictionary<string, object>;
                     for (int i = 0; i < extraChoices.Length; i++) {
-                        string character = Commands.OptionalCharacters[i]; string label = extraChoices[i].Text.Split(new string[] { " â€” " }, StringSplitOptions.None)[0];
-                        extraChoices[i].Text = label + " â€” " + (readyCharacters.Contains(character) ? "ready, reusable" : componentErrors != null && componentErrors.ContainsKey(character) ? "needs repair" : "not installed");
+                        string character = Commands.OptionalCharacters[i]; string label = extraChoices[i].Text.Split(new string[] { " — " }, StringSplitOptions.None)[0];
+                        extraChoices[i].Text = label + " — " + (readyCharacters.Contains(character) ? "ready, reusable" : componentErrors != null && componentErrors.ContainsKey(character) ? "needs repair" : "not installed");
                     }
                     object detected; if (!readyCharacters.Contains("octane") && String.IsNullOrWhiteSpace(game.Text) && lastReport.TryGetValue("detected", out detected)) foreach (object path in (IEnumerable)detected) { game.Text = (string)path; break; }
                     if (startup) ShowPage(locationPage); else ShowPage(setupPage);

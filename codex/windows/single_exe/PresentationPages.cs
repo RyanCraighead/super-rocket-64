@@ -13,7 +13,7 @@ namespace SuperRocket64 {
     internal sealed partial class LauncherForm {
         private void BuildSourcesConcept() {
             Button browseRom=FindButton(rom.Parent,"Browse..."),browseGame=FindButton(game.Parent,"Browse..."),next=FindButton(setupPage,"Next"),back=FindButton(setupPage,"Back"),cancel=FindButton(setupPage,"Cancel");
-            var romBox=new ConceptField(rom);var gameBox=new ConceptField(game);var canvas=Canvas(setupPage);Header(canvas,"Choose your games","2 of 5  Â·  Original game sources",null,Rectangle.Empty,1198,73);
+            var romBox=new ConceptField(rom);var gameBox=new ConceptField(game);var canvas=Canvas(setupPage);Header(canvas,"Choose your games","2 of 5  ·  Original game sources",null,Rectangle.Empty,1198,73);
             var romLabel=CopyLabel("SM64 US ROM",true);var gameLabel=CopyLabel("Rocket League folder",true);
             romFeedback.ForeColor=gameFeedback.ForeColor=ConceptTheme.Muted;romFeedback.BackColor=gameFeedback.BackColor=ConceptTheme.Surface;Primary(next);
             canvas.PaintDesign=delegate(Graphics g){Stepper(g,2);ConceptTheme.Card(g,new RectangleF(0,220,1198,203),ConceptTheme.Border);ConceptTheme.Card(g,new RectangleF(0,443,1198,203),ConceptTheme.Border);};
@@ -21,15 +21,15 @@ namespace SuperRocket64 {
         }
         private void BuildExtrasConcept() {
             Button installExtras=FindButton(extrasPage,"Install / resume"),back=FindButton(extrasPage,"Back"),cancel=FindButton(extrasPage,"Cancel");
-            string[] shortNames={"Link Â· Ocarina of Time","Bomberman 64","Banjo-Kazooie","Spider-Man","Tony Hawk's Pro Skater"};
+            string[] shortNames={"Link · Ocarina of Time","Bomberman 64","Banjo-Kazooie","Spider-Man","Tony Hawk's Pro Skater"};
             var fields=new ConceptField[5];var browse=new Button[5];var formats=new Label[5];
             for(int i=0;i<5;i++){
                 browse[i]=FindButton(extraSources[i].Parent,"Browse...");fields[i]=new ConceptField(extraSources[i]);formats[i]=CopyLabel(Commands.OptionalRomFormats(Commands.OptionalCharacters[i]),false);
                 var choice=extraChoices[i] as ConceptCheckBox;if(choice!=null)choice.DisplayText=shortNames[i];int index=i;
                 extraChoices[i].CheckedChanged+=delegate{if(chrome!=null){ArrangeConcept();if(extraChoices[index].Checked)extraSources[index].Focus();}};
             }
-            var canvas=Canvas(extrasPage);Header(canvas,"Optional characters","3 of 5  Â·  Offline extras","05-optional-characters",new Rectangle(299,84,660,69),660,69);
-            var warning=CopyLabel("VERY WIP Â· Some progression may not work. Switch back to Mario or Octane if stuck.",true);warning.ForeColor=Color.FromArgb(255,217,52);warning.BackColor=Color.FromArgb(32,32,14);
+            var canvas=Canvas(extrasPage);Header(canvas,"Optional characters","3 of 5  ·  Offline extras","05-optional-characters",new Rectangle(299,84,660,69),660,69);
+            var warning=CopyLabel("VERY WIP · Some progression may not work. Switch back to Mario or Octane if stuck.",true);warning.ForeColor=Color.FromArgb(255,217,52);warning.BackColor=Color.FromArgb(32,32,14);
             extraInputs.Controls.Clear();extraInputs.AutoSize=false;extraInputs.Padding=Padding.Empty;extraInputs.Margin=Padding.Empty;extraInputs.BackColor=ConceptTheme.Background;var list=new ConceptCanvas();extraInputs.Controls.Add(list);
             var onlineNotice=CopyLabel("Optional characters are for offline play.",false);
             var noExtras=CopyLabel("Mario and Octane are included. You can add optional characters later from Play.",false);
@@ -53,12 +53,12 @@ namespace SuperRocket64 {
         }
 
         private void BuildOperationConcepts() {
-            var progressCanvas=Canvas(progressPage);Header(progressCanvas,"Getting ready","4 of 5  Â·  Installing","06-operation-states",new Rectangle(190,63,324,43),551,73);
+            var progressCanvas=Canvas(progressPage);Header(progressCanvas,"Getting ready","4 of 5  ·  Installing","06-operation-states",new Rectangle(190,63,324,43),551,73);
             var completed=CopyLabel("Completed assets stay available if you cancel or retry.",false);progressText.ForeColor=ConceptTheme.White;progressText.BackColor=ConceptTheme.Surface;
             progressCanvas.PaintDesign=delegate(Graphics g){if(installSteps)Stepper(g,4);int offset=installSteps?0:-66;ConceptTheme.Card(g,new RectangleF(0,220+offset,1198,481),ConceptTheme.Border);g.DrawImage(ConceptTheme.Art("06-operation-states"),new Rectangle(66,320+offset,180,180),new Rectangle(215,256,91,91),GraphicsUnit.Pixel);};
             AddLayout(progressCanvas,delegate{float offset=installSteps?0:-66;progressCanvas.Controls[1].Text=progressSubtitle;completed.Text=progressSubtitle=="Updating launcher"?"Your installed version and game data stay protected.":"Completed assets stay available if you cancel or retry.";PageHeight(progressCanvas,781+offset);Place(progressText,progressCanvas,310,298+offset,825,150,43);Place(progress,progressCanvas,310,466+offset,825,52,24);Place(completed,progressCanvas,146,593+offset,1000,55,25);Place(cancelOperation,chrome,302,ClientSize.Height/conceptScale-127,425,65,27);});
             Button readyPlay=FindButton(readyPage,"Play Offline"),open=FindButton(readyPage,"Open launcher");var readyCanvas=Canvas(readyPage);
-            Header(readyCanvas,"Ready to play","5 of 5  Â·  Setup complete","06-operation-states",new Rectangle(958,63,320,47),497,73);
+            Header(readyCanvas,"Ready to play","5 of 5  ·  Setup complete","06-operation-states",new Rectangle(958,63,320,47),497,73);
             float readyExtra=0;var updateLabel=CopyLabel("Update notifications",true);var disclosure=CopyLabel("Notifications: choose Update now or Later.\nManual: no startup checks.\nAssets, controls and saves are preserved.",false);readyStatus.ForeColor=ConceptTheme.White;readyStatus.BackColor=ConceptTheme.Surface;Primary(readyPlay);
             readyCanvas.PaintDesign=delegate(Graphics g){Stepper(g,5);ConceptTheme.Card(g,new RectangleF(0,220,1198,556+readyExtra),ConceptTheme.Border);using(var p=new Pen(Color.FromArgb(150,241,82),8))g.DrawEllipse(p,73,266,125,125);ConceptTheme.Icon(g,"check",new RectangleF(98,300,76,54),Color.FromArgb(150,241,82));using(var p=new Pen(ConceptTheme.Border)){g.DrawLine(p,43,427+readyExtra,1152,427+readyExtra);g.DrawLine(p,43,570+readyExtra,1152,570+readyExtra);}};
             AddLayout(readyCanvas,delegate{readyExtra=CopyHeight(readyStatus.Text,880,28,168)-168;PageHeight(readyCanvas,881+readyExtra);Place(readyStatus,readyCanvas,270,247,880,168+readyExtra,28);Place(readyMenu,readyCanvas,45,443+readyExtra,1050,48,24);Place(readyDesktop,readyCanvas,45,501+readyExtra,1050,48,24);Place(updateLabel,readyCanvas,43,586+readyExtra,680,42,28);Place(readyAuto,readyCanvas,43,635+readyExtra,659,46,23);Place(readyManual,readyCanvas,43,698+readyExtra,659,46,23);Place(disclosure,readyCanvas,752,603+readyExtra,400,151,21);Place(open,readyCanvas,0,810+readyExtra,547,67,27);Place(readyPlay,readyCanvas,656,810+readyExtra,542,67,27);});

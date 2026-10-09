@@ -850,7 +850,7 @@ namespace SuperRocket64 {
                 return 0;
             } catch (Exception error) {
                 if (headless) Console.Error.WriteLine("Verification failed: " + error.Message);
-                else MessageBox.Show(error.Message, "Super Rocket 64 â€” stopped", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                else MessageBox.Show(error.Message, "Super Rocket 64 — stopped", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return 2;
             }
         }
