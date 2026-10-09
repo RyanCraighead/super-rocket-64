@@ -26,6 +26,11 @@ pass. Lighting/exhaust remain host approximations. Unsupported newer wheel
 packages retain their extraction limit; optional materials can upgrade a verified
 existing mesh independently. No save slot or installed game is changed.
 
+Verified installed users currently have no material-upgrade action on the
+Characters screen. Updating retains their previous appearance unless verified
+materials already exist. An installed-user action remains a launcher follow-up;
+the explicit setup helper and fresh supported setup provide extraction support.
+
 
 ## v0.2.20: camera controls, tutorials and launcher lifecycle
 
