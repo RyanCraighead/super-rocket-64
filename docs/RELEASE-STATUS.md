@@ -2,8 +2,8 @@
 
 ## v0.2.20: launcher actions, notifications and operation lifecycle
 
-Play keeps its title with direct Offline, Online, Add characters and Setup /
-repair actions, without the hero or slogans. Direct Add characters reuses
+Play keeps its title with direct Offline, Online, Add characters and repair
+actions, without the hero or slogans. Direct Add characters reuses
 verified core assets and queues only optional selections. Installation artwork,
 shared controls, saved preferences, data and all gameplay remain preserved.
 
@@ -23,6 +23,12 @@ The complete game payload is byte-identical to v0.2.19, retaining its verified
 physics/native/menu/network evidence and env3 format. Real gameplay, physical
 controller, two-PC and real monitor transitions remain unperformed. Supported
 source fingerprints and the newer Steam wheel-package limitation are unchanged.
+
+After verified installation, Setup becomes Characters. That sidebar entry
+and Add characters open a standalone chooser without the setup stepper; Back
+returns to Play. Explicit repair opens choices without automatic work. Fresh
+or incomplete installations keep the full wizard. Existing source selections
+and preferences are preserved; no prefill feature or migration is added.
 
 See [launcher lifecycle](../launcher/LIFECYCLE-REFINEMENTS.md).
 

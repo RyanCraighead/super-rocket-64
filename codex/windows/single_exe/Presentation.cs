@@ -40,6 +40,7 @@ namespace SuperRocket64 {
                 if(icon=="play") { using(var brush=new SolidBrush(color)) g.FillPolygon(brush,new[]{new PointF(x+w*.2f,y+h*.1f),new PointF(x+w*.85f,y+h*.5f),new PointF(x+w*.2f,y+h*.9f)}); }
                 else if(icon=="online") { g.DrawEllipse(pen,r);g.DrawEllipse(pen,x+w*.27f,y,w*.46f,h);g.DrawLine(pen,x,y+h*.5f,x+w,y+h*.5f);g.DrawArc(pen,x,y+h*.2f,w,h*.25f,0,180);g.DrawArc(pen,x,y+h*.55f,w,h*.25f,180,180); }
                 else if(icon=="setup") { var state=g.Save();g.TranslateTransform(x+w*.5f,y+h*.5f);g.RotateTransform(42);g.DrawLine(pen,0,-h*.16f,0,h*.42f);g.DrawArc(pen,-w*.25f,-h*.42f,w*.5f,h*.43f,0,220);g.Restore(state); }
+                else if(icon=="characters") {g.DrawEllipse(pen,x+w*.29f,y,w*.42f,h*.42f);g.DrawArc(pen,x+w*.08f,y+h*.49f,w*.84f,h*.82f,180,180);}
                 else if(icon=="settings") { for(int i=0;i<12;i++){double a=i*Math.PI/6;g.DrawLine(pen,x+w*.5f+(float)Math.Cos(a)*w*.31f,y+h*.5f+(float)Math.Sin(a)*h*.31f,x+w*.5f+(float)Math.Cos(a)*w*.46f,y+h*.5f+(float)Math.Sin(a)*h*.46f);}g.DrawEllipse(pen,x+w*.15f,y+h*.15f,w*.7f,h*.7f);g.DrawEllipse(pen,x+w*.36f,y+h*.36f,w*.28f,h*.28f); }
                 else if(icon=="back" || icon=="arrow") { float a=icon=="back"?-1:1;float cx=x+w*.5f;g.DrawLine(pen,x,y+h*.5f,x+w,y+h*.5f);g.DrawLine(pen,cx+a*w*.5f,y+h*.5f,cx,y+h*.1f);g.DrawLine(pen,cx+a*w*.5f,y+h*.5f,cx,y+h*.9f); }
                 else if(icon=="check") {g.DrawLines(pen,new[]{new PointF(x,y+h*.5f),new PointF(x+w*.35f,y+h*.85f),new PointF(x+w,y+h*.1f)});}
@@ -162,7 +163,7 @@ namespace SuperRocket64 {
             Controls.Clear();chrome=new ConceptCanvas{Dock=DockStyle.Fill};Controls.Add(chrome);chrome.Controls.Add(pageHost);chrome.Controls.Add(notice);
             pageHost.Dock=DockStyle.None;pageHost.BackColor=ConceptTheme.Background;pageHost.AutoScroll=false;notice.BackColor=ConceptTheme.Surface;notice.ForeColor=Color.FromArgb(255,208,87);notice.AutoSize=false;notice.MaximumSize=Size.Empty;
             string[] titles={"PLAY","ONLINE","SETUP","SETTINGS"};string[] icons={"play","online","setup","settings"};
-            Action[] actions={delegate{ShowPage(installationReady?homePage:locationPage);},delegate{ShowPage(onlineChoicePage);},ShowSetupPage,ShowUpdateSettings};
+            Action[] actions={delegate{ShowPage(installationReady?homePage:locationPage);},delegate{ShowPage(onlineChoicePage);},ShowInstallSection,ShowUpdateSettings};
             for(int i=0;i<4;i++){int j=i;var b=new ConceptButton{Text=titles[i],IconName=icons[i],AccessibleName=titles[i],Caption=true,Navigation=true};b.Click+=delegate{if(!running)actions[j]();};navigation[i]=b;chrome.Controls.Add(b);}
             minimizeCaption=new ConceptButton{Text="—",Caption=true,AccessibleName="Minimize window"};maximizeCaption=new ConceptButton{Text="□",Caption=true,AccessibleName="Maximize or restore window"};closeCaption=new ConceptButton{Text="×",Caption=true,AccessibleName="Close launcher"};
             minimizeCaption.Click+=delegate{WindowState=FormWindowState.Minimized;};maximizeCaption.Click+=delegate{WindowState=WindowState==FormWindowState.Maximized?FormWindowState.Normal:FormWindowState.Maximized;};closeCaption.Click+=delegate{Close();};
@@ -192,7 +193,7 @@ namespace SuperRocket64 {
                 int operationHeight=cancelOperation.Visible?(int)(90*conceptScale):0;
                 int availableHeight=Math.Max(80,ClientSize.Height-footer-(int)Math.Round(86*shellScale)-noticeHeight-operationHeight);
                 notice.Visible=noticeHeight>0;Place(notice,chrome,300,(ClientSize.Height-footer-noticeHeight)/conceptScale,1198,noticeHeight/conceptScale,20);
-                for(int i=0;i<4;i++)Place(navigation[i],chrome,11,345+i*66,243,59,26);
+                for(int i=0;i<4;i++)Place(navigation[i],chrome,11,345+i*66,243,59,i==2&&installationReady?21:26);
                 Place(minimizeCaption,chrome,1350,3,58,47,29);Place(maximizeCaption,chrome,1410,3,58,47,27);Place(closeCaption,chrome,1470,3,58,47,36);
                 // Fit the active page in both dimensions. Optional rows retain
                 // fixed height and never enlarge the viewport.
@@ -208,6 +209,7 @@ namespace SuperRocket64 {
         private void SelectConcept(FlowLayoutPanel page) {
             if(chrome==null)return;int selected=page==homePage?0:(page==onlinePage||page==onlineChoicePage)?1:(page==settingsPage||page==updatePage)?3:2;
             for(int i=0;i<4;i++){var b=navigation[i];b.Selected=i==selected;b.Skin=(i==0&&b.Selected)||(i>0&&!b.Selected)?"01-play":null;b.Source=new Rectangle(11,345+i*66,243,59);b.Invalidate();}
+            navigation[2].Text=navigation[2].AccessibleName=installationReady?"CHARACTERS":"SETUP";navigation[2].IconName=installationReady?"characters":"setup";if(installationReady)navigation[2].Skin=null;
             CancelButton=page==progressPage?cancelOperation:page==updatePage?(updateError?useInstalled:null):FindButton(page,"Back")??FindButton(page,"Cancel")??(page==failurePage?failureBack:null);
             ArrangeConcept();pageHost.AutoScrollPosition=Point.Empty;if(IsHandleCreated)BeginInvoke(new Action(delegate{if(!IsDisposed&&page.Visible)page.SelectNextControl(null,true,true,true,false);}));
         }
@@ -224,7 +226,7 @@ namespace SuperRocket64 {
             mute.Visible=false;mute.Checked=false;
             Primary(play);((ConceptButton)play).IconName="play";((ConceptButton)online).IconName="online";((ConceptButton)setup).IconName="setup";
             Primary(notifyUpdate);notificationText.BackColor=ConceptTheme.Background;notificationText.ForeColor=ConceptTheme.White;
-            AddLayout(canvas,delegate{PageHeight(canvas,660);Place(title,canvas,0,45,1198,92,64);Place(play,canvas,0,214,583,96,33);Place(online,canvas,615,214,583,96,33);Place(characters,canvas,0,340,583,80,28);Place(setup,canvas,615,340,583,80,28);Place(notificationText,canvas,0,490,1198,50,27);Place(notifyUpdate,canvas,0,557,330,66,27);Place(dismissNotification,canvas,350,557,220,66,27);notificationText.Visible=notifyUpdate.Visible=dismissNotification.Visible=notificationVisible;});
+            AddLayout(canvas,delegate{setup.Text=installationReady?"Repair installation":"Setup / repair";PageHeight(canvas,660);Place(title,canvas,0,45,1198,92,64);Place(play,canvas,0,214,583,96,33);Place(online,canvas,615,214,583,96,33);Place(characters,canvas,0,340,583,80,28);Place(setup,canvas,615,340,583,80,28);Place(notificationText,canvas,0,490,1198,50,27);Place(notifyUpdate,canvas,0,557,330,66,27);Place(dismissNotification,canvas,350,557,220,66,27);notificationText.Visible=notifyUpdate.Visible=dismissNotification.Visible=notificationVisible;});
         }
         private void BuildLocationConcept() {
             Button browse=FindButton(install.Parent,"Browse..."),next=FindButton(locationPage,"Next"),cancel=FindButton(locationPage,"Cancel");var field=new ConceptField(install);var canvas=Canvas(locationPage);

@@ -228,7 +228,7 @@ namespace SuperRocket64 {
                     Need(LauncherForm.FriendlyStage("private raw converter diagnostics")==null,"Raw output reached UI");
                     Escape(form);Page(form,"onlineChoicePage");Escape(form);Page(form,"homePage");
                     Button homePlay=Button(Field<Control>(form,"homePage"),"Play Offline");Reach(form,homePlay);Need(form.SelectNextControl(homePlay,true,true,true,true),"Tab navigation failed");Snapshot(form,output,"home-keyboard-focus");
-                    foreach(int dpi in new[]{96,120,144,192}){Dpi(form,dpi);Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"homePage"));Snapshot(form,output,"home-dpi-"+dpi);Reach(form,Button(Field<Control>(form,"homePage"),"Setup / repair"));}
+                    foreach(int dpi in new[]{96,120,144,192}){Dpi(form,dpi);Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"homePage"));Snapshot(form,output,"home-dpi-"+dpi);Reach(form,Field<Button>(form,"setupRepair"));}
                     Dpi(form,96);form.ClientSize=new Size(1536,1024);
                     Field<Label>(form,"readyStatus").Text="Mario + Octane: ready\nOffline extras: none selected\nCar sounds: game audio fallback";
                     Field<Label>(form,"notice").Text="";Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"readyPage"));Snapshot(form,output,"ready");
@@ -250,13 +250,14 @@ namespace SuperRocket64 {
                     Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"setupPage"));Need(!Field<Button>(form,"sourceNext").Enabled,"Blank sources enabled Next");Reach(form,Button(Field<Control>(form,"setupPage"),"Back"));Escape(form);Page(form,"locationPage");
                     string longFailure=String.Join(" ",new string[12]).Replace(" ","This source needs repair. Check the original file and available disk space before trying again. ");
                     Field<Label>(form,"failureText").Text=LauncherForm.PlainFailure(longFailure);Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"failurePage"));Need(Field<Label>(form,"failureText").Height>164*960/1536,"Long recovery copy did not expand");Snapshot(form,output,"recovery-long-minimum");Reach(form,Button(Field<Control>(form,"failurePage"),"Retry / resume"));
-                    form.ClientSize=new Size(1280,720);Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"homePage"));Reach(form,Button(Field<Control>(form,"homePage"),"Setup / repair"));Snapshot(form,output,"home-wide-short");
+                    form.ClientSize=new Size(1280,720);Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"homePage"));Reach(form,Field<Button>(form,"setupRepair"));Snapshot(form,output,"home-wide-short");
                     Dpi(form,96);form.ClientSize=new Size(1152,768);ChoicePaint(form,output,"settings-native-default");
                     foreach(int dpi in new[]{96,120,144,192}){Dpi(form,dpi);ChoicePaint(form,output,"settings-native-dpi-"+dpi);}
                     Dpi(form,96);form.ClientSize=new Size(960,640);ChoicePaint(form,output,"settings-native-minimum");
                     form.ClientSize=new Size(1536,1024);StartupRoutes(form,output,transport);
                     SourceSelection(form,output);
                     AddCharacters(form,output);
+                    InstalledRoutes(form,output);
                     foreach(int dpi in new[]{96,120,144,192}){Dpi(form,dpi);AllPagesFit(form,output,"dpi-"+dpi);}
                     Dpi(form,96);form.ClientSize=new Size(960,640);AllPagesFit(form,output,"minimum");
                     form.ClientSize=new Size(1280,720);AllPagesFit(form,output,"wide");
@@ -305,6 +306,14 @@ namespace SuperRocket64 {
             Set(form,"installationReady",false);Call(form,"ShowAddCharacters");Page(form,"locationPage");
         }
         static void Lifecycle(string output){
+            string verified=Path.Combine(output,"verify-installed");Directory.CreateDirectory(Installer.Destination(verified,PayloadInfo.ZipSha256));var verifyCommands=new List<List<string>>();
+            using(var form=OperationForm(verified,verifyCommands)){
+                Field<TextBox>(form,"rom").Text="previous ROM selection";Field<TextBox>(form,"game").Text="previous Rocket League selection";
+                string preferences=UpdatePreferences.PathFor(verified);new UpdatePreferences{AutomaticChecks=false}.Save(verified);string before=File.ReadAllText(preferences);
+                Field<Button>(form,"setupRepair").PerformClick();Page(form,"failurePage");Need(Field<bool>(form,"repairOverview"),"Installed repair launched wizard automatically");Click(Field<Control>(form,"failurePage"),"Verify installation");WaitUpdate(form);Page(form,"extrasPage");
+                Need(verifyCommands.Count==1&&verifyCommands[0][0]=="wizard-status"&&Field<bool>(form,"addingCharacters"),"Verified repair repeated setup instead of Characters");
+                Need(Field<TextBox>(form,"rom").Text=="previous ROM selection"&&Field<TextBox>(form,"game").Text=="previous Rocket League selection"&&File.ReadAllText(preferences)==before,"Installed verification changed selections/settings");form.Close();
+            }
             string adding=Path.Combine(output,"add-flow");Directory.CreateDirectory(adding);File.WriteAllText(Path.Combine(adding,"finish"),"done");
             var addCommands=new List<List<string>>();using(var form=OperationForm(adding,addCommands)){
                 var prefs=new UpdatePreferences{AutomaticChecks=false,Configured=true};prefs.Save(adding);string before=File.ReadAllText(UpdatePreferences.PathFor(adding));
@@ -361,6 +370,26 @@ namespace SuperRocket64 {
                 var bar=Field<ProgressBar>(form,"progress");Need(bar.Style==ProgressBarStyle.Continuous&&bar.Value==250,"Measured 25/100 did not produce 25%");Snapshot(form,output,"measured-progress-fixture");
                 Call(form,"MeasuredProgress",39,"Stale",99L,100L);Need(bar.Value==250,"Stale progress changed current operation");Call(form,"MeasuredProgress",40,"Unknown phase",0L,0L);Need(bar.Style==ProgressBarStyle.Marquee,"Unknown phase retained percentage");Call(form,"ClearBusy");Need(!bar.Visible&&bar.Value==0,"Completion retained progress");form.Close();
             }
+        }
+        static void InstalledRoutes(LauncherForm form,string output){
+            var navigation=Field<ConceptButton[]>(form,"navigation");Set(form,"installationReady",false);Call(form,"ShowPage",Field<FlowLayoutPanel>(form,"locationPage"));
+            Need(navigation[2].Text=="SETUP","Fresh installation lost Setup tab");navigation[2].PerformClick();Application.DoEvents();Page(form,"locationPage");
+            string root=Field<TextBox>(form,"install").Text,rom=Field<TextBox>(form,"rom").Text,game=Field<TextBox>(form,"game").Text;
+            string prefsPath=UpdatePreferences.PathFor(root),prefs=File.Exists(prefsPath)?File.ReadAllText(prefsPath):null;
+            Set(form,"lastReport",Report(true,true,"octane","link"));Call(form,"CompleteInspection",false);Page(form,"extrasPage");
+            Need(navigation[2].Text=="CHARACTERS"&&navigation[2].AccessibleName=="CHARACTERS"&&Field<bool>(form,"addingCharacters"),"Verified installation did not transform Setup into Characters");
+            Need(((ConceptCheckBox)Field<CheckBox[]>(form,"extraChoices")[0]).DisplayText=="Link \u00b7 Ocarina of Time","Characters text has an encoding artifact");
+            Need(!Field<RadioButton>(form,"extrasNo").Visible&&!Field<RadioButton>(form,"extrasYes").Visible&&TextControl(Field<Control>(form,"extrasPage"),"Characters").Visible,"Installed Characters retained wizard controls/title");
+            Dpi(form,96);form.ClientSize=new Size(1536,1024);Field<Label>(form,"notice").Text="";Snapshot(form,output,"installed-characters");
+            Escape(form);Page(form,"homePage");Need(Field<Button>(form,"setupRepair").Text=="Repair installation","Installed repair action is not explicit");Snapshot(form,output,"installed-play");
+            navigation[2].PerformClick();Application.DoEvents();Page(form,"extrasPage");Need(Field<bool>(form,"addingCharacters"),"Characters tab reopened base wizard");
+            foreach(int dpi in new[]{96,120,144,192}){Dpi(form,dpi);ControlsFit(Field<Control>(form,"extrasPage"),Field<Panel>(form,"pageHost"));Snapshot(form,output,"installed-characters-dpi-"+dpi);}
+            Dpi(form,96);form.ClientSize=new Size(960,640);ControlsFit(Field<Control>(form,"extrasPage"),Field<Panel>(form,"pageHost"));Snapshot(form,output,"installed-characters-minimum");
+            Escape(form);Click(Field<Control>(form,"homePage"),"Add characters");Page(form,"extrasPage");Need(Field<bool>(form,"addingCharacters"),"Play Add characters is not standalone");Escape(form);
+            Field<Button>(form,"setupRepair").PerformClick();Page(form,"failurePage");Need(Field<bool>(form,"repairOverview")&&!Field<bool>(form,"running"),"Repair entry started work automatically");Snapshot(form,output,"installed-repair");Escape(form);Page(form,"homePage");
+            Need(Field<TextBox>(form,"install").Text==root&&Field<TextBox>(form,"rom").Text==rom&&Field<TextBox>(form,"game").Text==game,"Navigation lost installation/source selections");Need((File.Exists(prefsPath)?File.ReadAllText(prefsPath):null)==prefs,"Navigation rewrote existing settings");
+            Set(form,"lastReport",Report(false,false,"octane"));Call(form,"CompleteInspection",true);Page(form,"locationPage");Need(navigation[2].Text=="SETUP","Incomplete installation skipped full wizard");
+            Set(form,"repairOverview",false);Field<Button>(form,"retrySetup").Text="Retry / resume";Field<Button>(form,"failureBack").Text="Back / change source";
         }
 
         [STAThread] static int Main(string[] args) {

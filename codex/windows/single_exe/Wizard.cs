@@ -23,10 +23,11 @@ namespace SuperRocket64 {
         private Dictionary<string, object> lastReport = new Dictionary<string, object>();
         private readonly Queue<List<string>> setupQueue = new Queue<List<string>>();
         private Action retryAction, skipAction;
-        private Button skipOptional, failureBack;
+        private Button skipOptional, failureBack, retrySetup;
         private FlowLayoutPanel failureReturn;
         private bool installationReady;
         private bool addingCharacters;
+        private bool repairOverview;
         private bool installSteps;
         private string progressSubtitle="Working";
         private readonly HashSet<string> readyCharacters = new HashSet<string>();
@@ -69,7 +70,7 @@ namespace SuperRocket64 {
             readyPage.Controls.Add(TextBlock("Notifications: check at startup and choose Update now or Later. Manual: no startup checks. Assets, controls and saves are preserved."));
             AddButton(readyPage, "Play Offline", delegate { FinishWizard(true); }); AddButton(readyPage, "Open launcher", delegate { FinishWizard(false); });
             AddPageText(failurePage, "Let's finish setup", ""); failurePage.Controls.Add(failureText);
-            AddButton(failurePage, "Retry / resume", delegate { if (retryAction != null) retryAction(); });
+            retrySetup=AddButton(failurePage, "Retry / resume", delegate { if (retryAction != null) retryAction(); });
             skipOptional = AddButton(failurePage, "Skip this optional character", delegate { if (skipAction != null) skipAction(); });
             failureBack = AddButton(failurePage, "Back / change source", delegate { ShowPage(failureReturn ?? setupPage); });
             AddButton(failurePage, "Repair program files", RepairProgramFiles);
@@ -78,6 +79,12 @@ namespace SuperRocket64 {
             InitializeSourceValidation();
         }
         private void CancelWizard() { addingCharacters=false; if (installationReady) ShowPage(homePage); else Close(); }
+        private void ShowInstallSection(){if(installationReady)ShowAddCharacters();else ShowSetupPage();}
+        private void ShowRepairPage(){
+            repairOverview=true;addingCharacters=false;failureReturn=homePage;failureBack.Text="Back";retrySetup.Text="Verify installation";
+            failureText.Text="Verify the existing installation, or repair its program files. Your character assets, saves and settings are retained.";
+            retryAction=delegate{InspectInstallation(false);};skipAction=null;skipOptional.Visible=false;notice.Text="";ShowPage(failurePage);
+        }
         private void ShowAddCharacters(){
             if(!installationReady){notice.Text="Finish the base setup first.";ShowSetupPage();return;}
             addingCharacters=true;extrasYes.Checked=true;notice.Text="";ShowPage(extrasPage);
@@ -91,8 +98,8 @@ namespace SuperRocket64 {
         }
         private void CompleteInspection(bool startup) {
                 ApplyReport();
-                if (startup && installationReady) {
-                    ShowPage(homePage); ContinueStartupUpdates();
+                if (installationReady) {
+                    if(startup){ShowPage(homePage);ContinueStartupUpdates();}else ShowAddCharacters();
                 }
                 else {
                     sourceStatus.Text = "";
@@ -148,6 +155,7 @@ namespace SuperRocket64 {
         private void PlayOffline() { BeginOperation(Commands.Play("wheel", "octane", "", 7777, "", mute.Checked), false, null); }
         private void ShowFailure(string message, Action retry, Action skip) { ShowFailure(message, retry, skip, addingCharacters ? extrasPage : setupPage); }
         private void ShowFailure(string message, Action retry, Action skip, FlowLayoutPanel returnTo) {
+            repairOverview=false;retrySetup.Text="Retry / resume";
             failureReturn = returnTo; failureBack.Text = returnTo == onlinePage ? "Back to connection" : "Back / change source";
             failureText.Text = message; retryAction = retry; skipAction = skip; skipOptional.Visible = skip != null; ShowPage(failurePage);
         }

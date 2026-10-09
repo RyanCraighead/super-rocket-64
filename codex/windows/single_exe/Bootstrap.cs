@@ -557,7 +557,7 @@ namespace SuperRocket64 {
         private readonly NumericUpDown port = new NumericUpDown();
         private readonly ComboBox onlineCharacter = new ConceptComboBox(), shareAddresses = new ConceptComboBox();
         private readonly Button copyAddress = new ConceptButton(), refreshAddresses = new ConceptButton(), cancelOperation = new ConceptButton();
-        private readonly Button startHost, joinGame;
+        private readonly Button startHost, joinGame, setupRepair;
         private readonly Label addressStatus = new ConceptLabel(), onlineHeading = new ConceptLabel(), notice = new ConceptLabel();
         private readonly FlowLayoutPanel homePage = NewPage(), setupPage = NewPage(), onlineChoicePage = NewPage(), onlinePage = NewPage();
         private readonly Panel pageHost = new Panel();
@@ -585,7 +585,7 @@ namespace SuperRocket64 {
             AddPageText(homePage, "Super Rocket 64", "Jump, boost and fly through the Mushroom Kingdom.");
             AddButton(homePage, "Play Offline", PlayOffline);
             AddButton(homePage, "Online", delegate { ShowPage(onlineChoicePage); });
-            AddButton(homePage, "Setup / repair", ShowSetupPage);
+            setupRepair=AddButton(homePage, "Setup / repair", delegate{if(installationReady)ShowRepairPage();else ShowSetupPage();});
             AddButton(homePage, "Add characters", ShowAddCharacters);
             mute.Text = "Mute this game session"; mute.AutoSize = true; homePage.Controls.Add(mute);
 

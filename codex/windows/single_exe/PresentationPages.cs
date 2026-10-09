@@ -29,6 +29,7 @@ namespace SuperRocket64 {
                 extraChoices[i].CheckedChanged+=delegate{if(chrome!=null){ArrangeConcept();if(extraChoices[index].Checked)extraSources[index].Focus();}};
             }
             var canvas=Canvas(extrasPage);Header(canvas,"Optional characters","3 of 5  ·  Offline extras","05-optional-characters",new Rectangle(299,84,660,69),660,69);
+            var wizardHeading=canvas.Controls[0];var charactersHeading=CopyLabel("Characters",true);
             var warning=CopyLabel("VERY WIP · Some progression may not work. Switch back to Mario or Octane if stuck.",true);warning.ForeColor=Color.FromArgb(255,217,52);warning.BackColor=Color.FromArgb(32,32,14);
             extraInputs.Controls.Clear();extraInputs.AutoSize=false;extraInputs.Padding=Padding.Empty;extraInputs.Margin=Padding.Empty;extraInputs.BackColor=ConceptTheme.Background;var list=new ConceptCanvas();extraInputs.Controls.Add(list);
             var onlineNotice=CopyLabel("Optional characters are for offline play.",false);
@@ -45,7 +46,8 @@ namespace SuperRocket64 {
                 }
                 list.Size=new Size((int)(1198*conceptScale),(int)(460*conceptScale));
                 float footer=addingCharacters?700:extrasYes.Checked?825:550;PageHeight(canvas,addingCharacters?790:895);
-                canvas.Controls[1].Text=addingCharacters?"Add characters to your existing installation":"3 of 5  -  Offline extras";
+                wizardHeading.Visible=!addingCharacters;Place(charactersHeading,canvas,0,0,1198,73,60);charactersHeading.Visible=addingCharacters;
+                canvas.Controls[1].Text=addingCharacters?"Mario and Octane are ready. Manage your offline extras.":"3 of 5  -  Offline extras";
                 Place(warning,canvas,60,addingCharacters?130:209,1130,37,22);Place(extrasNo,canvas,29,265,550,55,24);Place(extrasYes,canvas,625,265,573,55,24);extrasNo.Visible=extrasYes.Visible=!addingCharacters;
                 Place(extraInputs,canvas,0,addingCharacters?199:336,1198,460,22);extraInputs.Visible=extrasYes.Checked;Place(noExtras,canvas,31,355,1140,80,27);noExtras.Visible=!extrasYes.Checked;
                 Place(onlineNotice,canvas,31,addingCharacters?668:extrasYes.Checked?798:footer-34,1140,24,19);Place(back,canvas,0,footer,195,62,27);Place(cancel,canvas,216,footer,194,62,27);Place(installExtras,canvas,909,footer,289,62,27);
@@ -69,9 +71,10 @@ namespace SuperRocket64 {
             AddLayout(updateCanvas,delegate{float messageHeight=CopyHeight(updateMessage.Text,838,26,148);updateExtra=Math.Max(0,messageHeight-148);PageHeight(updateCanvas,881+updateExtra);Place(updateMessage,updateCanvas,312,192,838,messageHeight,26);Place(keepData,updateCanvas,312,355+updateExtra,838,106,24);Place(gameWarning,updateCanvas,160,502+updateExtra,970,44,25);Place(installUpdate,updateCanvas,40,595+updateExtra,1118,86,30);Place(retryUpdate,updateCanvas,40,715+updateExtra,550,69,23);Place(useInstalled,updateCanvas,610,715+updateExtra,550,69,23);retryUpdate.Visible=useInstalled.Visible=updateError;});
             Button retry=FindButton(failurePage,"Retry / resume"),repair=FindButton(failurePage,"Repair program files"),close=FindButton(failurePage,"Close");var failureCanvas=Canvas(failurePage);
             Header(failureCanvas,"Let's finish setup","Your completed work is safe.","06-operation-states",new Rectangle(960,620,393,41),700,73);Primary(retry);failureText.ForeColor=Color.FromArgb(255,214,67);failureText.BackColor=Color.FromArgb(31,29,15);
+            var recoveryHeading=failureCanvas.Controls[0];var repairHeading=CopyLabel("Repair installation",true);
             float failureExtra=0;var optionalNote=CopyLabel("For optional-character failures only",false);
             failureCanvas.PaintDesign=delegate(Graphics g){ConceptTheme.Card(g,new RectangleF(0,186,1198,205+failureExtra),Color.FromArgb(194,161,24));ConceptTheme.Icon(g,"info",new RectangleF(35,243,71,71),Color.FromArgb(255,214,67));};
-            AddLayout(failureCanvas,delegate{failureExtra=CopyHeight(failureText.Text,1010,27,164)-164;PageHeight(failureCanvas,881+failureExtra);Place(failureText,failureCanvas,147,207,1010,164+failureExtra,27);Place(retry,failureCanvas,0,420+failureExtra,1198,87,30);Place(failureBack,failureCanvas,0,535+failureExtra,386,72,25);Place(repair,failureCanvas,407,535+failureExtra,459,72,25);Place(close,failureCanvas,886,535+failureExtra,312,72,25);Place(optionalNote,failureCanvas,4,656+failureExtra,1185,43,21);optionalNote.Visible=skipOptional.Visible;Place(skipOptional,failureCanvas,0,710+failureExtra,1198,78,25);});
+            AddLayout(failureCanvas,delegate{recoveryHeading.Visible=!repairOverview;Place(repairHeading,failureCanvas,0,0,1198,73,60);repairHeading.Visible=repairOverview;failureExtra=CopyHeight(failureText.Text,1010,27,164)-164;PageHeight(failureCanvas,881+failureExtra);Place(failureText,failureCanvas,147,207,1010,164+failureExtra,27);Place(retry,failureCanvas,0,420+failureExtra,1198,87,30);Place(failureBack,failureCanvas,0,535+failureExtra,386,72,25);Place(repair,failureCanvas,407,535+failureExtra,459,72,25);Place(close,failureCanvas,886,535+failureExtra,312,72,25);Place(optionalNote,failureCanvas,4,656+failureExtra,1185,43,21);optionalNote.Visible=skipOptional.Visible;Place(skipOptional,failureCanvas,0,710+failureExtra,1198,78,25);});
         }
     }
 }
